@@ -2,7 +2,7 @@
   "name": "TJMG Fiscal",
   "short_name": "TJMG Fiscal",
   "description": "Sistema de Fiscalização Predial — TJMG",
-  "start_url": "./index.html?v=79",
+  "start_url": "./index.html?v=79b",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

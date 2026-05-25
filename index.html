@@ -194,6 +194,41 @@ input:focus,textarea:focus{border-color:var(--a);}
   <div class="scrl" id="comp-body"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     TELA: MAPA DE EDIFICAÇÕES (v79)
+════════════════════════════════════════════════════════════ -->
+<div class="scr" id="s-mapa" style="padding-top:var(--st)">
+  <div class="hdr ha">
+    <div class="bkb" onclick="Gb('s-home');rHome()">&#8249;</div>
+    <div style="flex:1;"><div class="ht">🗺️ Mapa de Edificações</div><div class="hs">Localização por comarca</div></div>
+  </div>
+  <div id="mapa-ctrl" style="flex-shrink:0;"></div>
+  <div id="mapa-body" style="flex:1;overflow:hidden;"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TELA: IMR — Índice de Medição (v79)
+════════════════════════════════════════════════════════════ -->
+<div class="scr" id="s-imr" style="padding-top:var(--st)">
+  <div class="hdr" style="background:#0f766e;">
+    <div class="bkb" onclick="Gb('s-home');rHome()">&#8249;</div>
+    <div style="flex:1;"><div class="ht">📊 Cálculo IMR</div><div class="hs">Índice de Medição de Resultado</div></div>
+    <button onclick="rIMR()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">↻</button>
+  </div>
+  <div class="scrl" id="imr-body"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TELA: AUDITORIA (v79)
+════════════════════════════════════════════════════════════ -->
+<div class="scr" id="s-audit" style="padding-top:var(--st)">
+  <div class="hdr" style="background:#1e293b;">
+    <div class="bkb" onclick="Gb('s-perfil');rPerf()">&#8249;</div>
+    <div style="flex:1;"><div class="ht">🔍 Log de Auditoria</div><div class="hs">Ações registradas</div></div>
+  </div>
+  <div class="scrl" id="audit-body"></div>
+</div>
+
 <div class="scr" id="s-pci" style="padding-top:var(--st)">
   <div class="hdr hr"><span class="bkb" onclick="if(S._admPciSessao){S.sessao=S._admPciSessao;delete S._admPciSessao;G('s-admin');}else{G('s-home');}">&#8592;</span>
   <div><div class="ht" id="pci-ht">&#129711; Controle PCI</div><div class="hs" id="pci-hs">carregando...</div></div></div>
@@ -416,6 +451,13 @@ input:focus,textarea:focus{border-color:var(--a);}
 <!-- ── Fase 5: admin + formulário modularizados (v78) ── -->
 <script src="admin.js"></script>
 <script src="form.js"></script>
+<!-- ── v79: novos módulos ── -->
+<script src="coords.js"></script>
+<script src="map.js"></script>
+<script src="imr.js"></script>
+<script src="prontuario-edif.js"></script>
+<script src="photo-annotate.js"></script>
+<script src="audit.js"></script>
 
 <script>
 'use strict';
@@ -633,6 +675,10 @@ function rHome(){
     +'<div style="flex:1;text-align:left;"><div style="font-weight:800;">Sincronizar Equipe</div><div style="font-size:9px;opacity:.8;font-weight:500;">'+(navigator.onLine?_fmtLastSync():'Sem conexão')+'</div></div>'
     +'<span style="font-size:18px;opacity:.6;">↑↓</span>'
     +'</button>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">'
+    +'<button class="btn" style="font-size:11px;padding:10px;background:#003580;color:#fff;" onclick="G(\'s-mapa\');rMapa()">🗺️ Mapa</button>'
+    +'<button class="btn" style="font-size:11px;padding:10px;background:#0f766e;color:#fff;" onclick="G(\'s-imr\');rIMR()">📊 IMR</button>'
+    +'</div>'
     +'<div class="cta" onclick="navt(\'tipos\')">'
     +'<span style="font-size:22px;">+</span>'
     +'<div style="flex:1;"><div style="font-size:14px;font-weight:800;color:#fff;">Criar Relatorio</div>'
@@ -961,6 +1007,10 @@ function rPerf(){
       ?'<div style="background:#dcfce7;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="font-size:22px;">✅</span><div><div style="font-size:12px;font-weight:700;color:#16a34a;">App instalado</div><div style="font-size:11px;color:#16a34a;">Rodando em modo app</div></div></div>'
       :'<button id="btn-instalar" onclick="instalarApp()" style="display:'+((_installPrompt)?'flex':'none')+';width:100%;align-items:center;justify-content:center;gap:10px;background:#003580;color:#fff;border:none;border-radius:12px;padding:14px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">📲 Instalar App no Dispositivo</button>'
     )
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+    +'<button class="btn" style="background:#0f766e;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-imr\');rIMR()">📊 IMR</button>'
+    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-audit\');rAudit()">🔍 Auditoria</button>'
+    +'</div>'
     +'<button class="btn boa" onclick="logout()">Trocar Técnico / Sair</button>'
     +'<button class="btn" style="background:#fee2e2;color:#dc2626;" onclick="logout()">Sair – '+s.nome.split(' ')[0]+'</button>'
     +'<div style="height:8px;"></div>';
@@ -1481,6 +1531,7 @@ function _renderDet(id){
     }
     /* v79: Duplicar como modelo + Desfazer (só rascunhos) */
     h+='<button class="btn" style="background:#2563eb;color:#fff;margin-bottom:6px;font-size:12px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
+    if(i.edif)h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirPronEdif(\''+i.edif+'\',' +'\''+( '')+'\''+i.com+'\')">🏛️ Prontuário (NBR 5674)</button>';
     h+='<div style="height:16px;"></div>';
 
   } else {
@@ -1520,6 +1571,7 @@ function _renderDet(id){
     h+='</div>';
     h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="var _b2=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b2,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar</button>';
     h+='<button class="btn" style="background:#2563eb;color:#fff;margin-bottom:6px;font-size:12px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
+    h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirPronEdif(\''+i.edif+'\',\''+( i.com||'')+'\')">🏛️ Prontuário (NBR 5674)</button>';
     h+='<div style="height:16px;"></div>';
   }
 
@@ -1543,7 +1595,9 @@ function renderItemPhotos(){
   pv.innerHTML=_ifotos.map(function(f,ix){
     return'<div style="border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;margin-bottom:8px;">'
       +'<div style="position:relative;"><img src="'+f.b64+'" style="width:100%;max-height:180px;object-fit:cover;display:block;">'
-      +'<button onclick="_ifotos.splice('+ix+',1);renderItemPhotos()" style="position:absolute;top:6px;right:6px;background:rgba(220,38,38,.9);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;cursor:pointer;">✕</button></div>'
+      +'<button onclick="_ifotos.splice('+ix+',1);renderItemPhotos()" style="position:absolute;top:6px;right:6px;background:rgba(220,38,38,.9);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;cursor:pointer;">✕</button>'
+      +'<button onclick="abrirAnnot(_ifotos['+ix+'].b64,function(b64){_ifotos['+ix+'].b64=b64;renderItemPhotos();})" style="position:absolute;top:6px;left:6px;background:rgba(0,53,128,.9);border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Anotar</button>'
+      +'</div>'
       +'<input placeholder="Legenda da foto..." value="'+(f.leg||'')+'" oninput="_ifotos['+ix+'].leg=this.value" style="border:none;border-top:1px solid #f1f5f9;border-radius:0;border-bottom-left-radius:10px;border-bottom-right-radius:10px;font-size:12px;padding:8px 10px;width:100%;"></div>';
   }).join('');
 }
