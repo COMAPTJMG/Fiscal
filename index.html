@@ -1894,7 +1894,7 @@ function mostrarComparativo(inspId){
 }
 window.mostrarComparativo=mostrarComparativo;
 
-
+async function bootApp(){
   await DB.ld();
   startSessaoMonitor(); /* v78: monitor de expiração de sessão */
   initErrorBoundary();  /* v79: captura erros JS globais */
