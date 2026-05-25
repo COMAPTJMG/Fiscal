@@ -161,6 +161,39 @@ function coordExpSel(){
   Tt('Exportando '+ids.length+' relatório(s)...');
   ids.forEach(function(id,idx){setTimeout(function(){exportHTML(id);},idx*600);});
 }
+/* ── v78-fix: seleção múltipla fiscal (tela Relatórios) ── */
+function fiscToggleSel(id){
+  S._fiscSel=S._fiscSel||[];
+  var idx=S._fiscSel.indexOf(id);
+  if(idx===-1)S._fiscSel.push(id);
+  else S._fiscSel.splice(idx,1);
+  rRel();
+}
+function fiscSelAll(){
+  var base=filterByReg(S.rflt==='todos'?S.insp:S.insp.filter(function(i){return i.tipo===S.rflt;}));
+  var allIds=base.map(function(i){return i.id;});
+  S._fiscSel=S._fiscSel||[];
+  var todos=allIds.length>0&&allIds.every(function(id){return S._fiscSel.indexOf(id)!==-1;});
+  S._fiscSel=todos?[]:allIds.slice();
+  rRel();
+}
+function fiscExpSel(){
+  var ids=(S._fiscSel||[]).filter(function(id){
+    var i=S.insp.find(function(x){return x.id===id;});
+    return i&&i.st==='finalizada';
+  });
+  if(!ids.length){Tt('Nenhuma finalizada selecionada para HTML.');return;}
+  Tt('Exportando '+ids.length+' relatório(s)...');
+  ids.forEach(function(id,idx){setTimeout(function(){exportHTML(id);},idx*600);});
+}
+function fiscExpSelPDF(){
+  var ids=(S._fiscSel||[]).filter(function(id){
+    var i=S.insp.find(function(x){return x.id===id;});
+    return i&&i.st==='finalizada';
+  });
+  if(!ids.length){Tt('Nenhuma finalizada selecionada para PDF.');return;}
+  exportPDFBatch(ids);
+}
 function openDetCoord(id){
   S.did=id;
   var i=S.insp.find(function(x){return x.id===id;});if(!i)return;
@@ -260,3 +293,8 @@ window.coordExpSel    = coordExpSel;
 window.openDetCoord   = openDetCoord;
 window.cancelPin      = cancelPin;
 window.coordExpSelPDF = coordExpSelPDF;
+window.fiscToggleSel  = fiscToggleSel;
+window.fiscSelAll     = fiscSelAll;
+window.fiscExpSel     = fiscExpSel;
+window.fiscExpSelPDF  = fiscExpSelPDF;
+window.admExpSelPDF   = admExpSelPDF;

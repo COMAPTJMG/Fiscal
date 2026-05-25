@@ -74,6 +74,7 @@ input:focus,textarea:focus{border-color:var(--a);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 #offbar{background:#f59e0b;color:#fff;text-align:center;padding:5px;font-size:11px;font-weight:700;display:none;flex-shrink:0;}
 </style>
+<link rel="stylesheet" href="./design.css">
 </head>
 <body>
 <div id="app">
@@ -113,6 +114,7 @@ input:focus,textarea:focus{border-color:var(--a);}
   <div style="padding:8px 12px;background:#fff;border-bottom:1px solid var(--bo);flex-shrink:0;"><input id="rel-busca" placeholder="Buscar comarca, edifício ou fiscal..."></div>
   <div id="rflt" style="background:#fff;display:flex;gap:6px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--bo);flex-shrink:0;"></div>
   <div id="rsts" style="background:#f8fafc;display:flex;gap:6px;padding:6px 12px;overflow-x:auto;border-bottom:1px solid var(--bo);flex-shrink:0;min-height:38px;"></div>
+  <div id="rel-sel-bar" style="flex-shrink:0;"></div>
   <div class="scrl" id="rlst"></div>
   <div class="bnv" id="bn2"></div>
 </div>
@@ -593,17 +595,66 @@ function rRel(){
   }
 }
 function _renderRelLista(lista){
+  /* v78-fix: seleção múltipla fiscal — HTML e PDF em massa */
+  S._fiscSel=S._fiscSel||[];
+  var allIds=lista.map(function(i){return i.id;});
+  var nFiscSel=S._fiscSel.length;
+  var todosSelected=allIds.length>0&&allIds.every(function(id){return S._fiscSel.indexOf(id)!==-1;});
+
+  /* Barra de seleção */
+  var selBarEl=el('rel-sel-bar');
+  if(selBarEl){
+    if(nFiscSel>0){
+      selBarEl.style.display='block';
+      selBarEl.innerHTML='<div style="background:#003580;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+        +'<span style="font-size:12px;font-weight:800;color:#fff;flex:1;">'+nFiscSel+' selecionada(s)</span>'
+        +'<button onclick="fiscExpSel()" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;">📄 HTML</button>'
+        +'<button onclick="fiscExpSelPDF()" style="background:#1a2332;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px;">📄 PDF</button>'
+        +'<button onclick="S._fiscSel=[];rRel()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:11px;cursor:pointer;">✕</button>'
+        +'</div>';
+    }else{selBarEl.style.display='none';selBarEl.innerHTML='';}
+  }
+
   if(!lista.length){el('rlst').innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:40px;">&#128194;</div><div style="font-size:14px;color:#94a3b8;margin-top:10px;font-weight:600;">Nenhum relatório</div></div>';return;}
-  el('rlst').innerHTML=lista.map(function(i){
+
+  /* Botão selecionar todos */
+  var selAllHtml='<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid #f1f5f9;flex-shrink:0;">'
+    +'<button onclick="fiscSelAll()" style="border:1px solid #e2e8f0;background:'+(todosSelected?'#003580':'#f8fafc')+';color:'+(todosSelected?'#fff':'#64748b')+';border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">'+(todosSelected?'☑ Desmarcar todos':'☐ Selecionar todos')+'</button>'
+    +(nFiscSel>0?'<span style="font-size:11px;color:#003580;font-weight:700;">'+nFiscSel+' de '+allIds.length+'</span>':'')
+    +'</div>';
+
+  var cardsHtml=lista.map(function(i){
     var t=TIPOS[i.tipo]||TIPOS.periodica;
     var st=i.st==='finalizada'?{l:'Enviado',bg:'#dcfce7',c:'#16a34a'}:{l:'Rascunho',bg:'#fef3c7',c:'#d97706'};
     var pst='';
     if(i.tipo==='prontuario'){var ps=_pronSt(i);var ptab={vencido:{l:'Vencido',bg:'#fee2e2',c:'#dc2626'},vence30:{l:'30d',bg:'#fef3c7',c:'#d97706'},vigente:{l:'Vigente',bg:'#dcfce7',c:'#16a34a'},pendente:{l:'Pend.',bg:'#f1f5f9',c:'#94a3b8'}};var pd=ptab[ps]||ptab.pendente;pst='<span class="bdg" style="background:'+pd.bg+';color:'+pd.c+';">'+pd.l+'</span>';}
-    return'<div class="card" style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openDet(\''+i.id+'\')">'
-      +'<div style="width:36px;height:36px;border-radius:9px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;">'+t.i+'</div>'
-      +'<div style="flex:1;"><div style="font-size:13px;font-weight:700;">'+i.edif+'</div><div style="font-size:10px;color:#64748b;">'+(i.com||'-')+' — '+fdt(i.dtVistoria||i.data)+'</div><div style="font-size:10px;color:#94a3b8;">'+(i.fiscal||'')+'</div></div>'
-      +'<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;"><span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span><span class="bdg" style="background:'+st.bg+';color:'+st.c+';">'+st.l+'</span>'+pst+'</div></div>';
+    var sel=S._fiscSel.indexOf(i.id)!==-1;
+    var fin=i.st==='finalizada';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 12px 4px;">'
+      +'<div onclick="fiscToggleSel(\''+i.id+'\')" style="flex-shrink:0;width:26px;height:26px;border-radius:7px;border:2px solid '+(sel?'#003580':'#cbd5e1')+';background:'+(sel?'#003580':'#fff')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;cursor:pointer;transition:all .15s;">'+(sel?'✓':'')+'</div>'
+      +'<div class="card" style="flex:1;margin:0;border:2px solid '+(sel?'#003580':'transparent')+';cursor:pointer;padding:11px 12px;transition:border-color .15s;" onclick="openDet(\''+i.id+'\')">'
+        +'<div style="display:flex;align-items:center;gap:8px;">'
+          +'<div style="width:36px;height:36px;border-radius:9px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">'+t.i+'</div>'
+          +'<div style="flex:1;min-width:0;">'
+            +'<div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+i.edif+'</div>'
+            +'<div style="font-size:10px;color:#64748b;margin-top:1px;">'+(i.com||'-')+' · '+fdt(i.dtVistoria||i.data)+'</div>'
+            +'<div style="font-size:10px;color:#94a3b8;">'+(i.fiscal||'')+'</div>'
+            +'<div style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;">'
+              +'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span>'
+              +'<span class="bdg" style="background:'+st.bg+';color:'+st.c+';">'+st.l+'</span>'
+              +pst
+            +'</div>'
+          +'</div>'
+          +'<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;" onclick="event.stopPropagation();">'
+            +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#003580;color:#fff;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')
+            +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#1a2332;color:#fff;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')
+          +'</div>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
   }).join('');
+
+  el('rlst').innerHTML=selAllHtml+cardsHtml;
 }
 function _renderRelPronTable(lista,ss){
   var today=new Date();today.setHours(0,0,0,0);var ms30=30*24*60*60*1000;
@@ -1505,7 +1556,8 @@ function rAdm(){
     if(nSel>0){
       h2+='<div style="position:sticky;top:0;z-index:10;background:#003580;border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
       h2+='<span style="font-size:12px;font-weight:800;color:#fff;flex:1;">'+nSel+' selecionada(s)</span>';
-      h2+='<button onclick="admExpSel()" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;">📄 Exportar</button>';
+      h2+='<button onclick="admExpSel()" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;">📄 HTML</button>';
+      h2+='<button onclick="admExpSelPDF()" style="background:#1a2332;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px;">📄 PDF</button>';
       h2+='<button onclick="admDelSel()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;">🗑 Excluir</button>';
       h2+='<button onclick="S._admSel=[];rAdm()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:11px;cursor:pointer;">✕ Limpar</button>';
       h2+='</div>';
@@ -1708,9 +1760,17 @@ function admExpSel(){
   if(!ids.length){Tt('Nenhuma finalizada selecionada');return;}
   ids.forEach(function(id,idx){setTimeout(function(){exportHTML(id);},idx*600);});
 }
+/* v78-fix: exportação PDF em massa para admin */
+function admExpSelPDF(){
+  S._admSel=S._admSel||[];
+  var ids=S._admSel.filter(function(id){var i=S.insp.find(function(x){return x.id===id;});return i&&i.st==='finalizada';});
+  if(!ids.length){Tt('Nenhuma finalizada selecionada para PDF.');return;}
+  exportPDFBatch(ids);
+}
+/* v78-fix: coordExpSelPDF filtra rascunhos */
 function coordExpSelPDF(){
-  var ids=S._coordSel||[];
-  if(!ids.length){Tt('Selecione ao menos uma inspeção.');return;}
+  var ids=(S._coordSel||[]).filter(function(id){var i=S.insp.find(function(x){return x.id===id;});return i&&i.st==='finalizada';});
+  if(!ids.length){Tt('Nenhuma finalizada selecionada para PDF.');return;}
   exportPDFBatch(ids);
 }
 function iniciarProgramada(){
