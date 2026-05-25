@@ -26,6 +26,7 @@ function saveRascunhoAuto(force){
     normalizeFormState(F);
     var snap=_sortedStringify(F);
     if(!force&&snap===autoSaveLastHash)return false;
+    undoPush(); /* v79: snapshot antes de salvar para undo */
     syncDraftFromF(false);
     DB.sv();
     var _asEl=el('autosave-ind');if(_asEl){var _now=new Date();_asEl.textContent='Salvo '+_now.getHours().toString().padStart(2,'0')+':'+_now.getMinutes().toString().padStart(2,'0');}

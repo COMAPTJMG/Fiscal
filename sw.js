@@ -16,7 +16,7 @@
         index.html: 5663 → 4791 linhas (−872 / −15%).
 */
 
-const V = 'tjmg-v78';
+const V = 'tjmg-v79';
 const CACHE = [
   './',
   './index.html',
@@ -54,6 +54,19 @@ const BYPASS = [
   'script.google.com',
   'dns.google'
 ];
+
+/* ── Background Sync (v79) ── */
+self.addEventListener('sync', function(e) {
+  if (e.tag === 'tjmg-sync') {
+    e.waitUntil(
+      self.clients.matchAll().then(function(clients) {
+        if (clients.length > 0) {
+          clients[0].postMessage({type: 'BG_SYNC'});
+        }
+      })
+    );
+  }
+});
 
 /* ── Push Notifications (v78) ── */
 self.addEventListener('push', function(e) {

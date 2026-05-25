@@ -98,6 +98,11 @@ input:focus,textarea:focus{border-color:var(--a);}
   <div class="hdr ha"><div style="flex:1;"><div class="ht" id="h-ola">Ola!</div><div class="hs" id="h-sub">TJMG Fiscal</div></div>
   <div id="dot" style="background:#22c55e;padding:3px 8px;border-radius:20px;font-size:10px;color:#fff;font-weight:700;">Online</div></div>
   <div class="ubar" id="ubar"></div>
+  <!-- v79: Busca global -->
+  <div style="padding:8px 12px;background:#fff;border-bottom:1px solid var(--bo);flex-shrink:0;">
+    <input id="busca-global" placeholder="🔍  Buscar edificação, comarca, OS..." oninput="buscaGlobal(this.value)" style="border-radius:24px;background:#f8fafc;border-color:#e2e8f0;font-size:13px;">
+  </div>
+  <div id="busca-res" style="display:none;flex-shrink:0;max-height:240px;overflow-y:auto;background:#fff;border-bottom:1px solid var(--bo);"></div>
   <div class="scrl" id="hbody"></div>
   <div class="bnv" id="bn0"></div>
 </div>
@@ -161,6 +166,34 @@ input:focus,textarea:focus{border-color:var(--a);}
   <div class="bnv" id="bn3"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     TELA: AGENDA DE VISTORIAS (v79)
+════════════════════════════════════════════════════════════ -->
+<div class="scr" id="s-agenda" style="padding-top:var(--st)">
+  <div class="hdr ha">
+    <div style="flex:1;">
+      <div class="ht">📅 Agenda de Vistorias</div>
+      <div class="hs">Próximas vistorias obrigatórias</div>
+    </div>
+  </div>
+  <div class="scrl" id="agenda-body"></div>
+  <div class="bnv" id="bn4"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TELA: COMPARATIVO (v79)
+════════════════════════════════════════════════════════════ -->
+<div class="scr" id="s-comp" style="padding-top:var(--st)">
+  <div class="hdr" style="background:#0f766e;">
+    <div class="bkb" onclick="Gb(document.querySelector('.scr.act')&&document.querySelector('.scr.act').id==='s-comp'?'s-det':'s-det')">&#8249;</div>
+    <div style="flex:1;">
+      <div class="ht">📊 Comparativo de Vistorias</div>
+      <div class="hs" id="comp-sub">Evolução da edificação</div>
+    </div>
+  </div>
+  <div class="scrl" id="comp-body"></div>
+</div>
+
 <div class="scr" id="s-pci" style="padding-top:var(--st)">
   <div class="hdr hr"><span class="bkb" onclick="if(S._admPciSessao){S.sessao=S._admPciSessao;delete S._admPciSessao;G('s-admin');}else{G('s-home');}">&#8592;</span>
   <div><div class="ht" id="pci-ht">&#129711; Controle PCI</div><div class="hs" id="pci-hs">carregando...</div></div></div>
@@ -186,7 +219,10 @@ input:focus,textarea:focus{border-color:var(--a);}
 <div class="scr" id="s-form" style="padding-top:var(--st)">
   <div class="hdr" id="fhdr"><span class="bkb" onclick="fback()">&#8592;</span>
   <div style="flex:1;"><div class="ht" id="ftit">Formulario</div><div class="hs" id="fsub">Etapa 1</div></div>
-  <div id="autosave-ind" style="font-size:10px;color:rgba(255,255,255,.6);white-space:nowrap;"></div></div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <button onclick="undoPop()" title="Desfazer última alteração" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer;">↩️</button>
+    <div id="autosave-ind" style="font-size:10px;color:rgba(255,255,255,.6);white-space:nowrap;"></div>
+  </div></div>
   <div class="sbr" id="fsbr"></div>
   <div class="scrl" id="fbody"></div>
   <div style="display:flex;gap:8px;padding:10px;background:#fff;border-top:1px solid var(--bo);flex-shrink:0;">
@@ -287,7 +323,8 @@ input:focus,textarea:focus{border-color:var(--a);}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;" id="ist"></div>
     <!-- Observações -->
     <div class="lbl">Observações</div>
-    <textarea id="iob" style="margin-bottom:12px;min-height:64px;" placeholder="Descreva o que foi encontrado..."></textarea>
+    <textarea id="iob" style="margin-bottom:4px;min-height:64px;" placeholder="Descreva o que foi encontrado..."></textarea>
+    <button onclick="addVoiceBtn('iob');initVoice(el('iob'),this)" style="border:none;border-radius:8px;padding:6px 10px;font-size:12px;background:#003580;color:#fff;cursor:pointer;margin-bottom:10px;width:100%;font-weight:700;">🎙️ Ditar por Voz</button>
     <!-- Fotos -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <div class="lbl" style="margin-bottom:0;">📷 Fotos</div>
@@ -400,7 +437,32 @@ input:focus,textarea:focus{border-color:var(--a);}
 // v68 - report-html.js modularizado (Fase 3): Drive/email removidos, page-break corrigido, subestação redesenhada
 // v63 - fix login tela branca (mergeRemoteUsers + bootApp background), syncManual botao home, sync auto 30min, Drive acao=cancelar - fix finalizarI bug (i→i.id em _gerarHTMLStr/_gerarHTMLSubStr), Drive getFolderById
 // Todos os sistemas: Login, Home, PCI, Relatorios, Formularios, Admin
-/* ── Exportação ZIP (JSZip) ─────────────────────────────────────────────
+/* ── Busca Global (v79) ─────────────────────────────────────── */
+function buscaGlobal(q){
+  var res=el('busca-res');if(!res)return;
+  if(!q||q.trim().length<2){res.style.display='none';res.innerHTML='';return;}
+  var t=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var hits=filterByReg(S.insp).filter(function(i){
+    var txt=((i.edif||'')+(i.com||'')+(i.os||'')+(i.fiscal||'')+(i.descricao||'')+(TIPOS[i.tipo]||TIPOS.periodica).l).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return txt.indexOf(t)>=0;
+  }).slice(0,8);
+  if(!hits.length){res.innerHTML='<div style="padding:12px 16px;font-size:12px;color:#94a3b8;">Nenhum resultado para "'+_escA(q)+'"</div>';res.style.display='block';return;}
+  res.innerHTML=hits.map(function(i){
+    var tp=TIPOS[i.tipo]||TIPOS.periodica;
+    var st=i.st==='finalizada'?{l:'Enviado',c:'#16a34a',bg:'#dcfce7'}:{l:'Rascunho',c:'#d97706',bg:'#fef3c7'};
+    return'<div onclick="el(\'busca-global\').value=\'\';el(\'busca-res\').style.display=\'none\';openDet(\''+i.id+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f8fafc;cursor:pointer;background:#fff;active:background:#f8fafc;">'
+      +'<div style="width:32px;height:32px;border-radius:8px;background:'+tp.bg+';display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">'+tp.i+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_escA(i.edif)+'</div>'
+        +'<div style="font-size:10px;color:#64748b;">'+_escA(i.com||'—')+' · '+fdt(i.dtVistoria||i.data)+(i.os?' · '+_escA(i.os):'')+'</div>'
+      +'</div>'
+      +'<span style="background:'+st.bg+';color:'+st.c+';border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">'+st.l+'</span>'
+    +'</div>';
+  }).join('');
+  res.style.display='block';
+}
+window.buscaGlobal=buscaGlobal;
+
    v78-fix: empacota N relatórios HTML num único arquivo .zip para download.
    Evita N downloads separados no celular. */
 function _gerarNomeHtml(i){
@@ -538,7 +600,34 @@ function rHome(){
   var h='<div style="display:flex;gap:6px;">'
     +'<div class="stat" style="border-color:#16a34a;"><div style="font-size:20px;font-weight:900;color:#16a34a;">'+envs.length+'</div><div style="font-size:9px;color:#64748b;">Enviados</div></div>'
     +'<div class="stat" style="border-color:#d97706;"><div style="font-size:20px;font-weight:900;color:#d97706;">'+rascs.length+'</div><div style="font-size:9px;color:#64748b;">Rascunhos</div></div>'
-    +'<div class="stat" style="border-color:#2563eb;"><div style="font-size:20px;font-weight:900;color:#2563eb;">'+coms+'</div><div style="font-size:9px;color:#64748b;">Comarcas</div></div></div>'
+    +'<div class="stat" style="border-color:#2563eb;"><div style="font-size:20px;font-weight:900;color:#2563eb;">'+coms+'</div><div style="font-size:9px;color:#64748b;">Comarcas</div></div></div>';
+
+  /* v79: Mini-dashboard mensal */
+  var _dash=calcDashboardFiscal();
+  var _corConf=_dash.confMedia>=80?'#16a34a':_dash.confMedia>=50?'#d97706':'#dc2626';
+  if(_dash.mes>0||_dash.finalizados>0){
+    h+='<div class="card" style="border-left:4px solid #003580;">';
+    h+='<div style="font-size:11px;font-weight:800;color:#003580;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px;">Resumo do Mês</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">';
+    h+='<div style="text-align:center;background:#f8fafc;border-radius:8px;padding:8px;"><div style="font-size:18px;font-weight:900;color:#003580;">'+_dash.finMes+'</div><div style="font-size:9px;color:#64748b;">Finalizados</div></div>';
+    h+='<div style="text-align:center;background:#f8fafc;border-radius:8px;padding:8px;"><div style="font-size:18px;font-weight:900;color:'+_corConf+';">'+_dash.confMedia+'%</div><div style="font-size:9px;color:#64748b;">Conformidade</div></div>';
+    h+='<div style="text-align:center;background:'+((_dash.ospCrit>0)?'#fee2e2':'#f8fafc')+';border-radius:8px;padding:8px;"><div style="font-size:18px;font-weight:900;color:'+(_dash.ospCrit>0?'#dc2626':'#64748b')+';">'+_dash.ospCrit+'</div><div style="font-size:9px;color:#64748b;">OSP Críticas</div></div>';
+    h+='</div></div>';
+  }
+
+  /* v79: Alertas de periodicidade vencida */
+  var _venc=alertarPeriodiciasVencidas()||[];
+  if(_venc.length){
+    var _vencVenc=_venc.filter(function(v){return v.diffDias<=0;}).length;
+    var _vencProx=_venc.filter(function(v){return v.diffDias>0;}).length;
+    h+='<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="navt(\'agenda\')">';
+    h+='<span style="font-size:22px;">⚠️</span>';
+    h+='<div style="flex:1;"><div style="font-size:12px;font-weight:800;color:#d97706;">Vistorias Pendentes</div>';
+    h+='<div style="font-size:11px;color:#92400e;">';
+    if(_vencVenc>0)h+=_vencVenc+' vencida(s) ';
+    if(_vencProx>0)h+=_vencProx+' vencem em breve';
+    h+='</div></div><span style="color:#d97706;font-size:18px;">›</span></div>';
+  }
     +'<button id="btn-sync-manual" onclick="syncManual()" style="width:100%;border:none;background:'+(navigator.onLine?'#0f766e':'#94a3b8')+';color:#fff;border-radius:12px;padding:11px 14px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:4px;">'
     +'<span style="font-size:18px;">☁️</span>'
     +'<div style="flex:1;text-align:left;"><div style="font-weight:800;">Sincronizar Equipe</div><div style="font-size:9px;opacity:.8;font-weight:500;">'+(navigator.onLine?_fmtLastSync():'Sem conexão')+'</div></div>'
@@ -579,7 +668,7 @@ function rHome(){
       var fet=its.filter(function(x){return x.s==='conforme'||x.s==='nao_conforme';});
       var pct=atv.length?Math.round(fet.length/atv.length*100):0;
       var _npend=its.filter(function(x){return x.s==='pendente';}).length;
-      h+='<div class="card"><div style="display:flex;gap:8px;margin-bottom:8px;">'
+      h+='<div class="card" id="rsc-'+i.id+'"><div style="display:flex;gap:8px;margin-bottom:8px;">'
         +'<div style="width:36px;height:36px;border-radius:9px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;">'+t.i+'</div>'
         +'<div style="flex:1;"><div style="font-size:12px;font-weight:700;">'+i.edif+'</div>'
         +(i.tipo==='osp'&&i.dtFinalExec?'<div style="font-size:10px;color:#0f766e;font-weight:700;">⏰ Prazo: '+fdt(i.dtFinalExec)+(i.diasPrazo?' ('+i.diasPrazo+'d)':'')+'</div>':'')
@@ -602,6 +691,24 @@ function rHome(){
   if(!S.insp.length)h+='<div style="text-align:center;padding:32px;"><div style="font-size:48px;">&#128203;</div><div style="font-size:14px;color:#94a3b8;margin-top:10px;font-weight:600;">Nenhuma inspecao</div><div style="font-size:12px;color:#cbd5e1;margin-top:4px;">Toque em Criar Relatorio</div></div>';
   h+='<div style="height:8px;"></div>';
   el('hbody').innerHTML=h;
+  /* v79: Swipe nos cards de rascunho (esquerda = excluir, direita = duplicar) */
+  rascs.forEach(function(i){
+    var card=el('rsc-'+i.id);
+    if(!card)return;
+    enableSwipe(card,function(){
+      /* swipe esquerda: excluir se permitido */
+      if(canDelInsp(i)){
+        cf('X','Excluir','Excluir "'+i.edif+'"?',function(){
+          var _dkeys=Object.keys((S.insp.find(function(x){return x.id===i.id;})||{itens:{}}).itens||{});
+          S.insp=S.insp.filter(function(x){return x.id!==i.id;});
+          PhotoStore.delInsp(i.id,_dkeys);Sync.queueDeleteInspection(i.id);DB.sv();rHome();
+        });
+      }
+    },function(){
+      /* swipe direita: duplicar como modelo */
+      duplicarComoModelo(i.id);
+    });
+  });
 }
 
 
@@ -1357,8 +1464,24 @@ function _renderDet(id){
 
     if(i.st==='em_andamento')h+='<button class="btn ba" onclick="finalizarI(\''+id+'\')">Finalizar Inspeção</button>';
     if(i.st==='finalizada')h+='<button class="btn" style="background:#f59e0b;color:#fff;margin-bottom:8px;" onclick="editarRelatorio(\''+id+'\')">✏️ Editar Relatório</button>';
-    h+='<button class="btn bo" onclick="exportHTML(\''+id+'\')">Exportar HTML</button>';
-    h+='<button class="btn" style="background:#1a2332;color:#fff;margin-top:4px;" onclick="exportPDF(\''+id+'\')">📄 Exportar PDF</button><div style="height:16px;"></div>';
+    /* v79: Exportar + Compartilhar */
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
+    h+='<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:10px;" onclick="exportHTML(\''+id+'\')">📄 HTML</button>';
+    h+='<button class="btn" style="background:#1a2332;color:#fff;font-size:12px;padding:10px;" onclick="exportPDF(\''+id+'\')">📄 PDF</button>';
+    h+='</div>';
+    h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="var _b=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar Relatório</button>';
+    /* v79: Documentos contratuais */
+    if(i.st==='finalizada'){
+      var _ncs=Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;
+      if(_ncs>0)h+='<button class="btn" style="background:#dc2626;color:#fff;margin-bottom:6px;font-size:12px;" onclick="gerarNOTINA(\''+id+'\')">⚠️ Gerar NOT-INA ('+_ncs+' NC)</button>';
+      h+='<button class="btn" style="background:#d97706;color:#fff;margin-bottom:6px;font-size:12px;" onclick="gerarROC(\''+id+'\')">📋 Gerar ROC</button>';
+      /* v79: Comparativo */
+      var _comp=compararInspecoes(i.edif,i.reg);
+      if(_comp)h+='<button class="btn" style="background:#0f766e;color:#fff;margin-bottom:6px;font-size:12px;" onclick="mostrarComparativo(\''+id+'\')">📊 Comparativo com Vistoria Anterior</button>';
+    }
+    /* v79: Duplicar como modelo + Desfazer (só rascunhos) */
+    h+='<button class="btn" style="background:#2563eb;color:#fff;margin-bottom:6px;font-size:12px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
+    h+='<div style="height:16px;"></div>';
 
   } else {
     /* ── Lógica original para Periódica / Fachada / SPDA ── */
@@ -1391,8 +1514,13 @@ function _renderDet(id){
     });
     if(i.st==='em_andamento')h+='<button class="btn ba" onclick="finalizarI(\''+id+'\')">Finalizar Inspecao</button>';
     if(i.st==='finalizada')h+='<button class="btn" style="background:#f59e0b;color:#fff;margin-bottom:8px;" onclick="editarRelatorio(\''+id+'\')">✏️ Editar Relatório</button>';
-    h+='<button class="btn bo" onclick="exportHTML(\''+id+'\')">Exportar HTML</button>';
-    h+='<button class="btn" style="background:#1a2332;color:#fff;margin-top:4px;" onclick="exportPDF(\''+id+'\')">📄 Exportar PDF</button><div style="height:16px;"></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
+    h+='<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:10px;" onclick="exportHTML(\''+id+'\')">📄 HTML</button>';
+    h+='<button class="btn" style="background:#1a2332;color:#fff;font-size:12px;padding:10px;" onclick="exportPDF(\''+id+'\')">📄 PDF</button>';
+    h+='</div>';
+    h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="var _b2=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b2,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar</button>';
+    h+='<button class="btn" style="background:#2563eb;color:#fff;margin-bottom:6px;font-size:12px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
+    h+='<div style="height:16px;"></div>';
   }
 
   var _canDel=canDelInsp(i);
@@ -1423,20 +1551,16 @@ function renderItemPhotos(){
 function addItemPhoto(inp){
   if(!inp.files||!inp.files.length)return;
   var files=Array.from(inp.files);var done=0;var total=files.length;
-  /* Barra de progresso — cria/atualiza elemento fixo no topo do modal */
   var _barId='_foto_prog_bar';
   var _bar=el(_barId);
   if(!_bar){
-    _bar=document.createElement('div');
-    _bar.id=_barId;
+    _bar=document.createElement('div');_bar.id=_barId;
     _bar.style.cssText='position:fixed;top:0;left:0;height:4px;background:#003580;transition:width .2s;z-index:9999;width:0;';
     document.body.appendChild(_bar);
   }
   _bar.style.width='0';_bar.style.display='block';
   function _atualizarBar(){
-    done++;
-    var pct=Math.round(done/total*100);
-    _bar.style.width=pct+'%';
+    done++;var pct=Math.round(done/total*100);_bar.style.width=pct+'%';
     if(done===total){
       renderItemPhotos();
       setTimeout(function(){_bar.style.display='none';},600);
@@ -1444,17 +1568,18 @@ function addItemPhoto(inp){
     }
   }
   Tt(total+' foto(s) sendo processada(s)...');
+  /* v79-fix: compressão 1280px / 0.75 quality na captura (-70% tamanho) */
   files.forEach(function(f){
     var r=new FileReader();
     r.onload=function(e){
       var img=new Image();
       img.onload=function(){
-        var MAX=900;var w=img.width,h=img.height;
-        if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
-        if(h>MAX*1.5){w=Math.round(w*MAX*1.5/h);h=Math.round(MAX*1.5);}
+        var MAX=1280;var w=img.width,h=img.height;
+        var sc=Math.min(1,MAX/Math.max(w,h));
+        w=Math.round(w*sc);h=Math.round(h*sc);
         var cv=document.createElement('canvas');cv.width=w;cv.height=h;
-        var ctx=cv.getContext('2d');ctx.drawImage(img,0,0,w,h);
-        var b64=cv.toDataURL('image/jpeg',0.72);
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        var b64=cv.toDataURL('image/jpeg',0.75);
         _ifotos.push({id:uid(),b64:b64,leg:''});
         _atualizarBar();
       };
@@ -1608,27 +1733,145 @@ function finalizarI(id){cf('OK','Finalizar','Marcar como finalizada?',function()
 });}
 
 
-async function bootApp(){
+/* ═══════════════════════════════════════════════════════════════
+   AGENDA DE VISTORIAS (v79)
+   ════════════════════════════════════════════════════════════ */
+function rAgenda(){
+  BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('agenda');});
+  var ab=el('agenda-body');if(!ab)return;
+  var agenda=calcAgenda();
+  var vencidas=alertarPeriodiciasVencidas()||[];
+  var ospCrit=filterByReg(S.insp).filter(function(i){
+    if(i.tipo!=='osp'||i.st==='finalizada'||!i.dtFinalExec)return false;
+    var d=new Date(i.dtFinalExec+'T12:00:00');
+    return Math.round((d-new Date())/86400000)<=7;
+  });
+  var h='<div style="padding:12px;">';
+  /* OSPs urgentes */
+  if(ospCrit.length){
+    h+='<div style="font-size:12px;font-weight:800;color:#dc2626;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">🚨 OSPs com Prazo Crítico</div>';
+    ospCrit.forEach(function(osp){
+      var d=new Date(osp.dtFinalExec+'T12:00:00');
+      var diff=Math.round((d-new Date())/86400000);
+      var cor=diff<=0?'#dc2626':diff<=3?'#d97706':'#2563eb';
+      h+='<div class="card" style="border-left:4px solid '+cor+';margin-bottom:8px;cursor:pointer;" onclick="openDet(\''+osp.id+'\')">';
+      h+='<div style="font-size:13px;font-weight:700;">'+_escA(osp.edif)+'</div>';
+      h+='<div style="font-size:11px;color:#64748b;">'+_escA(osp.com||'')+'  ·  OS '+_escA(osp.os||'—')+'</div>';
+      h+='<div style="font-size:12px;font-weight:800;color:'+cor+';margin-top:4px;">'+(diff<0?'⛔ VENCIDA há '+Math.abs(diff)+'d':diff===0?'⚠️ VENCE HOJE':'⏰ Vence em '+diff+'d — '+fdt(osp.dtFinalExec))+'</div>';
+      h+='</div>';
+    });
+    h+='<div style="height:4px;"></div>';
+  }
+  /* Próximas vistorias periódicas */
+  h+='<div style="font-size:12px;font-weight:800;color:#003580;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">📋 Próximas Vistorias (60 dias)</div>';
+  if(!agenda.length){
+    h+='<div class="card" style="text-align:center;padding:28px;"><div style="font-size:36px;">✅</div><div style="font-size:13px;color:#64748b;margin-top:8px;font-weight:600;">Nenhuma vistoria pendente nos próximos 60 dias.</div></div>';
+  }else{
+    agenda.forEach(function(it){
+      var cor=it.diffDias===0?'#dc2626':it.diffDias<=7?'#d97706':it.diffDias<=30?'#2563eb':'#16a34a';
+      var lbl=it.diffDias===0?'HOJE':it.diffDias===1?'AMANHÃ':'em '+it.diffDias+'d';
+      h+='<div class="card" style="border-left:4px solid '+cor+';margin-bottom:8px;">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
+      h+='<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_escA(it.edif)+'</div>';
+      h+='<div style="font-size:11px;color:#64748b;">'+_escA(it.com||'')+'</div>';
+      h+='<div style="font-size:10px;color:#94a3b8;margin-top:2px;">Periodicidade: '+it.periodoMeses+'m · Última: '+fdt(it.ultima.toISOString().slice(0,10))+'</div></div>';
+      h+='<div style="text-align:right;flex-shrink:0;margin-left:10px;"><div style="font-size:14px;font-weight:900;color:'+cor+';">'+lbl+'</div>';
+      h+='<div style="font-size:10px;color:#94a3b8;">'+fdt(it.proxima.toISOString().slice(0,10))+'</div></div>';
+      h+='</div></div>';
+    });
+  }
+  h+='</div>';
+  ab.innerHTML=h;
+}
+window.rAgenda=rAgenda;
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPARATIVO DE VISTORIAS (v79)
+   ════════════════════════════════════════════════════════════ */
+function mostrarComparativo(inspId){
+  var i=S.insp.find(function(x){return x.id===inspId;});if(!i)return;
+  var comp=compararInspecoes(i.edif,i.reg);
+  if(!comp){Tt('Não há vistoria anterior para comparar.');return;}
+  var sub=el('comp-sub');if(sub)sub.textContent=i.edif+' · '+i.com;
+  var cb=el('comp-body');if(!cb)return;
+  var corDelta=comp.delta>0?'#16a34a':comp.delta<0?'#dc2626':'#64748b';
+  var h='<div style="padding:12px;">';
+  /* KPIs */
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">';
+  h+='<div class="card" style="text-align:center;border-left:4px solid #003580;">';
+  h+='<div style="font-size:9px;color:#64748b;font-weight:700;margin-bottom:4px;">VISTORIA ATUAL</div>';
+  h+='<div style="font-size:22px;font-weight:900;color:#003580;">'+(comp.confAtual!==null?comp.confAtual+'%':'—')+'</div>';
+  h+='<div style="font-size:10px;color:#94a3b8;">'+fdt(comp.atual.dtVistoria||comp.atual.data)+'</div></div>';
+  h+='<div class="card" style="text-align:center;border-left:4px solid #64748b;">';
+  h+='<div style="font-size:9px;color:#64748b;font-weight:700;margin-bottom:4px;">VISTORIA ANTERIOR</div>';
+  h+='<div style="font-size:22px;font-weight:900;color:#64748b;">'+(comp.confAnt!==null?comp.confAnt+'%':'—')+'</div>';
+  h+='<div style="font-size:10px;color:#94a3b8;">'+fdt(comp.anterior.dtVistoria||comp.anterior.data)+'</div></div>';
+  h+='</div>';
+  if(comp.delta!==null){
+    h+='<div class="card" style="text-align:center;border-left:4px solid '+corDelta+';margin-bottom:12px;">';
+    h+='<div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px;">VARIAÇÃO DE CONFORMIDADE</div>';
+    h+='<div style="font-size:28px;font-weight:900;color:'+corDelta+';">'+(comp.delta>0?'+':'')+comp.delta+'%</div>';
+    h+='<div style="font-size:11px;color:#94a3b8;">'+(comp.delta>0?'✅ Melhora':'⚠️ Piora')+'</div>';
+    h+='</div>';
+  }
+  /* Mudanças de status */
+  if(comp.mudancas.length){
+    h+='<div style="font-size:12px;font-weight:800;color:#003580;margin-bottom:8px;">Itens que Mudaram de Status</div>';
+    var ST_L={pendente:'Pendente',conforme:'Conforme',nao_conforme:'Não Conforme',nao_aplicavel:'N/A',executado:'Executado',nao_executado:'Não Executado',fora_periodo:'Fora Período'};
+    comp.mudancas.slice(0,20).forEach(function(m){
+      var cDe=m.de==='conforme'||m.de==='executado'?'#16a34a':m.de==='nao_conforme'||m.de==='nao_executado'?'#dc2626':'#94a3b8';
+      var cPara=m.para==='conforme'||m.para==='executado'?'#16a34a':m.para==='nao_conforme'||m.para==='nao_executado'?'#dc2626':'#94a3b8';
+      h+='<div class="card" style="margin-bottom:6px;padding:10px 12px;">';
+      h+='<div style="font-size:12px;font-weight:700;margin-bottom:4px;">'+_escA(m.nm)+'</div>';
+      h+='<div style="display:flex;align-items:center;gap:8px;font-size:11px;">';
+      h+='<span style="color:'+cDe+';font-weight:700;">'+(ST_L[m.de]||m.de)+'</span>';
+      h+='<span style="color:#94a3b8;">→</span>';
+      h+='<span style="color:'+cPara+';font-weight:700;">'+(ST_L[m.para]||m.para)+'</span>';
+      h+='</div></div>';
+    });
+  }else{
+    h+='<div class="card" style="text-align:center;padding:20px;"><div style="font-size:32px;">✅</div><div style="font-size:12px;color:#64748b;margin-top:8px;">Nenhum item mudou de status.</div></div>';
+  }
+  h+='</div>';
+  cb.innerHTML=h;
+  /* Navegar para a tela */
+  var c=document.querySelector('.scr.act');var sc=el('s-comp');
+  if(c&&sc&&c!==sc){c.classList.remove('act');sc.classList.add('act');}
+}
+window.mostrarComparativo=mostrarComparativo;
+
+
   await DB.ld();
-  startSessaoMonitor(); /* v78-fix: monitor de expiração de sessão */
+  startSessaoMonitor(); /* v78: monitor de expiração de sessão */
+  initErrorBoundary();  /* v79: captura erros JS globais */
   Sync.init();
   syncExistingDraftGroups();
   DB.svLocal();
   updNet();
-  /* Renderiza login imediatamente com usuários locais.
-     O pull do Supabase roda em background e atualiza sem bloquear. */
+  registrarBackgroundSync(); /* v79: Background Sync API */
   rLogin();
   BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('home');});
   if(Sync.ready&&navigator.onLine){
     Sync.pullAll().then(function(){
       Sync.schedulePush(1200);
-      /* Atualiza lista de login se ainda estiver na tela s-login */
       if(activeScreenId()==='s-login')rLogin();
+      /* v79: alertas pós-sync */
+      setTimeout(function(){alertarPrazosOSP();gcFotosOrfas();},3000);
     }).catch(function(){});
+  }else{
+    setTimeout(function(){alertarPrazosOSP();gcFotosOrfas();},4000);
   }
   if(S.sessao){if(S.sessao.tipo==='admin'){rAdm();G('s-admin');}else if(S.sessao.tipo==='coordenador'){rCoord();G('s-coord');}else{rHome();G('s-home');}}
 }
 window.addEventListener('online',function(){updNet();if(Sync.ready)Sync.pullAll().then(function(){Sync.schedulePush(600);});});
+/* v79: Background Sync — recebe msg do SW quando volta online com app fechado */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message',function(e){
+    if(e.data&&e.data.type==='BG_SYNC'&&Sync.ready){
+      Sync.pullAll().then(function(){Sync.schedulePush(500);}).catch(function(){});
+    }
+  });
+}
 /* Quando app volta ao foco (aba/PWA reativada), re-sincroniza para
    capturar deleções feitas por outros usuários da mesma região */
 var _lastVisSync=0;

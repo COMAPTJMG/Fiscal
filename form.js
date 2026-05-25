@@ -1796,7 +1796,8 @@ function rFSubDados(c){
   // ── Observações ──
   h+='<div class="card" style="margin-bottom:10px;">';
   h+='<div class="lbl">Observações Gerais</div>';
-  h+='<textarea oninput="F.sub.obs_geral=this.value" placeholder="Condições gerais da subestação..." style="min-height:60px;">'+(sub.obs_geral||'')+'</textarea>';
+  h+='<textarea id="sub-obs-geral" oninput="F.sub.obs_geral=this.value" placeholder="Condições gerais da subestação..." style="min-height:60px;">'+(sub.obs_geral||'')+'</textarea>';
+  h+='<button onclick="initVoice(el(\'sub-obs-geral\'),this)" style="border:none;border-radius:8px;padding:5px 10px;font-size:11px;background:#003580;color:#fff;cursor:pointer;margin-top:4px;width:100%;font-weight:700;">🎙️ Ditar por Voz</button>';
   h+='</div>';
 
   c.innerHTML=h;
@@ -2157,6 +2158,24 @@ function rFConc(c){
   if(ok){h+='<div style="background:#dcfce7;border-radius:14px;padding:20px;text-align:center;margin-bottom:16px;"><div style="font-size:36px;margin-bottom:8px;">&#9989;</div><div style="font-size:15px;font-weight:800;color:#16a34a;">'+( F.tipo==='osp' ? 'Ordem de Serviço Programada Completa!' : 'Relatório completo!' )+'</div></div>';}
   else{h+='<div style="background:#fff7ed;border-radius:14px;padding:14px;margin-bottom:16px;border:1.5px solid #fed7aa;"><div style="font-size:13px;font-weight:800;color:#d97706;margin-bottom:8px;">Pendências</div>';erros.forEach(function(e){h+='<div style="font-size:12px;color:#92400e;margin-bottom:4px;">• '+e+'</div>';});h+='</div>';}
   h+=_resumo;
+  /* v79: campos de texto livre com voz na etapa Concluir */
+  if(!_isPron&&F.tipo!=='osp'&&F.tipo!=='subestacao'){
+    h+='<div class="card" style="margin-bottom:10px;">';
+    h+='<div class="lbl">Atividades Realizadas</div>';
+    h+='<textarea id="fc-ativ" oninput="F.ativ=this.value" placeholder="Descreva as atividades realizadas..." style="min-height:60px;">'+((F.ativ)||'')+'</textarea>';
+    h+='<button onclick="initVoice(el(\'fc-ativ\'),this)" style="border:none;border-radius:8px;padding:5px 10px;font-size:11px;background:#003580;color:#fff;cursor:pointer;margin-top:4px;width:100%;font-weight:700;">🎙️ Ditar</button>';
+    h+='</div>';
+    h+='<div class="card" style="margin-bottom:10px;">';
+    h+='<div class="lbl">Causas / Observações</div>';
+    h+='<textarea id="fc-causas" oninput="F.causas=this.value" placeholder="Causas identificadas, observações técnicas..." style="min-height:60px;">'+((F.causas)||'')+'</textarea>';
+    h+='<button onclick="initVoice(el(\'fc-causas\'),this)" style="border:none;border-radius:8px;padding:5px 10px;font-size:11px;background:#003580;color:#fff;cursor:pointer;margin-top:4px;width:100%;font-weight:700;">🎙️ Ditar</button>';
+    h+='</div>';
+    h+='<div class="card" style="margin-bottom:10px;">';
+    h+='<div class="lbl">Conclusão / Parecer Técnico</div>';
+    h+='<textarea id="fc-concl" oninput="F.concl=this.value" placeholder="Conclusão técnica da inspeção..." style="min-height:80px;">'+((F.concl)||'')+'</textarea>';
+    h+='<button onclick="initVoice(el(\'fc-concl\'),this)" style="border:none;border-radius:8px;padding:5px 10px;font-size:11px;background:#003580;color:#fff;cursor:pointer;margin-top:4px;width:100%;font-weight:700;">🎙️ Ditar</button>';
+    h+='</div>';
+  }
   h+='<button class="btn" style="background:'+(ok?'#16a34a':'#94a3b8')+';color:#fff;margin-bottom:8px;" onclick="'+(ok?'salvarF()':'void(0)')+'">Finalizar e Salvar</button>';
   h+='<button class="btn bo" onclick="salvarR()">Salvar e continuar depois</button>';
   c.innerHTML=h;
