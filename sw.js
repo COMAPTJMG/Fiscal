@@ -39,6 +39,8 @@ const CACHE = [
   './utils.js',
   './router.js',
   './auth.js',
+  './admin.js',
+  './form.js',
   './design.css',
 ];
 
@@ -53,7 +55,36 @@ const BYPASS = [
   'dns.google'
 ];
 
-/* ── Install ── */
+/* ── Push Notifications (v78) ── */
+self.addEventListener('push', function(e) {
+  var data = {};
+  try { data = e.data ? e.data.json() : {}; } catch(err) { data = {title:'TJMG Fiscal', body: e.data ? e.data.text() : 'Nova notificação'}; }
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'TJMG Fiscal', {
+      body:    data.body    || 'Você tem uma nova atualização.',
+      icon:    './icon-192.png',
+      badge:   './icon-192.png',
+      tag:     data.tag     || 'tjmg-notif',
+      data:    data.url     || './',
+      vibrate: [200, 100, 200]
+    })
+  );
+});
+
+self.addEventListener('notificationclick', function(e) {
+  e.notification.close();
+  var url = (e.notification.data) || './';
+  e.waitUntil(clients.matchAll({type:'window'}).then(function(list) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].url.includes(self.location.origin) && 'focus' in list[i]) {
+        return list[i].focus();
+      }
+    }
+    if (clients.openWindow) return clients.openWindow(url);
+  }));
+});
+
+
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(V).then(function(c) {

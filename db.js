@@ -1,25 +1,30 @@
 'use strict';
 // ============================================================
-// db.js — Persistência local (DB) + autoSave
-// TJMG Fiscal PWA — Fase 2 da modularização
-// Dependências (globais): S, US, PhotoStore, Sync, Tt, el
-//   normalizeFormState, syncDraftFromF (carregados depois,
-//   chamados apenas em runtime pelo autosave)
+// db.js — Persistência local (DB) + autoSave + sessão monitor
+// TJMG Fiscal PWA — v78-fix
 // ============================================================
+
+/* ── Hash determinístico (chaves ordenadas) para evitar falso-positivo no autosave ── */
+function _sortedStringify(obj){
+  if(obj===null||typeof obj!=='object')return JSON.stringify(obj);
+  if(Array.isArray(obj))return '['+obj.map(_sortedStringify).join(',')+']';
+  var ks=Object.keys(obj).sort();
+  return '{'+ks.map(function(k){return JSON.stringify(k)+':'+_sortedStringify(obj[k]);}).join(',')+'}'
+}
 
 var autoSaveTimer=null,autoSaveLastHash='',autoSaveLastAt=0;
 function activeScreenId(){var a=document.querySelector('.scr.act');return a?a.id:'';}
 function computeDraftHash(){
   if(!F||!F.id)return '';
-  try{normalizeFormState(F);return JSON.stringify(F);}catch(e){return '';}
+  try{normalizeFormState(F);return _sortedStringify(F);}catch(e){return '';}
 }
 function saveRascunhoAuto(force){
   if(!F||!F.id)return false;
-  if(!S.sessao)return false; /* sessão expirada: não salva/sincroniza */
+  if(!S.sessao)return false;
   if(!force&&activeScreenId()!=='s-form')return false;
   try{
     normalizeFormState(F);
-    var snap=JSON.stringify(F);
+    var snap=_sortedStringify(F);
     if(!force&&snap===autoSaveLastHash)return false;
     syncDraftFromF(false);
     DB.sv();
@@ -35,6 +40,42 @@ function startAutoSave(){
 }
 function stopAutoSave(){
   if(autoSaveTimer){clearInterval(autoSaveTimer);autoSaveTimer=null;}
+}
+
+/* ── Monitor de sessão: avisa 30 min antes e renova por atividade ── */
+var _sessWarnSent=false;
+var _sessMonitorTimer=null;
+function _onUserActivity(){
+  if(!S.sessao||!S.sessao._t)return;
+  var age=Date.now()-S.sessao._t;
+  /* Renova se entre 7h e 8h: reseta _t para agora - 1h (dá mais 7h) */
+  if(age>7*3600000&&age<8*3600000){
+    S.sessao._t=Date.now()-3600000;
+    try{var _sc=JSON.parse(JSON.stringify(S.sessao));localStorage.setItem('ts',JSON.stringify(_sc));}catch(e){}
+    _sessWarnSent=false;
+    setTimeout(function(){try{Tt('✅ Sessão renovada automaticamente.');}catch(e){}},200);
+  }
+}
+function startSessaoMonitor(){
+  ['touchstart','click','keydown'].forEach(function(ev){
+    document.addEventListener(ev,_onUserActivity,{passive:true,capture:false});
+  });
+  if(_sessMonitorTimer)clearInterval(_sessMonitorTimer);
+  _sessMonitorTimer=setInterval(function(){
+    if(!S.sessao||!S.sessao._t)return;
+    var age=Date.now()-S.sessao._t;
+    var TTL=28800000; /* 8h */
+    var WARN=TTL-30*60*1000; /* avisa com 30min de antecedência */
+    if(age>=WARN&&!_sessWarnSent){
+      _sessWarnSent=true;
+      try{Tt('⚠️ Sessão expira em 30 min. Toque na tela para renovar.');}catch(e){}
+    }
+    if(age>=TTL){
+      /* Expirou — força logout suave */
+      try{Tt('Sessão expirada. Faça login novamente.');}catch(e){}
+      clearInterval(_sessMonitorTimer);
+    }
+  },60000); /* verifica a cada 1 min */
 }
 
 /* ── PhotoStore: IndexedDB para fotos (ilimitado, offline) ──────────────── */

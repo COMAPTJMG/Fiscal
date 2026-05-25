@@ -110,8 +110,9 @@ function rCoord(){
       selBar.style.display='block';
       selBar.innerHTML='<div style="background:#7c3aed;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
         +'<span style="font-size:12px;font-weight:800;color:#fff;flex:1;">'+nSel+' selecionada(s)</span>'
-        +'<button onclick="coordExpSel()" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;">📄 Exportar HTML</button>'
-        +'<button onclick="coordExpSelPDF()" style="background:#1a2332;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;margin-left:6px;">📄 Exportar PDF</button>'
+        +'<button onclick="coordExpSel()" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;">📄 HTML</button>'
+        +'<button onclick="coordExpSelPDF()" style="background:#1a2332;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px;">📄 PDF</button>'
+        +'<button onclick="coordExpSelZip()" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px;">📦 ZIP</button>'
         +'<button onclick="S._coordSel=[];rCoord()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:11px;cursor:pointer;">✕ Limpar</button>'
         +'</div>';
     }else{selBar.style.display='none';selBar.innerHTML='';}
@@ -131,8 +132,27 @@ function rCoord(){
     var reg=i.reg||'';var R=REG[reg]||{c:'#64748b',bg:'#f1f5f9',l:reg};
     var sel=S._coordSel.indexOf(i.id)!==-1;
     var fin=i.st==='finalizada';
-    return'<div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border:2px solid '+(sel?'#7c3aed':'transparent')+';cursor:pointer;" onclick="coordToggleSel(\''+i.id+'\')">'      +'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(sel?'#7c3aed':'#cbd5e1')+';background:'+(sel?'#7c3aed':'#fff')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#fff;">'+(sel?'✓':'')+'</div>'      +'<div style="width:34px;height:34px;border-radius:9px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">'+t.i+'</div>'      +'<div style="flex:1;min-width:0;">'        +'<div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_escA(i.edif)+'</div>'        +'<div style="font-size:10px;color:#64748b;">'+_escA(i.com||'-')+' · '+fdt(i.dtVistoria||i.data)+'</div>'        +'<div style="display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;">'          +'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span>'          +'<span class="bdg" style="background:'+st.bg+';color:'+st.c+';">'+st.l+'</span>'          +(reg?'<span class="bdg" style="background:'+R.bg+';color:'+R.c+';">'+R.l+'</span>':'')+'</div>'      +'</div>'      +'<div style="display:flex;flex-direction:column;gap:4px;" onclick="event.stopPropagation();">'        +'<button class="btn bo" style="padding:5px 10px;width:auto;font-size:11px;" onclick="openDet(\''+i.id+'\')">👁 Ver</button>'        +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#003580;color:#fff;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')
-      +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#1a2332;color:#fff;margin-left:3px;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')+'</div>'    +'</div>';
+    var _synced=!!(i.synced_at);
+    var _syncIcon=fin?(_synced?'<span style="font-size:10px;color:#16a34a;font-weight:700;">☁✓</span>':'<span style="font-size:10px;color:#d97706;font-weight:700;">☁⏳</span>'):'';
+    return'<div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border:2px solid '+(sel?'#7c3aed':'transparent')+';cursor:pointer;" onclick="coordToggleSel(\''+i.id+'\')">'
+      +'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(sel?'#7c3aed':'#cbd5e1')+';background:'+(sel?'#7c3aed':'#fff')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#fff;">'+(sel?'✓':'')+'</div>'
+      +'<div style="width:34px;height:34px;border-radius:9px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">'+t.i+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_escA(i.edif)+'</div>'
+        +'<div style="font-size:10px;color:#64748b;">'+_escA(i.com||'-')+' · '+fdt(i.dtVistoria||i.data)+(i.fiscal?' · '+i.fiscal:'')+'</div>'
+        +'<div style="display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;align-items:center;">'
+          +'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span>'
+          +'<span class="bdg" style="background:'+st.bg+';color:'+st.c+';">'+st.l+'</span>'
+          +(reg?'<span class="bdg" style="background:'+R.bg+';color:'+R.c+';">'+R.l+'</span>':'')
+          +_syncIcon
+        +'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px;" onclick="event.stopPropagation();">'
+        +'<button class="btn bo" style="padding:5px 10px;width:auto;font-size:11px;" onclick="openDetCoord(\''+i.id+'\')">👁 Ver</button>'
+        +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#003580;color:#fff;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')
+        +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#1a2332;color:#fff;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')
+      +'</div>'
+    +'</div>';
   }
   if(r2.length){h+='<div class="sec" style="padding:10px 12px 4px;">Rascunhos ('+r2.length+')</div>';h+=r2.map(_crd).join('');}
   if(e2.length){h+='<div class="sec" style="padding:10px 12px 4px;margin-top:'+(r2.length?'8':'0')+'px">Enviados ('+e2.length+')</div>';h+=e2.map(_crd).join('');}
@@ -193,6 +213,95 @@ function fiscExpSelPDF(){
   });
   if(!ids.length){Tt('Nenhuma finalizada selecionada para PDF.');return;}
   exportPDFBatch(ids);
+}
+/* v78-fix: ZIP coordenador */
+function coordExpSelZip(){
+  var ids=(S._coordSel||[]).filter(function(id){var i=S.insp.find(function(x){return x.id===id;});return i&&i.st==='finalizada';});
+  if(typeof _exportZipIds==='function')_exportZipIds(ids,'TJMG_COORD');
+  else Tt('Função ZIP indisponível.');
+}
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD — Painel do Coordenador (v78-fix)
+   ══════════════════════════════════════════════════════════════ */
+function rPainel(){
+  var ab=el('coord-ab');if(!ab)return;
+  var base=S.insp.filter(function(i){
+    var _cReg=S._coordReg||'todos';
+    return _cReg==='todos'||i.reg===_cReg;
+  });
+  var fin=base.filter(function(i){return i.st==='finalizada';});
+  var rasc=base.filter(function(i){return i.st==='em_andamento';});
+  /* Contagem por tipo */
+  var porTipo={};
+  Object.keys(TIPOS).forEach(function(k){porTipo[k]=0;});
+  fin.forEach(function(i){if(porTipo[i.tipo]!==undefined)porTipo[i.tipo]++;});
+  /* Contagem por fiscal */
+  var porFiscal={};
+  fin.forEach(function(i){var f=i.fiscal||'Sem nome';porFiscal[f]=(porFiscal[f]||0)+1;});
+  var topFiscais=Object.keys(porFiscal).sort(function(a,b){return porFiscal[b]-porFiscal[a];}).slice(0,8);
+  /* Conformidade média */
+  var somaPct=0;var cntPct=0;
+  fin.forEach(function(i){
+    var its=Object.values(i.itens||{}).filter(function(v){return v.s&&v.s!=='fora_periodo'&&v.s!=='nao_aplicavel';});
+    if(!its.length)return;
+    var conf=its.filter(function(v){return v.s==='conforme'||v.s==='executado';}).length;
+    somaPct+=Math.round(conf/its.length*100);cntPct++;
+  });
+  var mediaConf=cntPct?Math.round(somaPct/cntPct):0;
+  var corConf=mediaConf>=80?'#16a34a':mediaConf>=50?'#d97706':'#dc2626';
+  /* Sync pendente */
+  var semSync=fin.filter(function(i){return !i.synced_at;}).length;
+
+  /* ── Barra de max para gráficos ── */
+  var maxTipo=Math.max.apply(null,Object.values(porTipo).concat([1]));
+  var maxFisc=topFiscais.length?porFiscal[topFiscais[0]]:1;
+
+  var h='<div style="padding:12px;">';
+  /* ── KPIs ── */
+  h+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">';
+  h+='<div class="card" style="text-align:center;border-left:4px solid #003580;"><div style="font-size:26px;font-weight:900;color:#003580;">'+base.length+'</div><div style="font-size:10px;color:#64748b;font-weight:700;">TOTAL</div></div>';
+  h+='<div class="card" style="text-align:center;border-left:4px solid #16a34a;"><div style="font-size:26px;font-weight:900;color:#16a34a;">'+fin.length+'</div><div style="font-size:10px;color:#64748b;font-weight:700;">FINALIZADOS</div></div>';
+  h+='<div class="card" style="text-align:center;border-left:4px solid #d97706;"><div style="font-size:26px;font-weight:900;color:#d97706;">'+rasc.length+'</div><div style="font-size:10px;color:#64748b;font-weight:700;">RASCUNHOS</div></div>';
+  h+='<div class="card" style="text-align:center;border-left:4px solid '+corConf+';"><div style="font-size:26px;font-weight:900;color:'+corConf+';">'+mediaConf+'%</div><div style="font-size:10px;color:#64748b;font-weight:700;">CONFORMIDADE</div></div>';
+  h+='</div>';
+  if(semSync>0)h+='<div style="background:#fef3c7;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400e;font-weight:700;">☁⏳ '+semSync+' finalizado(s) aguardando sincronização com Supabase</div>';
+  /* ── Relatórios por tipo ── */
+  h+='<div class="card" style="margin-bottom:10px;">';
+  h+='<div style="font-size:12px;font-weight:800;color:#003580;margin-bottom:10px;">Relatórios por tipo (finalizados)</div>';
+  Object.keys(TIPOS).forEach(function(k){
+    var n=porTipo[k]||0;if(!n)return;
+    var t=TIPOS[k];
+    var pct=Math.round(n/maxTipo*100);
+    h+='<div style="margin-bottom:8px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:3px;"><span>'+t.l+'</span><span style="color:'+t.c+';">'+n+'</span></div>'
+      +'<div style="background:#f1f5f9;border-radius:4px;height:8px;overflow:hidden;">'
+        +'<div style="width:'+pct+'%;height:100%;background:'+t.c+';border-radius:4px;transition:width .4s;"></div>'
+      +'</div></div>';
+  });
+  h+='</div>';
+  /* ── Por fiscal ── */
+  if(topFiscais.length){
+    h+='<div class="card" style="margin-bottom:10px;">';
+    h+='<div style="font-size:12px;font-weight:800;color:#003580;margin-bottom:10px;">Top fiscais (relatórios finalizados)</div>';
+    topFiscais.forEach(function(f){
+      var n=porFiscal[f];
+      var pct=Math.round(n/maxFisc*100);
+      h+='<div style="margin-bottom:8px;">'
+        +'<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:3px;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;">'+f+'</span><span style="color:#003580;">'+n+'</span></div>'
+        +'<div style="background:#f1f5f9;border-radius:4px;height:8px;overflow:hidden;">'
+          +'<div style="width:'+pct+'%;height:100%;background:#003580;border-radius:4px;transition:width .4s;"></div>'
+        +'</div></div>';
+    });
+    h+='</div>';
+  }
+  /* ── Ativar push ── */
+  h+='<div class="card" style="margin-bottom:10px;border-left:4px solid #7c3aed;">';
+  h+='<div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:8px;">🔔 Notificações Push</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-bottom:10px;">Receba notificação quando um fiscal finalizar um relatório.</div>';
+  h+='<button class="btn bp" onclick="registrarPush()" style="font-size:12px;">Ativar Notificações</button>';
+  h+='</div>';
+  h+='</div>';
+  ab.innerHTML=h;
 }
 function openDetCoord(id){
   S.did=id;
@@ -293,8 +402,29 @@ window.coordExpSel    = coordExpSel;
 window.openDetCoord   = openDetCoord;
 window.cancelPin      = cancelPin;
 window.coordExpSelPDF = coordExpSelPDF;
+window.coordExpSelZip = coordExpSelZip;
 window.fiscToggleSel  = fiscToggleSel;
 window.fiscSelAll     = fiscSelAll;
 window.fiscExpSel     = fiscExpSel;
 window.fiscExpSelPDF  = fiscExpSelPDF;
+window.fiscExpSelZip  = function(){if(typeof fiscExpSelZip==='function')fiscExpSelZip();};
 window.admExpSelPDF   = admExpSelPDF;
+window.admExpSelZip   = function(){if(typeof admExpSelZip==='function')admExpSelZip();};
+window.rPainel        = rPainel;
+window.coordTabSwitch = function(tab){
+  var lista=el('coord-view-lista');
+  var painel=el('coord-view-painel');
+  var tl=el('ctab-lista');
+  var tp=el('ctab-painel');
+  if(!lista||!painel)return;
+  if(tab==='painel'){
+    lista.style.display='none';painel.style.display='flex';painel.style.flexDirection='column';
+    if(tl){tl.style.color='#94a3b8';tl.style.borderBottomColor='transparent';tl.style.fontWeight='700';}
+    if(tp){tp.style.color='#7c3aed';tp.style.borderBottomColor='#7c3aed';tp.style.fontWeight='800';}
+    rPainel();
+  }else{
+    lista.style.display='flex';lista.style.flexDirection='column';painel.style.display='none';
+    if(tl){tl.style.color='#7c3aed';tl.style.borderBottomColor='#7c3aed';tl.style.fontWeight='800';}
+    if(tp){tp.style.color='#94a3b8';tp.style.borderBottomColor='transparent';tp.style.fontWeight='700';}
+  }
+};
