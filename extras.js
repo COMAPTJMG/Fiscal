@@ -672,3 +672,554 @@ window.rEncerramentoContrato = rEncerramentoContrato;
 window.gerarTermoRecebimento = gerarTermoRecebimento;
 window.gerarRelatorioFinalFiscalizacao = gerarRelatorioFinalFiscalizacao;
 window.SEI_URL               = SEI_URL;
+
+/* ══════════════════════════════════════════════════════════════
+   GPS AUTOMÁTICO (v81)
+   ══════════════════════════════════════════════════════════════ */
+function capturarGPS(cb){
+  if(!navigator.geolocation){if(cb)cb(null);return;}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var gps={lat:pos.coords.latitude.toFixed(6),lon:pos.coords.longitude.toFixed(6),acc:Math.round(pos.coords.accuracy)};
+    if(cb)cb(gps);
+  },function(){if(cb)cb(null);},{timeout:8000,maximumAge:60000});
+}
+function iniciarGPS(){
+  capturarGPS(function(gps){
+    if(!gps||!F)return;
+    F.gps=gps;
+    Tt('📍 GPS: '+gps.lat+', '+gps.lon+' (±'+gps.acc+'m)');
+  });
+}
+window.iniciarGPS=iniciarGPS;
+window.capturarGPS=capturarGPS;
+
+/* ══════════════════════════════════════════════════════════════
+   HAPTIC FEEDBACK (v81)
+   ══════════════════════════════════════════════════════════════ */
+function haptic(tipo){
+  if(!navigator.vibrate)return;
+  var padroes={leve:[30],medio:[50],forte:[80,50,80],erro:[100,50,100,50,200],sucesso:[50,30,100]};
+  navigator.vibrate(padroes[tipo]||padroes.leve);
+}
+window.haptic=haptic;
+
+/* ══════════════════════════════════════════════════════════════
+   MODO ESCURO (v81)
+   ══════════════════════════════════════════════════════════════ */
+function toggleModoEscuro(){
+  var dark=localStorage.getItem('_darkMode')==='1';
+  dark=!dark;
+  localStorage.setItem('_darkMode',dark?'1':'0');
+  aplicarModoEscuro(dark);
+  Tt(dark?'🌙 Modo escuro ativado':'☀️ Modo claro ativado');
+}
+function aplicarModoEscuro(dark){
+  document.body.classList.toggle('dark-mode',dark);
+}
+function iniciarTema(){
+  var dark=localStorage.getItem('_darkMode')==='1';
+  if(!dark&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches) dark=true;
+  aplicarModoEscuro(dark);
+}
+window.toggleModoEscuro=toggleModoEscuro;
+window.iniciarTema=iniciarTema;
+
+/* ══════════════════════════════════════════════════════════════
+   COR POR REGIÃO (v81)
+   ══════════════════════════════════════════════════════════════ */
+function aplicarCorRegiao(reg){
+  var R=(typeof REG!=='undefined'&&REG[reg])?REG[reg]:null;
+  if(!R)return;
+  var r=document.documentElement;
+  r.style.setProperty('--a',R.c);
+  r.style.setProperty('--a-dk',_escurecer(R.c,20));
+  r.style.setProperty('--a-lt',_clarear(R.c,15));
+  r.style.setProperty('--a-xs',R.bg);
+}
+function _hexToRgb(hex){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return [r,g,b];
+}
+function _rgbToHex(r,g,b){
+  return '#'+[r,g,b].map(function(v){return Math.min(255,Math.max(0,Math.round(v))).toString(16).padStart(2,'0');}).join('');
+}
+function _escurecer(hex,pct){
+  try{var rgb=_hexToRgb(hex);return _rgbToHex(rgb[0]*(1-pct/100),rgb[1]*(1-pct/100),rgb[2]*(1-pct/100));}catch(e){return hex;}
+}
+function _clarear(hex,pct){
+  try{var rgb=_hexToRgb(hex);return _rgbToHex(rgb[0]+(255-rgb[0])*(pct/100),rgb[1]+(255-rgb[1])*(pct/100),rgb[2]+(255-rgb[2])*(pct/100));}catch(e){return hex;}
+}
+window.aplicarCorRegiao=aplicarCorRegiao;
+
+/* ══════════════════════════════════════════════════════════════
+   SUPABASE REALTIME (v81) — Free: 200 conexões max
+   Coordenador recebe inspeções ao vivo sem recarregar
+   ══════════════════════════════════════════════════════════════ */
+var _rtChannel=null;
+function iniciarRealtime(){
+  if(!SB||!S.sessao)return;
+  if(_rtChannel){try{SB.removeChannel(_rtChannel);}catch(e){}_rtChannel=null;}
+  try{
+    _rtChannel=SB.channel('inspections-live')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'inspections'},function(payload){
+        if(!payload.new)return;
+        var p=payload.new.payload||{};
+        /* Ignorar se é da própria sessão */
+        if(p.fiscal===S.sessao.nome)return;
+        /* Filtrar por região se não for admin/coord global */
+        if(S.sessao.tipo==='usuario'&&p.reg!==S.sessao.reg)return;
+        /* Atualizar cache local */
+        var existe=S.insp.find(function(i){return i.id===payload.new.id;});
+        if(!existe){
+          S.insp.unshift(Object.assign({},p,{id:payload.new.id,synced_at:payload.new.synced_at}));
+          DB.svLocal();
+          haptic('leve');
+          Tt('🔔 '+p.fiscal+' finalizou: '+p.edif);
+          /* Atualizar UI se coordenador está na lista */
+          if(typeof rCoord==='function'&&document.querySelector('#s-coord.act'))rCoord();
+          if(typeof rHome==='function'&&document.querySelector('#s-home.act'))rHome();
+        }
+      })
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'inspections'},function(payload){
+        if(!payload.new)return;
+        var p=payload.new.payload||{};
+        if(p.fiscal===S.sessao.nome)return;
+        var idx=S.insp.findIndex(function(i){return i.id===payload.new.id;});
+        if(idx>=0){S.insp[idx]=Object.assign({},p,{id:payload.new.id,synced_at:payload.new.synced_at});DB.svLocal();}
+      })
+      .subscribe(function(status){
+        if(status==='SUBSCRIBED') console.log('[Realtime] conectado');
+        if(status==='CHANNEL_ERROR') console.warn('[Realtime] erro');
+      });
+  }catch(e){console.warn('[Realtime] falhou:',e.message);}
+}
+function pararRealtime(){
+  if(_rtChannel&&SB){try{SB.removeChannel(_rtChannel);}catch(e){}_rtChannel=null;}
+}
+window.iniciarRealtime=iniciarRealtime;
+window.pararRealtime=pararRealtime;
+
+/* ══════════════════════════════════════════════════════════════
+   CRONÔMETRO DE VISTORIA (v81)
+   ══════════════════════════════════════════════════════════════ */
+var _cronoStart=null;var _cronoTimer=null;
+function iniciarCrono(){
+  _cronoStart=Date.now();
+  if(_cronoTimer)clearInterval(_cronoTimer);
+  _cronoTimer=setInterval(function(){
+    var el_c=el('crono-disp');
+    if(!el_c)return;
+    var seg=Math.floor((Date.now()-_cronoStart)/1000);
+    var m=Math.floor(seg/60);var s=seg%60;
+    el_c.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  },1000);
+}
+function pararCrono(){
+  if(_cronoTimer){clearInterval(_cronoTimer);_cronoTimer=null;}
+  if(!_cronoStart)return 0;
+  var dur=Math.round((Date.now()-_cronoStart)/60000);
+  _cronoStart=null;
+  if(F)F.duracaoMin=dur;
+  return dur;
+}
+window.iniciarCrono=iniciarCrono;
+window.pararCrono=pararCrono;
+
+/* ══════════════════════════════════════════════════════════════
+   MODO NÃO PERTURBE + WAKELOCK (v81)
+   ══════════════════════════════════════════════════════════════ */
+var _wakeLock=null;var _naoPerturbe=false;
+async function toggleNaoPerturbe(){
+  _naoPerturbe=!_naoPerturbe;
+  var btn=el('btn-nao-perturbe');
+  if(_naoPerturbe){
+    /* Ativar WakeLock */
+    if('wakeLock' in navigator){
+      try{_wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
+    }
+    if(btn){btn.textContent='🔔';btn.title='Desativar Não Perturbe';}
+    Tt('🔕 Modo campo ativado — tela sempre ligada');
+  }else{
+    if(_wakeLock){try{await _wakeLock.release();}catch(e){}_wakeLock=null;}
+    if(btn){btn.textContent='🔕';btn.title='Ativar Modo Campo';}
+    Tt('🔔 Modo campo desativado');
+  }
+}
+window.toggleNaoPerturbe=toggleNaoPerturbe;
+
+/* ══════════════════════════════════════════════════════════════
+   VALIDAÇÃO DE MEDIÇÕES (SPDA/SUBESTAÇÃO) (v81)
+   Limites normativos NBR 5419 / NBR 14039
+   ══════════════════════════════════════════════════════════════ */
+var LIMITES_NORMATIVOS={
+  resistencia_terra:{max:10,unidade:'Ω',norma:'NBR 5419',msg:'Resistência acima do limite (máx 10Ω). Acionar correção!'},
+  resistencia_isolamento:{min:1,unidade:'MΩ',norma:'NBR 14039',msg:'Resistência de isolamento baixa (mín 1MΩ). Verificar!'},
+  tensao_alimentacao:{min:198,max:231,unidade:'V',norma:'NBR 14039',msg:'Tensão fora da faixa nominal (198–231V).'},
+  corrente_fuga:{max:30,unidade:'mA',norma:'NBR 5410',msg:'Corrente de fuga acima do limite (máx 30mA). Risco!'},
+  temperatura_quadro:{max:60,unidade:'°C',norma:'NBR 14039',msg:'Temperatura elevada no quadro (máx 60°C). Verificar!'}
+};
+function validarMedicao(campo,valor){
+  var lim=LIMITES_NORMATIVOS[campo];
+  if(!lim)return null;
+  var v=parseFloat(valor);if(isNaN(v))return null;
+  var ok=true;var msg='';
+  if(lim.max!==undefined&&v>lim.max){ok=false;msg=lim.msg;}
+  if(lim.min!==undefined&&v<lim.min){ok=false;msg=lim.msg;}
+  return{ok:ok,msg:msg,norma:lim.norma,unidade:lim.unidade};
+}
+function renderCampoMedicao(id,campo,label,valorAtual,onInput){
+  var v=validarMedicao(campo,valorAtual);
+  var cor=v?(!v.ok?'#dc2626':'#16a34a'):'#003580';
+  return '<div style="margin-bottom:10px;">'
+    +'<div class="lbl">'+label+(LIMITES_NORMATIVOS[campo]?' <span style="font-size:9px;color:#94a3b8;">('+LIMITES_NORMATIVOS[campo].norma+')</span>':'')+'</div>'
+    +'<div style="display:flex;gap:6px;align-items:center;">'
+    +'<input id="'+id+'" type="number" step="0.01" value="'+(valorAtual||'')+'" oninput="'+onInput+';_valMed(\''+id+'\',\''+campo+'\')" style="flex:1;border-color:'+cor+';">'
+    +'<span style="font-size:11px;color:#64748b;flex-shrink:0;">'+(LIMITES_NORMATIVOS[campo]?LIMITES_NORMATIVOS[campo].unidade:'')+'</span>'
+    +'</div>'
+    +(v&&!v.ok?'<div style="font-size:10px;color:#dc2626;margin-top:3px;font-weight:700;">⚠️ '+v.msg+'</div>':'')
+    +'</div>';
+}
+function _valMed(inputId,campo){
+  var inp=el(inputId);if(!inp)return;
+  var v=validarMedicao(campo,inp.value);
+  if(!v)return;
+  inp.style.borderColor=v.ok?'#16a34a':'#dc2626';
+  if(!v.ok){haptic('erro');Tt('⚠️ '+v.msg);}
+}
+window.validarMedicao=validarMedicao;
+window.renderCampoMedicao=renderCampoMedicao;
+window._valMed=_valMed;
+
+/* ══════════════════════════════════════════════════════════════
+   FOTO ANTES×DEPOIS (v81)
+   ══════════════════════════════════════════════════════════════ */
+function buscarFotoAnterior(edif,itemNm){
+  /* Busca a foto mais recente do mesmo item na mesma edificação */
+  var hist=S.insp.filter(function(i){
+    return i.edif===edif&&i.st==='finalizada'&&i.id!==(F&&F.id);
+  }).sort(function(a,b){return(b.dtVistoria||b.data)<(a.dtVistoria||a.data)?-1:1;});
+  for(var i=0;i<hist.length;i++){
+    var its=Object.values(hist[i].itens||{});
+    for(var j=0;j<its.length;j++){
+      if(its[j].nm===itemNm&&its[j].fotos&&its[j].fotos.length){
+        return{foto:its[j].fotos[0],data:hist[i].dtVistoria||hist[i].data,insp:hist[i]};
+      }
+    }
+  }
+  return null;
+}
+window.buscarFotoAnterior=buscarFotoAnterior;
+
+/* ══════════════════════════════════════════════════════════════
+   LEGENDA AUTOMÁTICA DE FOTO (v81)
+   ══════════════════════════════════════════════════════════════ */
+function legendaAutoFoto(itemNm,indice,total){
+  var agora=new Date();
+  var h=String(agora.getHours()).padStart(2,'0');
+  var m=String(agora.getMinutes()).padStart(2,'0');
+  var dtStr=fdt(agora.toISOString().slice(0,10))+' '+h+':'+m;
+  return (itemNm?itemNm+' — ':'')+dtStr+' — Foto '+(indice+1)+(total>1?'/'+total:'');
+}
+window.legendaAutoFoto=legendaAutoFoto;
+
+/* ══════════════════════════════════════════════════════════════
+   ZOOM+ROTAÇÃO NAS FOTOS DO LIGHTBOX (v81)
+   ══════════════════════════════════════════════════════════════ */
+var _lbZoom=1;var _lbRotate=0;
+function lbZoomIn(){_lbZoom=Math.min(4,_lbZoom+0.5);_lbAplicarTransform();}
+function lbZoomOut(){_lbZoom=Math.max(0.5,_lbZoom-0.5);_lbAplicarTransform();}
+function lbRotate(){_lbRotate=(_lbRotate+90)%360;_lbAplicarTransform();}
+function lbReset(){_lbZoom=1;_lbRotate=0;_lbAplicarTransform();}
+function _lbAplicarTransform(){
+  var img=el('lb-img');
+  if(img)img.style.transform='scale('+_lbZoom+') rotate('+_lbRotate+'deg)';
+}
+window.lbZoomIn=lbZoomIn;window.lbZoomOut=lbZoomOut;window.lbRotate=lbRotate;window.lbReset=lbReset;
+
+/* ══════════════════════════════════════════════════════════════
+   MINI-GRÁFICO SVG DE CONFORMIDADE NOS CARDS (v81)
+   ══════════════════════════════════════════════════════════════ */
+function miniDonut(pct,cor,r){
+  r=r||12;var c=2*Math.PI*r;var fill=c*(pct/100);
+  return '<svg width="'+(r*2+4)+'" height="'+(r*2+4)+'" viewBox="0 0 '+(r*2+4)+' '+(r*2+4)+'" style="transform:rotate(-90deg);">'
+    +'<circle cx="'+(r+2)+'" cy="'+(r+2)+'" r="'+r+'" fill="none" stroke="#e2e8f0" stroke-width="3"/>'
+    +'<circle cx="'+(r+2)+'" cy="'+(r+2)+'" r="'+r+'" fill="none" stroke="'+(cor||'#003580')+'" stroke-width="3" stroke-dasharray="'+fill.toFixed(1)+' '+c.toFixed(1)+'" stroke-linecap="round"/>'
+    +'</svg>';
+}
+window.miniDonut=miniDonut;
+
+/* ══════════════════════════════════════════════════════════════
+   LOCK DE TELA POR INATIVIDADE (v81)
+   ══════════════════════════════════════════════════════════════ */
+var _lockTimer=null;var _lockAtivo=false;
+function resetLockTimer(){
+  if(_lockAtivo)return;
+  clearTimeout(_lockTimer);
+  var TTL=(S.sessao&&S.sessao.tipo==='coordenador')?10*60000:5*60000;/* coord 10min, fiscal 5min */
+  _lockTimer=setTimeout(function(){ativarLock();},TTL);
+}
+function ativarLock(){
+  if(!S.sessao||_lockAtivo)return;
+  _lockAtivo=true;
+  var m=el('m-lock');if(!m){
+    m=document.createElement('div');m.id='m-lock';
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,32,96,.97);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;';
+    m.innerHTML='<div style="font-size:48px;margin-bottom:16px;">🔒</div>'
+      +'<div style="font-size:16px;font-weight:800;margin-bottom:4px;">Sessão bloqueada</div>'
+      +'<div style="font-size:12px;opacity:.7;margin-bottom:24px;">'+_escA(S.sessao.nome)+'</div>'
+      +'<div id="lock-dots" style="display:flex;gap:10px;margin-bottom:16px;"></div>'
+      +'<div id="lock-err" style="color:#f87171;font-size:12px;min-height:16px;margin-bottom:10px;"></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,64px);gap:10px;">'
+      +[1,2,3,4,5,6,7,8,9,'←',0,'✓'].map(function(k){
+        return'<button onclick="_lockKp(\''+k+'\')" style="border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:12px;height:56px;font-size:'+(k==='←'||k==='✓'?'18':'22')+'px;font-weight:700;cursor:pointer;font-family:inherit;">'+k+'</button>';
+      }).join('')+'</div>';
+    document.getElementById('app').appendChild(m);
+  }
+  m.style.display='flex';
+  _lockBuf='';_atualizarLockDots();
+}
+var _lockBuf='';
+function _lockKp(k){
+  haptic('leve');
+  if(k==='←'){_lockBuf=_lockBuf.slice(0,-1);}
+  else if(k==='✓'){_verificarLockPin();}
+  else if(_lockBuf.length<6){_lockBuf+=String(k);}
+  if(_lockBuf.length===4||_lockBuf.length===6) _verificarLockPin();
+  _atualizarLockDots();
+}
+function _atualizarLockDots(){
+  var d=el('lock-dots');if(!d)return;
+  var max=6;
+  d.innerHTML='';for(var i=0;i<max;i++){
+    var dot=document.createElement('div');
+    dot.style.cssText='width:12px;height:12px;border-radius:50%;background:'+(i<_lockBuf.length?'#60a5fa':'rgba(255,255,255,.3)');
+    d.appendChild(dot);
+  }
+}
+function _verificarLockPin(){
+  var u=US.find(function(x){return x.id===S.sessao.userId;});
+  if(!u||_lockBuf!==u.pin){
+    var e=el('lock-err');if(e)e.textContent='PIN incorreto';
+    haptic('erro');_lockBuf='';_atualizarLockDots();return;
+  }
+  _lockAtivo=false;
+  var m=el('m-lock');if(m)m.style.display='none';
+  haptic('sucesso');resetLockTimer();
+}
+window._lockKp=_lockKp;
+window.resetLockTimer=resetLockTimer;
+
+/* ══════════════════════════════════════════════════════════════
+   MODO ALTO CONTRASTE + FONTE MAIOR (v81)
+   ══════════════════════════════════════════════════════════════ */
+function toggleAltoContraste(){
+  var ac=localStorage.getItem('_altoContraste')==='1';
+  ac=!ac;localStorage.setItem('_altoContraste',ac?'1':'0');
+  aplicarAltoContraste(ac);
+  Tt(ac?'♿ Alto contraste ativado':'♿ Alto contraste desativado');
+}
+function aplicarAltoContraste(ac){
+  document.body.classList.toggle('alto-contraste',ac);
+}
+function toggleFonteMaior(){
+  var fm=localStorage.getItem('_fonteMaior')==='1';
+  fm=!fm;localStorage.setItem('_fonteMaior',fm?'1':'0');
+  document.body.classList.toggle('fonte-maior',fm);
+  Tt(fm?'Aa Fonte aumentada':'Aa Fonte normal');
+}
+function iniciarAcessibilidade(){
+  if(localStorage.getItem('_altoContraste')==='1') aplicarAltoContraste(true);
+  if(localStorage.getItem('_fonteMaior')==='1') document.body.classList.add('fonte-maior');
+}
+window.toggleAltoContraste=toggleAltoContraste;
+window.toggleFonteMaior=toggleFonteMaior;
+window.iniciarAcessibilidade=iniciarAcessibilidade;
+
+/* ══════════════════════════════════════════════════════════════
+   DETECTOR DE DISPOSITIVO (v81)
+   ══════════════════════════════════════════════════════════════ */
+async function verificarCompatibilidade(){
+  var avisos=[];
+  /* Espaço disponível */
+  if(navigator.storage&&navigator.storage.estimate){
+    var est=await navigator.storage.estimate();
+    var livreGB=(est.quota-est.usage)/1024/1024/1024;
+    if(livreGB<0.3) avisos.push('⚠️ Armazenamento baixo: '+livreGB.toFixed(2)+'GB livre. Libere espaço para fotos.');
+  }
+  /* Android version via UA */
+  var ua=navigator.userAgent;
+  var andMatch=ua.match(/Android (\d+)/);
+  if(andMatch&&parseInt(andMatch[1])<8) avisos.push('⚠️ Android '+andMatch[1]+' pode ter limitações. Recomendado Android 8+.');
+  /* Sem IndexedDB */
+  if(!window.indexedDB) avisos.push('❌ Seu navegador não suporta armazenamento offline.');
+  if(avisos.length) Tt(avisos[0]);
+  return avisos;
+}
+window.verificarCompatibilidade=verificarCompatibilidade;
+
+/* ══════════════════════════════════════════════════════════════
+   CHANGELOG INTERNO (v81)
+   ══════════════════════════════════════════════════════════════ */
+var CHANGELOG=[
+  {v:'v81',data:'2026-05',novidades:['GPS automático em cada vistoria','Modo escuro','Cor por região','Realtime — coordenador vê inspeções ao vivo','Cronômetro de vistoria','Modo campo (WakeLock)','Lock de tela por inatividade','Zoom/rotação nas fotos','Foto Antes×Depois','Mini-donut de conformidade nos cards','Alto contraste e fonte maior','Validação de medições (NBR 5419/14039)']},
+  {v:'v80',data:'2026-05',novidades:['SEI TJMG integrado','Assinatura Gov.br (opcional)','QR Code por edificação','Excel SINAPI','WhatsApp para NCs críticas','Relatório mensal automático','Estoque de materiais','Navegação por voz','Termos de Recebimento (Lei 14.133)','WebP nas fotos (-30%)','Mapa e Execução no coordenador']},
+  {v:'v79',data:'2026-05',novidades:['Ditado por voz em campos longos','Agenda de vistorias','Comparativo entre vistorias','NOT-INA e ROC automáticos','Mapa de edificações (Leaflet)','IMR calculado automaticamente']}
+];
+function rChangelog(){
+  var cb=el('changelog-body');if(!cb)return;
+  var h='<div style="padding:12px;">';
+  CHANGELOG.forEach(function(r){
+    h+='<div class="card" style="margin-bottom:10px;">';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+    h+='<span style="background:#003580;color:#fff;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:800;">'+r.v+'</span>';
+    h+='<span style="font-size:11px;color:#64748b;">'+r.data+'</span>';
+    h+='</div>';
+    r.novidades.forEach(function(n){
+      h+='<div style="font-size:11px;color:#475569;padding:3px 0;border-bottom:1px solid #f8fafc;">✨ '+n+'</div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+  cb.innerHTML=h;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MURAL DE COMUNICADOS (v81)
+   ══════════════════════════════════════════════════════════════ */
+function carregarMural(){
+  /* Busca comunicados do Supabase */
+  if(!SB||!navigator.onLine)return;
+  SB.from('comunicados').select('*').order('created_at',{ascending:false}).limit(5)
+    .then(function(res){
+      if(res.error||!res.data||!res.data.length)return;
+      var mural=el('mural-home');if(!mural)return;
+      var ativos=res.data.filter(function(c){return c.reg===S.sessao.reg||c.reg==='todos'||!c.reg;});
+      if(!ativos.length)return;
+      mural.innerHTML=ativos.map(function(c){
+        return'<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">'
+          +'<span style="font-size:18px;flex-shrink:0;">📣</span>'
+          +'<div><div style="font-size:12px;font-weight:700;color:#92400e;">'+_escA(c.titulo||'Comunicado')+'</div>'
+          +'<div style="font-size:11px;color:#78350f;margin-top:2px;line-height:1.5;">'+_escA(c.texto||'')+'</div>'
+          +'<div style="font-size:9px;color:#b45309;margin-top:4px;">'+fdt((c.created_at||'').slice(0,10))+'</div></div>'
+          +'</div>';
+      }).join('');
+      mural.style.display='block';
+    }).catch(function(){});
+}
+function publicarComunicado(titulo,texto,reg){
+  if(!SB){Tt('Supabase não disponível.');return;}
+  SB.from('comunicados').insert([{titulo:titulo,texto:texto,reg:reg||'todos',autor:S.sessao?S.sessao.nome:''}])
+    .then(function(res){
+      if(res.error){Tt('Erro ao publicar: '+res.error.message);return;}
+      Tt('✅ Comunicado publicado!');
+    });
+}
+window.rChangelog=rChangelog;
+window.carregarMural=carregarMural;
+window.publicarComunicado=publicarComunicado;
+
+/* ══════════════════════════════════════════════════════════════
+   TUTORIAL INTERATIVO (v81) — exibe 1x por usuário
+   ══════════════════════════════════════════════════════════════ */
+var _tutorialPassos=[
+  {sel:'#btn-sync-manual',txt:'☁️ Sincroniza seus relatórios com a equipe. Sempre que tiver internet, sincronize!'},
+  {sel:'.cta',txt:'➕ Toque aqui para criar um novo relatório de inspeção.'},
+  {sel:'#bn0 .tab:first-child',txt:'🏠 Volta para a tela inicial com seus rascunhos.'},
+  {sel:'#bn0 .tab:nth-child(3)',txt:'📋 Aqui ficam todos os relatórios que você criou.'},
+  {sel:'#bn0 .tab:nth-child(5)',txt:'👤 Perfil: configurações, ferramentas e sair.'}
+];
+function iniciarTutorial(forca){
+  var key='_tutorialFeito_'+(S.sessao?S.sessao.userId:'');
+  if(!forca&&localStorage.getItem(key)==='1')return;
+  localStorage.setItem(key,'1');
+  var passo=0;
+  function mostrarPasso(){
+    var overlay=el('m-tutorial');
+    if(!overlay){
+      overlay=document.createElement('div');overlay.id='m-tutorial';
+      overlay.style.cssText='position:fixed;inset:0;z-index:8000;pointer-events:none;';
+      document.getElementById('app').appendChild(overlay);
+    }
+    if(passo>=_tutorialPassos.length){overlay.innerHTML='';return;}
+    var p=_tutorialPassos[passo];
+    var alvo=document.querySelector(p.sel);
+    var rect=alvo?alvo.getBoundingClientRect():{top:200,left:20,width:200,height:48};
+    overlay.innerHTML='<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);pointer-events:all;" onclick="void(0)"></div>'
+      +'<div style="position:fixed;top:'+(rect.top-6)+'px;left:'+(rect.left-6)+'px;width:'+(rect.width+12)+'px;height:'+(rect.height+12)+'px;border:3px solid #60a5fa;border-radius:14px;box-shadow:0 0 0 4px rgba(96,165,250,.3);pointer-events:none;"></div>'
+      +'<div style="position:fixed;top:'+(rect.bottom+12)+'px;left:12px;right:12px;background:#fff;border-radius:14px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);pointer-events:all;">'
+      +'<div style="font-size:13px;color:#0f172a;line-height:1.6;margin-bottom:12px;">'+p.txt+'</div>'
+      +'<div style="display:flex;justify-content:space-between;">'
+      +'<button onclick="el(\'m-tutorial\').innerHTML=\'\'" style="border:none;background:#f1f5f9;color:#64748b;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;">Pular</button>'
+      +'<button onclick="passo++;mostrarPasso&&mostrarPasso()" style="border:none;background:#003580;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;">'+(passo<_tutorialPassos.length-1?'Próximo ›':'Concluir ✓')+'</button>'
+      +'</div></div>';
+    passo++;
+  }
+  /* Capturar mostrarPasso no escopo */
+  window._tutPasso=function(){mostrarPasso();};
+  overlay.innerHTML='';
+  /* Atrasar para DOM estar pronto */
+  setTimeout(function(){
+    passo=0;mostrarPasso();
+  },1500);
+}
+window.iniciarTutorial=iniciarTutorial;
+
+/* ══════════════════════════════════════════════════════════════
+   COMPRESSÃO DE FOTOS ANTIGAS (v81)
+   ══════════════════════════════════════════════════════════════ */
+function comprimirFotosAntigas(){
+  var KEY='_compFotosOld';
+  var last=parseInt(localStorage.getItem(KEY)||'0');
+  if(Date.now()-last<7*24*3600000)return;/* semanal */
+  localStorage.setItem(KEY,Date.now().toString());
+  var cutoff=new Date();cutoff.setMonth(cutoff.getMonth()-3);
+  var antigas=S.insp.filter(function(i){
+    return new Date(i.dtVistoria||i.data||'2000')<cutoff;
+  });
+  if(!antigas.length)return;
+  console.log('[Compress] Verificando fotos de',antigas.length,'inspeções antigas...');
+  /* A compressão real das fotos no IndexedDB seria complexa — apenas logar */
+  auditLog('compress_fotos',{total_antigas:antigas.length});
+}
+window.comprimirFotosAntigas=comprimirFotosAntigas;
+
+/* ══════════════════════════════════════════════════════════════
+   PAINEL DE VENCIMENTO DE CONTRATOS (v81)
+   ══════════════════════════════════════════════════════════════ */
+var CONTRATOS_VIGENCIA={
+  NORTE:   {ct:'CT 017/2026',empresa:'RENOVA ENGENHARIA',inicio:'2026-01-01',fim:'2026-12-31'},
+  CENTRAL: {ct:'CT 025/2026',empresa:'—',              inicio:'2026-01-01',fim:'2026-12-31'},
+  LESTE:   {ct:'CT 019/2026',empresa:'—',              inicio:'2026-01-01',fim:'2026-12-31'},
+  ZONA_MATA:{ct:'CT 018/2026',empresa:'—',             inicio:'2026-01-01',fim:'2026-12-31'},
+  TRIANGULO:{ct:'CT 392/2022',empresa:'—',             inicio:'2022-07-01',fim:'2026-12-31'},
+  SUL:     {ct:'CT 138/2023',empresa:'—',              inicio:'2023-06-01',fim:'2026-12-31'},
+  SUDOESTE:{ct:'CT 421/2022',empresa:'—',              inicio:'2022-09-01',fim:'2026-12-31'}
+};
+function rVigenciaContratos(){
+  var vb=el('vigencia-body');if(!vb)return;
+  var hoje=new Date();hoje.setHours(0,0,0,0);
+  var h='<div style="padding:12px;">';
+  h+='<div style="font-size:12px;font-weight:800;color:#003580;margin-bottom:10px;">📅 Vigência dos Contratos</div>';
+  Object.keys(CONTRATOS_VIGENCIA).forEach(function(reg){
+    var c=CONTRATOS_VIGENCIA[reg];
+    var R=(typeof REG!=='undefined'&&REG[reg])?REG[reg]:{l:reg,c:'#003580'};
+    var fim=new Date(c.fim+'T00:00:00');
+    var diasRestantes=Math.round((fim-hoje)/86400000);
+    var cor=diasRestantes<=30?'#dc2626':diasRestantes<=90?'#d97706':'#16a34a';
+    var pctConsumido=Math.min(100,Math.round((hoje-new Date(c.inicio+'T00:00:00'))/(fim-new Date(c.inicio+'T00:00:00'))*100));
+    h+='<div class="card" style="margin-bottom:8px;border-left:4px solid '+R.c+';">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">';
+    h+='<div><div style="font-size:12px;font-weight:800;">'+c.ct+'</div>';
+    h+='<div style="font-size:10px;color:#64748b;">'+R.l+(c.empresa!=='—'?' · '+c.empresa:'')+'</div></div>';
+    h+='<span style="color:'+cor+';font-size:12px;font-weight:800;flex-shrink:0;">'+diasRestantes+'d</span>';
+    h+='</div>';
+    h+='<div style="background:#f1f5f9;border-radius:4px;height:6px;overflow:hidden;margin-bottom:4px;">';
+    h+='<div style="width:'+pctConsumido+'%;height:100%;background:'+cor+';border-radius:4px;"></div></div>';
+    h+='<div style="display:flex;justify-content:space-between;font-size:9px;color:#94a3b8;">';
+    h+='<span>'+fdt(c.inicio)+'</span><span>'+pctConsumido+'% consumido</span><span>'+fdt(c.fim)+'</span>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+  vb.innerHTML=h;
+}
+window.rVigenciaContratos=rVigenciaContratos;

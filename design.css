@@ -713,3 +713,101 @@ select {
 /* ============================================================
    FIM — design.css v78
    ============================================================ */
+
+/* ══════════════════════════════════════════════════════════════
+   MODO ESCURO — v81
+   ══════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  body:not(.light-mode) { --bg-auto-dark: 1; }
+}
+body.dark-mode {
+  --bg:      #0f172a;
+  --surface: #1e293b;
+  --s2:      #1e293b;
+  --s3:      #1a2840;
+  --bo:      #334155;
+  --bo-md:   #475569;
+  --tx:      #f1f5f9;
+  --t2:      #94a3b8;
+  --t3:      #64748b;
+  background: #0f172a;
+}
+body.dark-mode .card,
+body.dark-mode .fcard { background: var(--surface); border-color: var(--bo); }
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select {
+  background: var(--s3);
+  color: var(--tx);
+  border-color: var(--bo);
+}
+body.dark-mode .bnv,
+body.dark-mode .hdr { color: #fff; }
+body.dark-mode .bnv { background: #1e293b; border-top-color: #334155; }
+body.dark-mode .sbr { background: #1e293b; border-bottom-color: #334155; }
+body.dark-mode .ubar { background: #1e293b; border-bottom-color: #334155; }
+body.dark-mode #offbar { background: linear-gradient(90deg,#78350f,#d97706); }
+
+/* ══════════════════════════════════════════════════════════════
+   ALTO CONTRASTE — v81
+   ══════════════════════════════════════════════════════════════ */
+body.alto-contraste {
+  --bg:      #ffffff;
+  --surface: #ffffff;
+  --bo:      #000000;
+  --tx:      #000000;
+  --t2:      #000000;
+  filter: contrast(1.4);
+}
+body.alto-contraste .btn { border: 2px solid #000 !important; }
+body.alto-contraste .card { border: 2px solid #000; }
+
+/* ══════════════════════════════════════════════════════════════
+   FONTE MAIOR — v81
+   ══════════════════════════════════════════════════════════════ */
+body.fonte-maior {
+  font-size: 17px !important;
+}
+body.fonte-maior .card, body.fonte-maior .lbl,
+body.fonte-maior .btn, body.fonte-maior input,
+body.fonte-maior textarea, body.fonte-maior select {
+  font-size: 15px !important;
+}
+body.fonte-maior .ht { font-size: 19px !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   MINI-DONUT NOS CARDS — v81
+   ══════════════════════════════════════════════════════════════ */
+.mini-donut-wrap {
+  display: flex; align-items: center; gap: 4px;
+}
+.mini-donut-pct {
+  font-size: 10px; font-weight: 800;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CRONÔMETRO — v81
+   ══════════════════════════════════════════════════════════════ */
+#crono-disp {
+  font-family: var(--fm, monospace);
+  font-size: 13px;
+  color: rgba(255,255,255,.8);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GPS badge — v81
+   ══════════════════════════════════════════════════════════════ */
+.gps-badge {
+  background: rgba(22,163,74,.15);
+  color: #16a34a;
+  border: 1px solid rgba(22,163,74,.3);
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 10px;
+  font-weight: 700;
+}
+/* ============================================================
+   FIM — design.css v81
+   ============================================================ */

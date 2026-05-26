@@ -83,6 +83,10 @@ function iniciarF(tipo,forcar){
   var cor=TCOR[tipo]||'#003580';el('fhdr').style.background=cor;el('fnxt').style.background=cor;
   autoSaveLastHash='';
   startAutoSave();
+  /* v81: GPS + cronômetro */
+  if(typeof iniciarGPS==='function') iniciarGPS();
+  if(typeof iniciarCrono==='function') iniciarCrono();
+  if(typeof haptic==='function') haptic('leve');
   rFe();G('s-form');
 }
 function rFe(resetScroll){

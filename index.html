@@ -103,14 +103,19 @@ input:focus,textarea:focus{border-color:var(--a);}
 </div>
 
 <div class="scr" id="s-home" style="padding-top:var(--st)">
-  <div class="hdr ha"><div style="flex:1;"><div class="ht" id="h-ola">Ola!</div><div class="hs" id="h-sub">TJMG Fiscal</div></div>
-  <div id="dot" style="background:#22c55e;padding:3px 8px;border-radius:20px;font-size:10px;color:#fff;font-weight:700;">Online</div></div>
+  <div class="hdr ha">
+    <div style="flex:1;"><div class="ht" id="h-ola">Ola!</div><div class="hs" id="h-sub">TJMG Fiscal</div></div>
+    <button onclick="G('s-changelog');rChangelog()" title="Novidades" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:5px 9px;font-size:14px;cursor:pointer;margin-right:4px;">🆕</button>
+    <div id="dot" style="background:#22c55e;padding:3px 8px;border-radius:20px;font-size:10px;color:#fff;font-weight:700;">Online</div>
+  </div>
   <div class="ubar" id="ubar"></div>
   <!-- v79: Busca global -->
   <div style="padding:8px 12px;background:#fff;border-bottom:1px solid var(--bo);flex-shrink:0;">
     <input id="busca-global" placeholder="🔍  Buscar edificação, comarca, OS..." oninput="buscaGlobal(this.value)" style="border-radius:24px;background:#f8fafc;border-color:#e2e8f0;font-size:13px;">
   </div>
   <div id="busca-res" style="display:none;flex-shrink:0;max-height:240px;overflow-y:auto;background:#fff;border-bottom:1px solid var(--bo);"></div>
+  <!-- v81: Mural de comunicados -->
+  <div id="mural-home" style="display:none;padding:8px 12px;flex-shrink:0;"></div>
   <div class="scrl" id="hbody"></div>
   <div class="bnv" id="bn0"></div>
 </div>
@@ -248,6 +253,24 @@ input:focus,textarea:focus{border-color:var(--a);}
   <div class="scrl" id="audit-body"></div>
 </div>
 
+<!-- ── CHANGELOG (v81) ── -->
+<div class="scr" id="s-changelog" style="padding-top:var(--st)">
+  <div class="hdr ha">
+    <div class="bkb" onclick="Gb('s-perfil');rPerf()">&#8249;</div>
+    <div style="flex:1;"><div class="ht">🆕 Novidades</div><div class="hs">Histórico de versões</div></div>
+  </div>
+  <div class="scrl" id="changelog-body"></div>
+</div>
+
+<!-- ── VIGÊNCIA DE CONTRATOS (v81) ── -->
+<div class="scr" id="s-vigencia" style="padding-top:var(--st)">
+  <div class="hdr" style="background:#1e293b;">
+    <div class="bkb" onclick="Gb('s-perfil');rPerf()">&#8249;</div>
+    <div style="flex:1;"><div class="ht">📅 Contratos</div><div class="hs">Vigência e prazos</div></div>
+  </div>
+  <div class="scrl" id="vigencia-body"></div>
+</div>
+
 <div class="scr" id="s-pci" style="padding-top:var(--st)">
   <div class="hdr hr"><span class="bkb" onclick="if(S._admPciSessao){S.sessao=S._admPciSessao;delete S._admPciSessao;G('s-admin');}else{G('s-home');}">&#8592;</span>
   <div><div class="ht" id="pci-ht">&#129711; Controle PCI</div><div class="hs" id="pci-hs">carregando...</div></div></div>
@@ -273,8 +296,10 @@ input:focus,textarea:focus{border-color:var(--a);}
 <div class="scr" id="s-form" style="padding-top:var(--st)">
   <div class="hdr" id="fhdr"><span class="bkb" onclick="fback()">&#8592;</span>
   <div style="flex:1;"><div class="ht" id="ftit">Formulario</div><div class="hs" id="fsub">Etapa 1</div></div>
-  <div style="display:flex;align-items:center;gap:6px;">
-    <button onclick="undoPop()" title="Desfazer última alteração" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer;">↩️</button>
+  <div style="display:flex;align-items:center;gap:4px;">
+    <span id="crono-disp" style="font-size:11px;color:rgba(255,255,255,.7);font-weight:700;font-family:monospace;">00:00</span>
+    <button onclick="toggleNaoPerturbe()" id="btn-nao-perturbe" title="Modo Campo" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:4px 7px;font-size:12px;cursor:pointer;">🔕</button>
+    <button onclick="undoPop()" title="Desfazer" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:4px 7px;font-size:12px;cursor:pointer;">↩️</button>
     <div id="autosave-ind" style="font-size:10px;color:rgba(255,255,255,.6);white-space:nowrap;"></div>
   </div></div>
   <div class="sbr" id="fsbr"></div>
@@ -753,7 +778,8 @@ function rHome(){
     h+='<div class="sec">Enviados Recentes</div>';
     envs.slice(0,3).forEach(function(i){
       var t=TIPOS[i.tipo]||TIPOS.periodica;
-      h+='<div class="card" style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openDet(\''+i.id+'\')"><div style="width:34px;height:34px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;">'+t.i+'</div><div style="flex:1;"><div style="font-size:12px;font-weight:700;">'+i.edif+'</div><div style="font-size:10px;color:#64748b;">'+(i.com||'-')+' - '+fdt(i.dtVistoria||i.data)+'</div></div><span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span><span class="bdg" style="background:#dcfce7;color:#16a34a;">Enviado</span></div>';
+      var _iArr=Object.values(i.itens||{});var _avArr=_iArr.filter(function(v){return v.s&&v.s!=='fora_periodo'&&v.s!=='nao_aplicavel'&&v.s!=='pendente';});var _cfArr=_avArr.filter(function(v){return v.s==='conforme'||v.s==='executado';});var _iPct=_avArr.length?Math.round(_cfArr.length/_avArr.length*100):null;var _iCor=_iPct===null?'#94a3b8':_iPct>=80?'#16a34a':_iPct>=60?'#d97706':'#dc2626';
+      h+='<div class="card" style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openDet(\''+i.id+'\')"><div style="width:34px;height:34px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;">'+t.i+'</div><div style="flex:1;"><div style="font-size:12px;font-weight:700;">'+i.edif+'</div><div style="font-size:10px;color:#64748b;">'+(i.com||'-')+' - '+fdt(i.dtVistoria||i.data)+'</div></div>'+(_iPct!==null?'<div style="display:flex;align-items:center;gap:3px;">'+miniDonut(_iPct,_iCor,11)+'<span style="font-size:10px;font-weight:800;color:'+_iCor+';">'+_iPct+'%</span></div>':'')+'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span><span class="bdg" style="background:#dcfce7;color:#16a34a;">Enviado</span></div>';
     });
   }
   if(!S.insp.length)h+='<div style="text-align:center;padding:32px;"><div style="font-size:48px;">&#128203;</div><div style="font-size:14px;color:#94a3b8;margin-top:10px;font-weight:600;">Nenhuma inspecao</div><div style="font-size:12px;color:#cbd5e1;margin-top:4px;">Toque em Criar Relatorio</div></div>';
@@ -1045,7 +1071,17 @@ function rPerf(){
     +'<button class="btn" style="background:#1351b4;color:#fff;font-size:12px;padding:11px;" onclick="gerarTermoRecebimento(\'provisorio\')">📜 Termo Prov.</button>'
     +'<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:11px;" onclick="gerarTermoRecebimento(\'definitivo\')">📜 Termo Def.</button>'
     +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-vigencia\');rVigenciaContratos()">📅 Contratos</button>'
+    +'<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-changelog\');rChangelog()">🆕 Novidades</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">'
+    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:11px;padding:10px;" onclick="toggleModoEscuro()">🌙 Escuro</button>'
+    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:11px;padding:10px;" onclick="toggleAltoContraste()">♿ Contraste</button>'
+    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:11px;padding:10px;" onclick="toggleFonteMaior()">Aa Fonte</button>'
+    +'</div>'
     +'<button class="btn" style="background:#0f172a;color:#fff;margin-bottom:8px;font-size:12px;" onclick="ativarVozNav()">🎙️ Navegação por Voz</button>'
+    +'<button class="btn" style="background:#64748b;color:#fff;margin-bottom:8px;font-size:12px;" onclick="iniciarTutorial(true)">🎓 Ver Tutorial</button>'
     +'<button class="btn boa" onclick="logout()">Trocar Técnico / Sair</button>'
     +'<button class="btn" style="background:#fee2e2;color:#dc2626;" onclick="logout()">Sair – '+s.nome.split(' ')[0]+'</button>'
     +'<div style="height:8px;"></div>';
@@ -1814,9 +1850,17 @@ function saveItem(){
   }
 }
 function finalizarI(id){cf('OK','Finalizar','Marcar como finalizada?',function(){
-  stopAutoSave(); // v69-fix: para o timer antes de sair do formulário
+  stopAutoSave();
+  if(typeof pararCrono==='function') pararCrono(); /* v81: registra duração */
+  if(typeof haptic==='function') haptic('sucesso');
   var i=S.insp.find(function(x){return x.id===id;});
   if(i){i.st='finalizada';i.updated_at=new Date().toISOString();if(!i.protocolo)i.protocolo=gerarProtocolo(i);DB.sv();}
+  if(typeof auditLog==='function'&&i) auditLog('finalizar',{insp_id:id,edif:i.edif,tipo:i.tipo});
+  /* v81: alertar coord automaticamente se NCs >= 3 */
+  if(typeof alertarNcCriticaWhatsApp==='function'&&i){
+    var ncs=Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';});
+    if(ncs.length>=3) setTimeout(function(){alertarNcCriticaWhatsApp(id);},1500);
+  }
   var _prot=i&&i.protocolo?i.protocolo:'';
   el('st').textContent='Relatório Finalizado!';
   el('ss').innerHTML=(i&&i.edif?'<strong>'+i.edif+'</strong>':'Inspeção')+' salvo com sucesso.'+(_prot?'<br><span style="font-family:monospace;font-size:12px;background:#f1f5f9;padding:4px 10px;border-radius:8px;display:inline-block;margin-top:10px;color:#003580;font-weight:700;">'+_prot+'</span>':'');
@@ -1941,8 +1985,16 @@ async function bootApp(){
   DB.svLocal();
   updNet();
   registrarBackgroundSync(); /* v79: Background Sync API */
-  if(typeof verificarQRCode==='function') verificarQRCode();         /* v80: QR Code */
-  if(typeof verificarRetornoGovBr==='function') verificarRetornoGovBr(); /* v80: Gov.br OAuth */
+  if(typeof verificarQRCode==='function') verificarQRCode();
+  if(typeof verificarRetornoGovBr==='function') verificarRetornoGovBr();
+  if(typeof iniciarTema==='function') iniciarTema();                          /* v81: dark mode */
+  if(typeof iniciarAcessibilidade==='function') iniciarAcessibilidade();      /* v81: alto contraste */
+  if(typeof verificarCompatibilidade==='function') verificarCompatibilidade();/* v81: detector dispositivo */
+  if(typeof comprimirFotosAntigas==='function') comprimirFotosAntigas();      /* v81: GC fotos antigas */
+  /* v81: lock de tela por inatividade */
+  ['touchstart','click','keydown'].forEach(function(ev){
+    document.addEventListener(ev,function(){if(typeof resetLockTimer==='function')resetLockTimer();},{passive:true});
+  });
   rLogin();
   BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('home');});
   if(Sync.ready&&navigator.onLine){

@@ -3,7 +3,7 @@
    (garante que bugs corrigidos cheguem ao usuário imediatamente)
 */
 
-const V = 'tjmg-v80';
+const V = 'tjmg-v81';
 const BYPASS = [
   'supabase.co',
   'googleapis.com',

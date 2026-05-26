@@ -55,7 +55,17 @@ function doLogin(){
   var u=US.find(function(x){return x.id===_pid;});if(!u)return;
   if(_pbuf!==u.pin){el('perr').textContent='PIN incorreto. Tente novamente.';_pbuf='';rpd();return;}
   S.sessao={tipo:'usuario',userId:u.id,nome:u.nome,mat:u.mat,reg:u.reg,cargo:u.cargo,polo:u.polo||'',_t:Date.now()};
+  /* v81: cor por região, Realtime, mural, tutorial, lock, crono */
+  if(typeof aplicarCorRegiao==='function') aplicarCorRegiao(u.reg);
+  if(typeof iniciarRealtime==='function') iniciarRealtime();
+  if(typeof resetLockTimer==='function') resetLockTimer();
   DB.sv();cm('m-pin');rHome();G('s-home');BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('home');});
+  setTimeout(function(){
+    if(typeof carregarMural==='function') carregarMural();
+    if(typeof iniciarTutorial==='function') iniciarTutorial(false);
+    if(typeof processarQRPendente==='function') processarQRPendente();
+    haptic('sucesso');
+  },500);
 }
 function openAdm(){el('au').value='';el('ap').value='';el('ae').textContent='';el('m-adm').style.display='flex';}
 function loginAdm(){
