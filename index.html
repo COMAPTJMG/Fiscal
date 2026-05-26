@@ -12,6 +12,30 @@
 <link rel="icon" href="./favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>TJMG Fiscal</title>
+<!-- ── Service Worker: registra e força reload quando atualiza ── -->
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(function(reg){
+    reg.addEventListener('updatefound', function(){
+      var nw = reg.installing;
+      nw.addEventListener('statechange', function(){
+        if(nw.state === 'activated') window.location.reload();
+      });
+    });
+  }).catch(function(e){ console.warn('[SW] register falhou:', e); });
+  /* Receber SW_UPDATED — recarrega página para pegar novos arquivos */
+  navigator.serviceWorker.addEventListener('message', function(e){
+    if(e.data && e.data.type === 'SW_UPDATED') window.location.reload();
+    if(e.data && e.data.type === 'BG_SYNC' && typeof Sync !== 'undefined' && Sync.ready){
+      Sync.pullAll().then(function(){Sync.schedulePush(500);}).catch(function(){});
+    }
+  });
+  /* Quando outro SW assume o controle, recarrega imediatamente */
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    window.location.reload();
+  });
+}
+</script>
 <style>
 :root{--a:#003580;--g:#16a34a;--r:#dc2626;--p:#7c3aed;--o:#d97706;--b2:#2563eb;--bg:#f1f5f9;--bo:#e2e8f0;--tx:#1e293b;--t2:#64748b;--st:env(safe-area-inset-top,16px);--sb:env(safe-area-inset-bottom,8px);}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -1919,14 +1943,6 @@ async function bootApp(){
   if(S.sessao){if(S.sessao.tipo==='admin'){rAdm();G('s-admin');}else if(S.sessao.tipo==='coordenador'){rCoord();G('s-coord');}else{rHome();G('s-home');}}
 }
 window.addEventListener('online',function(){updNet();if(Sync.ready)Sync.pullAll().then(function(){Sync.schedulePush(600);});});
-/* v79: Background Sync — recebe msg do SW quando volta online com app fechado */
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.addEventListener('message',function(e){
-    if(e.data&&e.data.type==='BG_SYNC'&&Sync.ready){
-      Sync.pullAll().then(function(){Sync.schedulePush(500);}).catch(function(){});
-    }
-  });
-}
 /* Quando app volta ao foco (aba/PWA reativada), re-sincroniza para
    capturar deleções feitas por outros usuários da mesma região */
 var _lastVisSync=0;
