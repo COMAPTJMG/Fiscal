@@ -1,10 +1,44 @@
 'use strict';
 // ============================================================
-// utils.js — Helpers globais: formatação, filtros, geo, swipe, voz
-// TJMG Fiscal PWA — v79
+// utils.js — Helpers globais: DOM, modais, toast, formatação
+// TJMG Fiscal PWA — v79c
 // ============================================================
 
-/* ── Formatação ─────────────────────────────────────────────── */
+/* ── DOM ────────────────────────────────────────────────────── */
+function el(id){ return document.getElementById(id); }
+
+/* ── Toast ──────────────────────────────────────────────────── */
+var _ttT=null;
+function Tt(msg,dur){
+  var t=el('toast');if(!t)return;
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(_ttT);
+  _ttT=setTimeout(function(){t.classList.remove('show');},dur||3000);
+}
+
+/* ── Confirm dialog ─────────────────────────────────────────── */
+function cf(okLbl,title,msg,onOk,onCan){
+  var m=el('m-cf');var mt=el('cf-t');var mb=el('cf-b');var mok=el('cf-ok');var mca=el('cf-ca');
+  if(!m)return;
+  if(mt)mt.textContent=title||'Confirmar';
+  if(mb)mb.textContent=msg||'';
+  if(mok){mok.textContent=okLbl||'OK';mok.onclick=function(){cm('m-cf');if(onOk)onOk();};}
+  if(mca){mca.onclick=function(){cm('m-cf');if(onCan)onCan();};}
+  m.style.display='flex';
+}
+
+/* ── Fechar modal ────────────────────────────────────────────── */
+function cm(id){var m=el(id);if(m)m.style.display='none';}
+
+/* ── Online/Offline indicator ───────────────────────────────── */
+function updNet(){
+  var on=navigator.onLine;
+  var d=el('dot');var b=el('offbar');
+  if(d){d.style.background=on?'#22c55e':'#f97316';d.textContent=on?'Online':'Offline';}
+  if(b)b.style.display=on?'none':'block';
+}
+
+
 function fdt(d){if(!d)return'—';var p=d.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d;}
 function fdth(d){if(!d)return'—';try{var dt=new Date(d+'T12:00:00');var ms=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];return dt.getDate()+' '+ms[dt.getMonth()];}catch(e){return fdt(d);}}
 function ini(n){if(!n)return'?';var ps=n.trim().split(' ').filter(Boolean);return ps.length===1?ps[0][0].toUpperCase():(ps[0][0]+ps[ps.length-1][0]).toUpperCase();}

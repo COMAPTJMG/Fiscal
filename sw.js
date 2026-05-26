@@ -22,7 +22,7 @@ self.addEventListener('install', function(e) {
   self.skipWaiting();
 });
 
-/* ── Activate: limpa caches antigos e reivindica clientes ── */
+/* ── Activate: limpa caches antigos ── */
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -31,12 +31,6 @@ self.addEventListener('activate', function(e) {
             .map(function(k) { return caches.delete(k); })
       );
     }).then(function() {
-      /* Avisa todas as abas abertas para recarregar */
-      return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    }).then(function(clients) {
-      clients.forEach(function(client) {
-        client.postMessage({ type: 'SW_UPDATED', version: V });
-      });
       return self.clients.claim();
     })
   );
