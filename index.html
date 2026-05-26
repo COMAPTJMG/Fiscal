@@ -140,10 +140,12 @@ input:focus,textarea:focus{border-color:var(--a);}
     </div>
     <button onclick="logout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">Sair</button>
   </div>
-  <!-- v78: abas Lista / Painel -->
-  <div style="display:flex;border-bottom:1px solid var(--bo);background:#fff;flex-shrink:0;" id="coord-tabs">
-    <button id="ctab-lista" onclick="coordTabSwitch('lista')" style="flex:1;border:none;background:none;padding:11px;font-size:12px;font-weight:800;color:#7c3aed;border-bottom:3px solid #7c3aed;cursor:pointer;">📋 Lista</button>
-    <button id="ctab-painel" onclick="coordTabSwitch('painel')" style="flex:1;border:none;background:none;padding:11px;font-size:12px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;">📊 Painel</button>
+  <!-- Abas: Lista / Painel / Mapa / Execução -->
+  <div style="display:flex;border-bottom:1px solid var(--bo);background:#fff;flex-shrink:0;overflow-x:auto;scrollbar-width:none;" id="coord-tabs">
+    <button id="ctab-lista"   onclick="coordTabSwitch('lista')"   style="flex:1;min-width:60px;border:none;background:none;padding:10px 8px;font-size:11px;font-weight:800;color:#7c3aed;border-bottom:3px solid #7c3aed;cursor:pointer;white-space:nowrap;">📋 Lista</button>
+    <button id="ctab-painel"  onclick="coordTabSwitch('painel')"  style="flex:1;min-width:60px;border:none;background:none;padding:10px 8px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">📊 Painel</button>
+    <button id="ctab-mapa"    onclick="coordTabSwitch('mapa')"    style="flex:1;min-width:60px;border:none;background:none;padding:10px 8px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">🗺️ Mapa</button>
+    <button id="ctab-execucao" onclick="coordTabSwitch('execucao')" style="flex:1;min-width:60px;border:none;background:none;padding:10px 8px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">⚙️ Execução</button>
   </div>
   <!-- Vista Lista -->
   <div id="coord-view-lista" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
@@ -165,6 +167,15 @@ input:focus,textarea:focus{border-color:var(--a);}
   <!-- Vista Painel -->
   <div id="coord-view-painel" style="display:none;flex:1;overflow:hidden;">
     <div class="scrl" id="coord-ab"></div>
+  </div>
+  <!-- Vista Mapa -->
+  <div id="coord-view-mapa" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+    <div id="coord-mapa-ctrl" style="flex-shrink:0;"></div>
+    <div id="coord-mapa-body" style="flex:1;overflow:hidden;"></div>
+  </div>
+  <!-- Vista Execução -->
+  <div id="coord-view-execucao" style="display:none;flex:1;overflow:hidden;">
+    <div class="scrl" id="coord-exec-body"></div>
   </div>
 </div>
 
@@ -466,6 +477,7 @@ input:focus,textarea:focus{border-color:var(--a);}
 <script src="prontuario-edif.js"></script>
 <script src="photo-annotate.js"></script>
 <script src="audit.js"></script>
+<script src="extras.js"></script>
 
 <script>
 'use strict';
@@ -1021,6 +1033,19 @@ function rPerf(){
     +'<button class="btn" style="background:#0f766e;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-imr\');rIMR()">📊 IMR</button>'
     +'<button class="btn" style="background:#1e293b;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-audit\');rAudit()">🔍 Auditoria</button>'
     +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+    +'<button class="btn" style="background:#d97706;color:#fff;font-size:12px;padding:11px;" onclick="gerarRelatorioMensal()">📋 Rel. Mensal</button>'
+    +'<button class="btn" style="background:#7c3aed;color:#fff;font-size:12px;padding:11px;" onclick="gerarQRCodesTodos()">📱 QR Edificações</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+    +'<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:11px;" onclick="window.open(SEI_URL,\'_blank\')">🏛️ SEI TJMG</button>'
+    +'<button class="btn" style="background:#059669;color:#fff;font-size:12px;padding:11px;" onclick="preCacheCampo()">⬇️ Cache Campo</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+    +'<button class="btn" style="background:#1351b4;color:#fff;font-size:12px;padding:11px;" onclick="gerarTermoRecebimento(\'provisorio\')">📜 Termo Prov.</button>'
+    +'<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:11px;" onclick="gerarTermoRecebimento(\'definitivo\')">📜 Termo Def.</button>'
+    +'</div>'
+    +'<button class="btn" style="background:#0f172a;color:#fff;margin-bottom:8px;font-size:12px;" onclick="ativarVozNav()">🎙️ Navegação por Voz</button>'
     +'<button class="btn boa" onclick="logout()">Trocar Técnico / Sair</button>'
     +'<button class="btn" style="background:#fee2e2;color:#dc2626;" onclick="logout()">Sair – '+s.nome.split(' ')[0]+'</button>'
     +'<div style="height:8px;"></div>';
@@ -1530,11 +1555,14 @@ function _renderDet(id){
     h+='<button class="btn" style="background:#1a2332;color:#fff;font-size:12px;padding:10px;" onclick="exportPDF(\''+id+'\')">📄 PDF</button>';
     h+='</div>';
     h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="var _b=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar Relatório</button>';
-    /* v79: Documentos contratuais */
+    /* v80: Documentos contratuais */
     if(i.st==='finalizada'){
       var _ncs=Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;
       if(_ncs>0)h+='<button class="btn" style="background:#dc2626;color:#fff;margin-bottom:6px;font-size:12px;" onclick="gerarNOTINA(\''+id+'\')">⚠️ Gerar NOT-INA ('+_ncs+' NC)</button>';
       h+='<button class="btn" style="background:#d97706;color:#fff;margin-bottom:6px;font-size:12px;" onclick="gerarROC(\''+id+'\')">📋 Gerar ROC</button>';
+      h+='<button class="btn" style="background:#1e40af;color:#fff;margin-bottom:6px;font-size:12px;" onclick="perguntarAssinatura(\''+id+'\',null)">🔏 Assinar Digitalmente (opcional)</button>';
+      h+='<button class="btn" style="background:#003580;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirSEI(\''+id+'\')">🏛️ Vincular ao SEI</button>';
+      if(_ncs>0)h+='<button class="btn" style="background:#25d366;color:#fff;margin-bottom:6px;font-size:12px;" onclick="alertarNcCriticaWhatsApp(\''+id+'\')">📱 Alertar Coord. (WhatsApp)</button>';
       /* v79: Comparativo */
       var _comp=compararInspecoes(i.edif,i.reg);
       if(_comp)h+='<button class="btn" style="background:#0f766e;color:#fff;margin-bottom:6px;font-size:12px;" onclick="mostrarComparativo(\''+id+'\')">📊 Comparativo com Vistoria Anterior</button>';
@@ -1643,7 +1671,7 @@ function addItemPhoto(inp){
         w=Math.round(w*sc);h=Math.round(h*sc);
         var cv=document.createElement('canvas');cv.width=w;cv.height=h;
         cv.getContext('2d').drawImage(img,0,0,w,h);
-        var b64=cv.toDataURL('image/jpeg',0.75);
+        var b64=cv.toDataURL('image/webp',0.78)||cv.toDataURL('image/jpeg',0.78); /* v80: WebP (-30%) */
         _ifotos.push({id:uid(),b64:b64,leg:''});
         _atualizarBar();
       };
@@ -1913,6 +1941,8 @@ async function bootApp(){
   DB.svLocal();
   updNet();
   registrarBackgroundSync(); /* v79: Background Sync API */
+  if(typeof verificarQRCode==='function') verificarQRCode();         /* v80: QR Code */
+  if(typeof verificarRetornoGovBr==='function') verificarRetornoGovBr(); /* v80: Gov.br OAuth */
   rLogin();
   BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('home');});
   if(Sync.ready&&navigator.onLine){

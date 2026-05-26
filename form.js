@@ -1654,7 +1654,7 @@ function subProcessarFotos(files,cb){
         var MAX=900;var sc=Math.min(1,MAX/Math.max(img.width,img.height));
         cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
         cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-        cb(cv.toDataURL('image/jpeg',0.8));
+        cb(cv.toDataURL('image/webp',0.78)||cv.toDataURL('image/jpeg',0.78));
         pending--;if(pending===0)rFe();
       };img.src=e.target.result;
     };reader.readAsDataURL(f);

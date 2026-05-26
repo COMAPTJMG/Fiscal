@@ -378,6 +378,15 @@ function openDetCoord(id){
   }
   h+='<button class="btn" style="background:'+_cor+';color:#fff;" onclick="exportHTML(\''+id+'\')">&#128196; Exportar HTML</button>';
   h+='<button class="btn" style="background:#1a2332;color:#fff;margin-top:6px;" onclick="exportPDF(\''+id+'\')">📄 Exportar PDF</button>';
+  /* v80: botões extras */
+  h+='<button class="btn" style="background:#1e40af;color:#fff;margin-top:6px;" onclick="perguntarAssinatura(\''+id+'\',null)">🔏 Assinar Digitalmente</button>';
+  h+='<button class="btn" style="background:#003580;color:#fff;margin-top:6px;" onclick="abrirSEI(\''+id+'\')">🏛️ Vincular ao SEI</button>';
+  if(Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length>0)
+    h+='<button class="btn" style="background:#25d366;color:#fff;margin-top:6px;" onclick="alertarNcCriticaWhatsApp(\''+id+'\')">📱 Alertar Coord. (WhatsApp)</button>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">';
+  h+='<button class="btn" style="background:#0f766e;color:#fff;font-size:11px;padding:10px;" onclick="gerarNOTINA(\''+id+'\')">⚠️ NOT-INA</button>';
+  h+='<button class="btn" style="background:#d97706;color:#fff;font-size:11px;padding:10px;" onclick="gerarROC(\''+id+'\')">📋 ROC</button>';
+  h+='</div>';
   h+='<div style="height:16px;"></div>';
   el('dbody').innerHTML=h;
   if(i.tipo==='prontuario'){el('dbody').innerHTML=renderDetPron(i);}
@@ -415,19 +424,259 @@ window.admExpSelZip   = function(){ if(typeof admExpSelZip==='function') admExpS
 window.rPainel        = rPainel;
 window.rPainel        = rPainel;
 window.coordTabSwitch = function(tab){
-  var lista=el('coord-view-lista');
-  var painel=el('coord-view-painel');
-  var tl=el('ctab-lista');
-  var tp=el('ctab-painel');
-  if(!lista||!painel)return;
-  if(tab==='painel'){
-    lista.style.display='none';painel.style.display='flex';painel.style.flexDirection='column';
-    if(tl){tl.style.color='#94a3b8';tl.style.borderBottomColor='transparent';tl.style.fontWeight='700';}
-    if(tp){tp.style.color='#7c3aed';tp.style.borderBottomColor='#7c3aed';tp.style.fontWeight='800';}
-    rPainel();
-  }else{
-    lista.style.display='flex';lista.style.flexDirection='column';painel.style.display='none';
-    if(tl){tl.style.color='#7c3aed';tl.style.borderBottomColor='#7c3aed';tl.style.fontWeight='800';}
-    if(tp){tp.style.color='#94a3b8';tp.style.borderBottomColor='transparent';tp.style.fontWeight='700';}
-  }
+  var views = {
+    lista:    'coord-view-lista',
+    painel:   'coord-view-painel',
+    mapa:     'coord-view-mapa',
+    execucao: 'coord-view-execucao'
+  };
+  var tabs = {
+    lista:    'ctab-lista',
+    painel:   'ctab-painel',
+    mapa:     'ctab-mapa',
+    execucao: 'ctab-execucao'
+  };
+  var COR = '#7c3aed';
+
+  Object.keys(views).forEach(function(k){
+    var v = el(views[k]);
+    var t = el(tabs[k]);
+    var on = k === tab;
+    if(v){ v.style.display = on ? 'flex' : 'none'; if(on) v.style.flexDirection = 'column'; }
+    if(t){
+      t.style.color = on ? COR : '#94a3b8';
+      t.style.borderBottomColor = on ? COR : 'transparent';
+      t.style.fontWeight = on ? '800' : '700';
+    }
+  });
+
+  if(tab === 'painel')  rPainel();
+  if(tab === 'mapa')    rCoordMapa();
+  if(tab === 'execucao') rCoordExecucao();
 };
+
+/* ── Mapa do coordenador ─────────────────────────────────────── */
+function rCoordMapa(){
+  var ctrl = el('coord-mapa-ctrl');
+  var body = el('coord-mapa-body');
+  if(!ctrl || !body) return;
+
+  /* Usar mesmo mecanismo do rMapa mas fixado na view do coord */
+  if(!window.L){ _injetarLeaflet(function(){ _renderCoordMapa(); }); }
+  else { _renderCoordMapa(); }
+}
+
+function _renderCoordMapa(){
+  var ctrl = el('coord-mapa-ctrl');
+  var body = el('coord-mapa-body');
+  body.innerHTML = '';
+
+  /* Filtros */
+  var reg = S._coordReg || 'todos';
+  var tipoOpts = '<option value="todos">Todos os tipos</option>'
+    + Object.keys(TIPOS).map(function(k){ return '<option value="'+k+'">'+TIPOS[k].l+'</option>'; }).join('');
+  ctrl.innerHTML = '<div style="display:flex;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid #e2e8f0;flex-shrink:0;">'
+    +'<select id="coord-mapa-tipo" onchange="_plotarCoordMapa()" style="flex:1;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;">'+tipoOpts+'</select>'
+    +'<select id="coord-mapa-st" onchange="_plotarCoordMapa()" style="flex:1;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;">'
+    +'<option value="todos">Todos</option><option value="finalizada">Enviados</option><option value="em_andamento">Rascunhos</option>'
+    +'</select>'
+    +'<span id="coord-mapa-info" style="font-size:10px;color:#94a3b8;align-self:center;white-space:nowrap;flex-shrink:0;"></span>'
+    +'</div>';
+
+  var div = document.createElement('div');
+  div.id = 'lf-coord-map';
+  div.style.cssText = 'width:100%;height:100%;min-height:350px;z-index:1;';
+  body.appendChild(div);
+
+  setTimeout(function(){
+    if(window._coordMapInst){ window._coordMapInst.remove(); window._coordMapInst = null; }
+    window._coordMapInst = L.map('lf-coord-map',{zoomControl:true,attributionControl:false}).setView([-18.5,-44.0],6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(window._coordMapInst);
+    _plotarCoordMapa();
+    setTimeout(function(){ if(window._coordMapInst) window._coordMapInst.invalidateSize(); },300);
+  },80);
+}
+
+function _plotarCoordMapa(){
+  if(!window._coordMapInst) return;
+  window._coordMapInst.eachLayer(function(l){ if(l._isTjmgMarker) window._coordMapInst.removeLayer(l); });
+
+  var filtroTipo = (el('coord-mapa-tipo') && el('coord-mapa-tipo').value) || 'todos';
+  var filtroSt   = (el('coord-mapa-st')   && el('coord-mapa-st').value)   || 'todos';
+  var filtroReg  = S._coordReg || 'todos';
+
+  var base = S.insp.filter(function(i){
+    if(filtroReg !== 'todos' && i.reg !== filtroReg) return false;
+    if(filtroTipo !== 'todos' && i.tipo !== filtroTipo) return false;
+    if(filtroSt   !== 'todos' && i.st   !== filtroSt)   return false;
+    return true;
+  });
+
+  /* Última inspeção por edif */
+  var porEdif = {};
+  base.forEach(function(i){
+    var k=(i.com||'')+'::'+i.edif;
+    if(!porEdif[k]||(i.dtVistoria||i.data)>(porEdif[k].dtVistoria||porEdif[k].data)) porEdif[k]=i;
+  });
+
+  var bounds=[]; var semCoord=0;
+  Object.values(porEdif).forEach(function(i){
+    var coords=COMARCA_COORDS[i.com];
+    if(!coords){semCoord++;return;}
+    var jit=(Math.random()-.5)*.04;
+    var lat=coords[0]+jit, lon=coords[1]+jit;
+    bounds.push([lat,lon]);
+    var tp=TIPOS[i.tipo]||TIPOS.periodica;
+    var stc=i.st==='finalizada'?'#16a34a':'#d97706';
+    var ncs=Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;
+    var corBorda=ncs>0?'#dc2626':stc;
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="36" height="44" viewBox="0 0 36 44">'
+      +'<path d="M18 0C8.1 0 0 8.1 0 18C0 31.5 18 44 18 44C18 44 36 31.5 36 18C36 8.1 27.9 0 18 0Z" fill="'+corBorda+'"/>'
+      +'<circle cx="18" cy="18" r="12" fill="white" opacity=".95"/>'
+      +'<text x="18" y="22" text-anchor="middle" font-size="13">'+tp.i+'</text>'
+      +(ncs>0?'<circle cx="28" cy="8" r="8" fill="#dc2626"/><text x="28" y="12" text-anchor="middle" font-size="9" fill="white" font-weight="bold">'+ncs+'</text>':'')
+      +'</svg>';
+    var icon=L.divIcon({className:'',html:svg,iconSize:[36,44],iconAnchor:[18,44],popupAnchor:[0,-46]});
+    var mk=L.marker([lat,lon],{icon:icon});
+    mk._isTjmgMarker=true;
+    var imrVal=typeof calcIMRInsp==='function'?calcIMRInsp(i):null;
+    var imrStr=imrVal!==null?Math.round(imrVal*100)+'%':'—';
+    var imrCor=imrVal!==null?(imrVal>=.8?'#16a34a':imrVal>=.6?'#d97706':'#dc2626'):'#94a3b8';
+    var popup='<div style="font-family:system-ui;min-width:200px;">'
+      +'<div style="font-size:13px;font-weight:800;margin-bottom:3px;">'+_escA(i.edif)+'</div>'
+      +'<div style="font-size:11px;color:#64748b;margin-bottom:6px;">'+_escA(i.com||'—')+' · '+fdt(i.dtVistoria||i.data)+'</div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">'
+      +'<span style="background:'+tp.bg+';color:'+tp.c+';padding:2px 7px;border-radius:12px;font-size:10px;font-weight:700;">'+tp.l+'</span>'
+      +'<span style="background:#f1f5f9;color:'+imrCor+';padding:2px 7px;border-radius:12px;font-size:10px;font-weight:800;">IMR '+imrStr+'</span>'
+      +(ncs>0?'<span style="background:#fee2e2;color:#dc2626;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:700;">'+ncs+' NC</span>':'')
+      +'</div>'
+      +'<button onclick="openDetCoord(\''+i.id+'\')" style="width:100%;border:none;background:#7c3aed;color:#fff;border-radius:8px;padding:7px;font-size:12px;font-weight:700;cursor:pointer;">Ver Relatório ›</button>'
+      +'</div>';
+    mk.bindPopup(popup,{maxWidth:240});
+    mk.addTo(window._coordMapInst);
+  });
+
+  if(bounds.length>0){
+    try{window._coordMapInst.fitBounds(bounds,{padding:[30,30],maxZoom:12});}catch(e){}
+  }
+  var info=el('coord-mapa-info');
+  if(info) info.textContent=bounds.length+' localidades'+(semCoord>0?' ('+semCoord+' s/ coord.)':'');
+}
+
+/* ── Execução / Averiguação por atividade ────────────────────── */
+function rCoordExecucao(){
+  var eb=el('coord-exec-body');if(!eb)return;
+  var reg=S._coordReg||'todos';
+  var base=S.insp.filter(function(i){
+    if(reg!=='todos'&&i.reg!==reg)return false;
+    return i.st==='finalizada';
+  });
+
+  if(!base.length){
+    eb.innerHTML='<div style="text-align:center;padding:40px;"><div style="font-size:48px;">📋</div><div style="font-size:14px;color:#94a3b8;margin-top:12px;">Nenhum relatório finalizado ainda.</div></div>';
+    return;
+  }
+
+  /* Conformidade por atividade (ATVs) */
+  var atvsConf={}; // {atv_id: {nm, conf, total, ncs}}
+  base.forEach(function(insp){
+    oentries(insp.itens||{}).forEach(function(pair){
+      var k=pair[0],v=pair[1];
+      if(!v.nm)return;
+      var aid=v._atv||k;
+      if(!atvsConf[aid]) atvsConf[aid]={nm:v.nm,conf:0,total:0,ncs:0,tipo:insp.tipo};
+      if(v.s&&v.s!=='fora_periodo'&&v.s!=='nao_aplicavel'&&v.s!=='pendente'){
+        atvsConf[aid].total++;
+        if(v.s==='conforme'||v.s==='executado') atvsConf[aid].conf++;
+        if(v.s==='nao_conforme'||v.s==='nao_executado') atvsConf[aid].ncs++;
+      }
+    });
+  });
+
+  /* Ordenar por maior número de NCs */
+  var atvsArr=Object.keys(atvsConf).map(function(k){
+    var a=atvsConf[k];
+    a.pct=a.total?Math.round(a.conf/a.total*100):0;
+    a.id=k;
+    return a;
+  }).filter(function(a){return a.total>0;})
+    .sort(function(a,b){return b.ncs-a.ncs||a.pct-b.pct;});
+
+  /* Conformidade por fiscal */
+  var porFiscal={};
+  base.forEach(function(i){
+    var f=i.fiscal||'Sem nome';
+    if(!porFiscal[f]) porFiscal[f]={nome:f,soma:0,cnt:0,total:0};
+    var imr=typeof calcIMRInsp==='function'?calcIMRInsp(i):null;
+    if(imr!==null){porFiscal[f].soma+=imr;porFiscal[f].cnt++;}
+    porFiscal[f].total++;
+  });
+  var fiscaisArr=Object.values(porFiscal).filter(function(f){return f.cnt>0;})
+    .map(function(f){f.media=Math.round(f.soma/f.cnt*100);return f;})
+    .sort(function(a,b){return a.media-b.media;});
+
+  var h='<div style="padding:12px;">';
+
+  /* KPIs rápidos */
+  var totalFin=base.length;
+  var totalNCs=base.reduce(function(acc,i){return acc+Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;},0);
+  var mediaGeral=base.length?Math.round(base.reduce(function(acc,i){var imr=typeof calcIMRInsp==='function'?calcIMRInsp(i):null;return acc+(imr||0);},0)/base.length*100):0;
+
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">';
+  h+='<div class="card" style="text-align:center;border-left:4px solid #003580;padding:10px;"><div style="font-size:22px;font-weight:900;color:#003580;">'+totalFin+'</div><div style="font-size:9px;color:#64748b;">FINALIZADOS</div></div>';
+  h+='<div class="card" style="text-align:center;border-left:4px solid #dc2626;padding:10px;"><div style="font-size:22px;font-weight:900;color:#dc2626;">'+totalNCs+'</div><div style="font-size:9px;color:#64748b;">NÃO CONFORMES</div></div>';
+  var cmg=mediaGeral>=80?'#16a34a':mediaGeral>=60?'#d97706':'#dc2626';
+  h+='<div class="card" style="text-align:center;border-left:4px solid '+cmg+';padding:10px;"><div style="font-size:22px;font-weight:900;color:'+cmg+';">'+mediaGeral+'%</div><div style="font-size:9px;color:#64748b;">CONFORMIDADE</div></div>';
+  h+='</div>';
+
+  /* Atividades com mais NCs */
+  if(atvsArr.length){
+    h+='<div class="card" style="margin-bottom:12px;">';
+    h+='<div style="font-size:12px;font-weight:800;color:#dc2626;margin-bottom:10px;">⚠️ Atividades com mais Não-Conformidades</div>';
+    atvsArr.slice(0,15).forEach(function(a){
+      var cor=a.pct>=80?'#16a34a':a.pct>=60?'#d97706':'#dc2626';
+      h+='<div style="margin-bottom:10px;">';
+      h+='<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:3px;">';
+      h+='<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72%;">'+_escA(a.nm)+'</span>';
+      h+='<span style="flex-shrink:0;color:'+cor+';">'+a.pct+'% '+(a.ncs>0?'<span style="color:#dc2626;">('+a.ncs+' NC)</span>':'')+'</span>';
+      h+='</div>';
+      h+='<div style="background:#f1f5f9;border-radius:4px;height:8px;overflow:hidden;">';
+      h+='<div style="width:'+a.pct+'%;height:100%;background:'+cor+';border-radius:4px;transition:width .4s;"></div></div></div>';
+    });
+    h+='</div>';
+  }
+
+  /* Ranking de fiscais por conformidade */
+  if(fiscaisArr.length){
+    h+='<div class="card" style="margin-bottom:12px;">';
+    h+='<div style="font-size:12px;font-weight:800;color:#003580;margin-bottom:10px;">👥 Fiscais — Conformidade Média</div>';
+    fiscaisArr.forEach(function(f){
+      var cor=f.media>=80?'#16a34a':f.media>=60?'#d97706':'#dc2626';
+      h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">';
+      h+='<div style="width:34px;height:34px;border-radius:50%;background:'+cor+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;flex-shrink:0;">'+ini(f.nome)+'</div>';
+      h+='<div style="flex:1;min-width:0;">';
+      h+='<div style="font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+_escA(f.nome)+'</div>';
+      h+='<div style="background:#f1f5f9;border-radius:4px;height:6px;margin-top:4px;overflow:hidden;">';
+      h+='<div style="width:'+f.media+'%;height:100%;background:'+cor+';border-radius:4px;"></div></div></div>';
+      h+='<span style="font-size:13px;font-weight:900;color:'+cor+';flex-shrink:0;">'+f.media+'%</span>';
+      h+='<span style="font-size:10px;color:#94a3b8;flex-shrink:0;">'+f.total+' rel.</span>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  /* SEI Link de acesso direto */
+  h+='<div class="card" style="margin-bottom:12px;border-left:4px solid #003580;">';
+  h+='<div style="font-size:12px;font-weight:800;color:#003580;margin-bottom:8px;">🏛️ SEI — Processos</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-bottom:10px;">Acesse diretamente os processos do TJMG no SEI para vincular documentos gerados.</div>';
+  h+='<button class="btn ba" style="font-size:12px;" onclick="window.open(\'https://sei.tjmg.jus.br/sei/controlador.php?acao=procedimento_controlar&reset=1&id_bloco=78497&infra_sistema=100000100&infra_unidade_atual=100003385&infra_hash=93870dae72177047243c2bfb29d63815b1014bee1ea2307ba90382eb1a5ebbb5\',\'_blank\')">🔗 Abrir SEI TJMG</button>';
+  h+='</div>';
+
+  h+='</div>';
+  eb.innerHTML=h;
+}
+
+window.rCoordMapa       = rCoordMapa;
+window._plotarCoordMapa = _plotarCoordMapa;
+window.rCoordExecucao   = rCoordExecucao;
+window._renderCoordMapa = _renderCoordMapa;
