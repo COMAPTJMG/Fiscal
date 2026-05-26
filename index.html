@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="TJMG Fiscal">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#003580">
+<meta name="color-scheme" content="light">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./favicon.ico" type="image/x-icon">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -389,11 +390,11 @@ input:focus,textarea:focus{border-color:var(--a);}
 </div>
 
 <div class="mdl" id="m-item" style="display:none;">
-  <div class="mdc mds" style="max-height:88vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,8px)+16px);">
+  <div class="mdc mds" style="max-height:88vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,8px)+16px);background:#fff;color:#0f172a;">
     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;">
       <div style="flex:1;">
-        <div style="font-size:14px;font-weight:800;" id="in_t">Item</div>
-        <div style="font-size:11px;color:var(--t2);margin-top:2px;" id="id_t">-</div>
+        <div style="font-size:14px;font-weight:800;color:#0f172a;" id="in_t">Item</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px;" id="id_t">-</div>
       </div>
       <button onclick="cm('m-item')" style="border:none;background:#f1f5f9;border-radius:8px;padding:5px 10px;font-size:13px;color:#64748b;cursor:pointer;">✕</button>
     </div>
@@ -402,7 +403,7 @@ input:focus,textarea:focus{border-color:var(--a);}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;" id="ist"></div>
     <!-- Observações -->
     <div class="lbl">Observações</div>
-    <textarea id="iob" style="margin-bottom:4px;min-height:64px;" placeholder="Descreva o que foi encontrado..."></textarea>
+    <textarea id="iob" style="margin-bottom:4px;min-height:80px;background:#f8fafc;color:#0f172a;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;font-size:14px;resize:none;width:100%;box-sizing:border-box;" placeholder="Descreva o que foi encontrado..."></textarea>
     <button onclick="addVoiceBtn('iob');initVoice(el('iob'),this)" style="border:none;border-radius:8px;padding:6px 10px;font-size:12px;background:#003580;color:#fff;cursor:pointer;margin-bottom:10px;width:100%;font-weight:700;">🎙️ Ditar por Voz</button>
     <!-- Fotos -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -420,7 +421,7 @@ input:focus,textarea:focus{border-color:var(--a);}
     <!-- Materiais -->
     <div class="lbl">🔧 Materiais Utilizados</div>
     <div style="position:relative;margin-bottom:6px;">
-      <input id="imsrc" placeholder="Buscar material por código ou descrição..." oninput="bmatsItem(this.value)" style="margin-bottom:0;">
+      <input id="imsrc" placeholder="Buscar material por código ou descrição..." oninput="bmatsItem(this.value)" style="margin-bottom:0;background:#f8fafc;color:#0f172a;border:1.5px solid #e2e8f0;">
       <div id="imres" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-top:4px;max-height:160px;overflow-y:auto;display:none;"></div>
     </div>
     <div id="imlst" style="margin-bottom:12px;"></div>

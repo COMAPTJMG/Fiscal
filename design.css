@@ -70,12 +70,16 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;background:var(--a-dk);}
 
+/* Forçar tema claro globalmente — evita dark auto do Android/iOS */
+html, body { color-scheme: light; }
+
 #app {
   position:fixed;inset:0;
   font-family: var(--ff);
   font-size:14px;
   color:var(--tx);
   background:var(--bg);
+  color-scheme: light;
 }
 
 /* ── TELAS ───────────────────────────────────────────────── */
@@ -713,6 +717,37 @@ select {
 /* ============================================================
    FIM — design.css v78
    ============================================================ */
+
+/* ══════════════════════════════════════════════════════════════
+   FORÇAR TEMA CLARO EM MODAIS E INPUTS — v81
+   Evita que o dark mode do SO afete campos de texto
+   ══════════════════════════════════════════════════════════════ */
+.mdl, .mdc, .mds {
+  color-scheme: light;
+}
+.mdc input, .mdc textarea, .mdc select,
+#m-item input, #m-item textarea, #m-item select,
+#m-cf input, #m-cf textarea,
+#m-pin input, #m-adm input, #m-coord input,
+#m-usr input, #m-usr textarea,
+#m-annot input {
+  color-scheme: light;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+/* Placeholder visível */
+.mdc textarea::placeholder,
+#m-item textarea::placeholder,
+#iob::placeholder { color: #94a3b8 !important; opacity: 1; }
+
+/* Inputs no corpo do app (não modal) também sempre claros */
+#fbody input, #fbody textarea, #fbody select,
+#hbody input, #hbody textarea {
+  color-scheme: light;
+  background: #ffffff;
+  color: #0f172a;
+}
+#fbody input::placeholder, #fbody textarea::placeholder { color: #94a3b8; }
 
 /* ══════════════════════════════════════════════════════════════
    MODO ESCURO — v81 (SOMENTE via toggle manual no perfil)

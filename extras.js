@@ -963,16 +963,22 @@ function ativarLock(){
   _lockAtivo=true;
   var m=el('m-lock');if(!m){
     m=document.createElement('div');m.id='m-lock';
-    m.style.cssText='position:fixed;inset:0;background:rgba(0,32,96,.97);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;';
-    m.innerHTML='<div style="font-size:48px;margin-bottom:16px;">🔒</div>'
-      +'<div style="font-size:16px;font-weight:800;margin-bottom:4px;">Sessão bloqueada</div>'
-      +'<div style="font-size:12px;opacity:.7;margin-bottom:24px;">'+_escA(S.sessao.nome)+'</div>'
-      +'<div id="lock-dots" style="display:flex;gap:10px;margin-bottom:16px;"></div>'
-      +'<div id="lock-err" style="color:#f87171;font-size:12px;min-height:16px;margin-bottom:10px;"></div>'
-      +'<div style="display:grid;grid-template-columns:repeat(3,64px);gap:10px;">'
-      +[1,2,3,4,5,6,7,8,9,'←',0,'✓'].map(function(k){
-        return'<button onclick="_lockKp(\''+k+'\')" style="border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:12px;height:56px;font-size:'+(k==='←'||k==='✓'?'18':'22')+'px;font-weight:700;cursor:pointer;font-family:inherit;">'+k+'</button>';
-      }).join('')+'</div>';
+    m.style.cssText='position:fixed;inset:0;background:linear-gradient(160deg,#002060,#003580);z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+    m.innerHTML=
+      '<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px;">🔒</div>'
+      +'<div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">Sessão Bloqueada</div>'
+      +'<div style="font-size:13px;color:rgba(255,255,255,.65);margin-bottom:28px;">'+_escA(S.sessao.nome)+'</div>'
+      +'<div id="lock-dots" style="display:flex;gap:14px;margin-bottom:12px;height:20px;align-items:center;"></div>'
+      +'<div id="lock-err" style="color:#f87171;font-size:12px;font-weight:600;min-height:18px;margin-bottom:20px;"></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,80px);gap:10px;">'
+      +[1,2,3,4,5,6,7,8,9,'⌫',0,'✓'].map(function(k,i){
+        var isOk=k==='✓',isDel=k==='⌫';
+        var bg=isOk?'#16a34a':isDel?'rgba(255,255,255,.12)':'rgba(255,255,255,.2)';
+        var border=isOk?'none':'1px solid rgba(255,255,255,.15)';
+        return'<button onclick="_lockKp(\''+k+'\')" style="border:'+border+';background:'+bg+';color:#fff;border-radius:14px;height:64px;font-size:'+(isOk?'22':isDel?'20':'26')+'px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:all .1s;" onpointerdown="this.style.transform=\'scale(.93)\';this.style.opacity=\'.8\'" onpointerup="this.style.transform=\'\';this.style.opacity=\'1\'">'+k+'</button>';
+      }).join('')
+      +'</div>'
+      +'<button onclick="S._lockBypass=true;_lockAtivo=false;el(\'m-lock\').style.display=\'none\';rLogin();Gb(\'s-login\');" style="margin-top:28px;border:none;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border-radius:10px;padding:10px 24px;font-size:12px;cursor:pointer;font-family:inherit;">Trocar usuário</button>';
     document.getElementById('app').appendChild(m);
   }
   m.style.display='flex';
@@ -981,18 +987,22 @@ function ativarLock(){
 var _lockBuf='';
 function _lockKp(k){
   haptic('leve');
-  if(k==='←'){_lockBuf=_lockBuf.slice(0,-1);}
-  else if(k==='✓'){_verificarLockPin();}
+  var err=el('lock-err');if(err)err.textContent='';
+  if(k==='⌫'||k==='←'){_lockBuf=_lockBuf.slice(0,-1);}
+  else if(k==='✓'){_verificarLockPin();return;}
   else if(_lockBuf.length<6){_lockBuf+=String(k);}
   if(_lockBuf.length===4||_lockBuf.length===6) _verificarLockPin();
   _atualizarLockDots();
 }
 function _atualizarLockDots(){
   var d=el('lock-dots');if(!d)return;
-  var max=6;
-  d.innerHTML='';for(var i=0;i<max;i++){
+  var max=6;d.innerHTML='';
+  for(var i=0;i<max;i++){
     var dot=document.createElement('div');
-    dot.style.cssText='width:12px;height:12px;border-radius:50%;background:'+(i<_lockBuf.length?'#60a5fa':'rgba(255,255,255,.3)');
+    var preenchido=i<_lockBuf.length;
+    dot.style.cssText='width:'+(preenchido?'16':'12')+'px;height:'+(preenchido?'16':'12')+'px;border-radius:50%;'
+      +'background:'+(preenchido?'#fff':'rgba(255,255,255,.3)')
+      +';transition:all .15s cubic-bezier(.34,1.56,.64,1);box-shadow:'+(preenchido?'0 0 8px rgba(255,255,255,.5)':'none')+';';
     d.appendChild(dot);
   }
 }
