@@ -307,7 +307,7 @@ function _gerarExcelSINAPI(ids){
 /* ══════════════════════════════════════════════════════════════
    ALERTA WHATSAPP PARA NCs CRÍTICAS
    ══════════════════════════════════════════════════════════════ */
-var WHATSAPP_COORD = ''; /* ⚠ Definir número do coordenador: '5531999999999' */
+var WHATSAPP_COORD = '5531952900441';
 
 function alertarNcCriticaWhatsApp(inspId){
   var i=S.insp.find(function(x){return x.id===inspId;});if(!i)return;
