@@ -717,8 +717,8 @@ function aplicarModoEscuro(dark){
   document.body.classList.toggle('dark-mode',dark);
 }
 function iniciarTema(){
+  /* Só ativa modo escuro se o usuário ligou manualmente — nunca pelo SO */
   var dark=localStorage.getItem('_darkMode')==='1';
-  if(!dark&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches) dark=true;
   aplicarModoEscuro(dark);
 }
 window.toggleModoEscuro=toggleModoEscuro;

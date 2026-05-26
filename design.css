@@ -715,11 +715,9 @@ select {
    ============================================================ */
 
 /* ══════════════════════════════════════════════════════════════
-   MODO ESCURO — v81
+   MODO ESCURO — v81 (SOMENTE via toggle manual no perfil)
+   NÃO ativa automaticamente pelo SO
    ══════════════════════════════════════════════════════════════ */
-@media (prefers-color-scheme: dark) {
-  body:not(.light-mode) { --bg-auto-dark: 1; }
-}
 body.dark-mode {
   --bg:      #0f172a;
   --surface: #1e293b;
