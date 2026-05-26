@@ -2309,26 +2309,7 @@ function updNet(){var on=navigator.onLine;var d=el('dot');var b=el('offbar');if(
 window.addEventListener('online',updNet);window.addEventListener('offline',updNet);
 window.addEventListener('beforeunload',function(){saveRascunhoAuto(true);});
 document.addEventListener('visibilitychange',function(){if(document.hidden)saveRascunhoAuto(true);});
-
-if('serviceWorker' in navigator){
-  var _reloadingSW=false;
-  navigator.serviceWorker.addEventListener('controllerchange',function(){
-    if(_reloadingSW)return;
-    _reloadingSW=true;
-    location.reload();
-  });
-  navigator.serviceWorker.register('./sw.js?v='+APP_VERSION).then(function(r){
-    if(r.update)r.update();
-    r.addEventListener('updatefound',function(){
-      var w=r.installing;
-      if(w)w.addEventListener('statechange',function(){
-        if(w.state==='installed'&&navigator.serviceWorker.controller){
-          if(w.postMessage)w.postMessage({type:'SKIP_WAITING'});
-        }
-      });
-    });
-  }).catch(function(){});
-}
+/* SW registrado em index.html — não registrar aqui para evitar conflito */
 
 /* ── Captura evento de instalação Chrome (Android / PC) ── */
 
