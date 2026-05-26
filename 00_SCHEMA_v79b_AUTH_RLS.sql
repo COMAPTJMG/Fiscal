@@ -406,3 +406,66 @@ ORDER BY tablename;
 --   push_subscriptions | TRUE
 --   imr_snapshots      | TRUE
 -- ============================================================
+
+-- ============================================================
+-- MIGRAÇÃO v81 — Tabela comunicados
+-- Aplicar no Supabase → SQL Editor → Run
+-- ============================================================
+
+-- ── Tabela: comunicados ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.comunicados (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo     TEXT NOT NULL,
+  texto      TEXT NOT NULL,
+  reg        TEXT DEFAULT 'todos',   -- 'todos' ou ex: 'NORTE'
+  autor      TEXT,
+  ativo      BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ             -- NULL = sem expiração
+);
+
+CREATE INDEX IF NOT EXISTS idx_comunicados_reg    ON public.comunicados(reg);
+CREATE INDEX IF NOT EXISTS idx_comunicados_ativo  ON public.comunicados(ativo);
+CREATE INDEX IF NOT EXISTS idx_comunicados_expira ON public.comunicados(expires_at);
+
+-- RLS
+ALTER TABLE public.comunicados ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "anon_le_comunicados"   ON public.comunicados;
+DROP POLICY IF EXISTS "service_role_comun"    ON public.comunicados;
+DROP POLICY IF EXISTS "auth_coord_insere"     ON public.comunicados;
+
+-- Qualquer usuário (anon) pode LER comunicados ativos
+CREATE POLICY "anon_le_comunicados" ON public.comunicados
+  FOR SELECT TO anon
+  USING (
+    ativo = TRUE
+    AND (expires_at IS NULL OR expires_at > NOW())
+  );
+
+-- service_role tem acesso total
+CREATE POLICY "service_role_comun" ON public.comunicados
+  FOR ALL TO service_role
+  USING (TRUE) WITH CHECK (TRUE);
+
+-- Usuário autenticado coord/admin pode inserir e editar
+CREATE POLICY "auth_coord_insere" ON public.comunicados
+  FOR ALL TO authenticated
+  USING ((auth.jwt() ->> 'app_tipo') IN ('admin','coordenador'))
+  WITH CHECK ((auth.jwt() ->> 'app_tipo') IN ('admin','coordenador'));
+
+GRANT SELECT        ON public.comunicados TO anon;
+GRANT INSERT,UPDATE ON public.comunicados TO authenticated;
+GRANT ALL           ON public.comunicados TO service_role;
+
+-- ── Dados de exemplo ─────────────────────────────────────────
+INSERT INTO public.comunicados (titulo, texto, reg, autor)
+VALUES
+  ('Bem-vindo ao TJMG Fiscal v81', 'Sistema atualizado com modo escuro, GPS automático, Realtime e muito mais. Veja as novidades no perfil.', 'todos', 'Administrador'),
+  ('Reunião de equipe', 'Reunião de alinhamento segunda-feira às 14h via Teams. Pauta: cronograma de vistorias Q2.', 'NORTE', 'Coordenador Norte')
+ON CONFLICT DO NOTHING;
+
+-- ── Verificação ──────────────────────────────────────────────
+SELECT id, titulo, reg, ativo, created_at
+FROM public.comunicados
+ORDER BY created_at DESC;
