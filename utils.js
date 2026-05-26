@@ -18,12 +18,24 @@ function Tt(msg,dur){
 
 /* ── Confirm dialog ─────────────────────────────────────────── */
 function cf(okLbl,title,msg,onOk,onCan){
-  var m=el('m-cf');var mt=el('cf-t');var mb=el('cf-b');var mok=el('cf-ok');var mca=el('cf-ca');
+  var m=el('m-cf');
   if(!m)return;
+  var mt=el('ct');    /* título */
+  var mb=el('cm_t');  /* mensagem */
+  var mok=el('cok');  /* botão OK */
+  var ci=el('ci');    /* ícone */
+  if(ci)ci.textContent='?';
   if(mt)mt.textContent=title||'Confirmar';
   if(mb)mb.textContent=msg||'';
-  if(mok){mok.textContent=okLbl||'OK';mok.onclick=function(){cm('m-cf');if(onOk)onOk();};}
-  if(mca){mca.onclick=function(){cm('m-cf');if(onCan)onCan();};}
+  if(mok){
+    mok.textContent=okLbl||'OK';
+    mok.onclick=function(){cm('m-cf');if(typeof onOk==='function')onOk();};
+  }
+  /* botão Cancelar usa onclick inline no HTML, mas também registra callback */
+  var mca=m.querySelector('.btn.bo');
+  if(mca){
+    mca.onclick=function(){cm('m-cf');if(typeof onCan==='function')onCan();};
+  }
   m.style.display='flex';
 }
 
