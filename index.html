@@ -505,6 +505,7 @@ function buscaGlobal(q){
 }
 window.buscaGlobal=buscaGlobal;
 
+/* ── Exportação ZIP (JSZip) ─────────────────────────────────────────────
    v78-fix: empacota N relatórios HTML num único arquivo .zip para download.
    Evita N downloads separados no celular. */
 function _gerarNomeHtml(i){
@@ -1531,7 +1532,7 @@ function _renderDet(id){
     }
     /* v79: Duplicar como modelo + Desfazer (só rascunhos) */
     h+='<button class="btn" style="background:#2563eb;color:#fff;margin-bottom:6px;font-size:12px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
-    if(i.edif)h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirPronEdif(\''+i.edif+'\',' +'\''+( '')+'\''+i.com+'\')">🏛️ Prontuário (NBR 5674)</button>';
+    if(i.edif)h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirPronEdif(this.dataset.e,this.dataset.c)" data-e="'+i.edif+'" data-c="'+(i.com||'')+'">🏛️ Prontuário (NBR 5674)</button>';
     h+='<div style="height:16px;"></div>';
 
   } else {
@@ -1571,7 +1572,7 @@ function _renderDet(id){
     h+='</div>';
     h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="var _b2=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b2,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar</button>';
     h+='<button class="btn" style="background:#2563eb;color:#fff;margin-bottom:6px;font-size:12px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
-    h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirPronEdif(\''+i.edif+'\',\''+( i.com||'')+'\')">🏛️ Prontuário (NBR 5674)</button>';
+    h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirPronEdif(this.dataset.e,this.dataset.c)" data-e="'+i.edif+'" data-c="'+(i.com||'')+'">🏛️ Prontuário (NBR 5674)</button>';
     h+='<div style="height:16px;"></div>';
   }
 
