@@ -298,7 +298,7 @@ function rFCheck(c){
   var tvLabel=F.tipo==='periodica'?'Todos os itens – Anexo B':(F.d.tv||'trimestral');if(F.tipo!=='periodica'){tvLabel=tvLabel.charAt(0).toUpperCase()+tvLabel.slice(1);}
 
   /* ── Cabeçalho global ── */
-  var h='<div style="background:#003580;border-radius:14px;padding:14px;margin-bottom:12px;flex-shrink:0;">'
+  var h='<div style="background:linear-gradient(135deg,#003580,#1d5ab8);border-radius:14px;padding:14px;margin-bottom:12px;flex-shrink:0;">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
     +'<div><div style="font-size:14px;font-weight:900;color:#fff;">Checklist – Grupo '+g+'</div>'
     +'<div style="font-size:10px;color:rgba(255,255,255,.75);">'+tvLabel+' · '+gOk+'/'+gDue+' devidos avaliados · '+gTotal+' itens total</div></div>'
@@ -316,7 +316,7 @@ function rFCheck(c){
     var sOut=all.filter(function(a){return!isDue(a);});
     var sDueOk=sDue.filter(function(a){var k=F.id+'_'+a.id;var it=F.itens[k];return it&&(it.s==='conforme'||it.s==='nao_conforme'||it.s==='nao_aplicavel');}).length;
     var pct=sDue.length?Math.round(sDueOk/sDue.length*100):0;
-    var cor=pct===100?'#16a34a':pct>0?'#2563eb':'#003580';
+    var cor=pct===100?'#16a34a':pct>0?'#2563eb':'#0a4099';
 
     h+='<div style="background:#fff;border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);flex-shrink:0;">';
 
@@ -1717,12 +1717,12 @@ function rFSubDados(c){
   var h='';
 
   // ── Seletor principal: AÉREA / ABRIGADA ──
-  h+='<div style="background:#1e293b;border-radius:12px;padding:16px;margin-bottom:14px;">';
-  h+='<div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6);letter-spacing:.08em;margin-bottom:10px;">TIPO DE SUBESTAÇÃO</div>';
+  h+='<div style="background:linear-gradient(135deg,#003580,#0a4099);border-radius:12px;padding:16px;margin-bottom:14px;">';
+  h+='<div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.7);letter-spacing:.08em;margin-bottom:10px;">TIPO DE SUBESTAÇÃO</div>';
   h+='<div style="display:flex;gap:10px;">';
   [{v:'AEREA',ico:'🏗',desc:'Sem medições elétricas'},{v:'ABRIGADA',ico:'🏭',desc:'Com medições elétricas'}].forEach(function(op){
     var sel=tipoSub===op.v;
-    h+='<button type="button" onclick="subSetTipo(\''+op.v+'\')" style="flex:1;border:2.5px solid '+(sel?'#f59e0b':'rgba(255,255,255,.15)')+';background:'+(sel?'#f59e0b':'rgba(255,255,255,.05)')+';color:'+(sel?'#1e293b':'#fff')+';border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center;">';
+    h+='<button type="button" onclick="subSetTipo(\''+op.v+'\')" style="flex:1;border:2.5px solid '+(sel?'#f59e0b':'rgba(255,255,255,.25)')+';background:'+(sel?'#f59e0b':'rgba(255,255,255,.08)')+';color:'+(sel?'#1e293b':'#fff')+';border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center;">';
     h+='<div style="font-size:20px;margin-bottom:4px;">'+op.ico+'</div>';
     h+='<div style="font-size:13px;font-weight:800;">'+op.v+'</div>';
     h+='<div style="font-size:9px;opacity:.8;margin-top:2px;">'+op.desc+'</div>';
@@ -1831,13 +1831,13 @@ function rFSubChecklist(c){
   var h='';
 
   // Badge tipo + progresso
-  h+='<div style="background:#1e293b;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">';
-  h+='<span style="background:'+(tipoSub==='ABRIGADA'?'#f59e0b':'#64748b')+';color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:800;">'+(tipoSub==='ABRIGADA'?'🏭 ABRIGADA':'🏗 AÉREA')+'</span>';
+  h+='<div style="background:linear-gradient(135deg,#003580,#0a4099);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">';
+  h+='<span style="background:'+(tipoSub==='ABRIGADA'?'#f59e0b':'#94a3b8')+';color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:800;">'+(tipoSub==='ABRIGADA'?'🏭 ABRIGADA':'🏗 AÉREA')+'</span>';
   h+='<div style="flex:1;">';
   h+='<div class="pb" style="margin:0;"><div class="pf" style="width:'+pct+'%;background:'+pCor+';"></div></div>';
-  h+='<div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:3px;">'+marcados+'/'+total+' itens verificados ('+pct+'%)</div>';
+  h+='<div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:3px;">'+marcados+'/'+total+' itens verificados ('+pct+'%)</div>';
   h+='</div>';
-  h+='<span style="font-size:18px;font-weight:900;color:'+pCor+';">'+pct+'%</span>';
+  h+='<span style="font-size:18px;font-weight:900;color:#fff;">'+pct+'%</span>';
   h+='</div>';
 
   // Seções

@@ -1,9 +1,10 @@
-/* TJMG Fiscal — Service Worker v79c
+/* TJMG Fiscal — Service Worker v82
    Estratégia: network-first para TODOS os assets locais
    (garante que bugs corrigidos cheguem ao usuário imediatamente)
+   v82-fix: paleta TJMG consistente, dark-mode removido
 */
 
-const V = 'tjmg-v81';
+const V = 'tjmg-v82';
 const BYPASS = [
   'supabase.co',
   'googleapis.com',
