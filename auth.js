@@ -401,15 +401,18 @@ window.coordSelAll    = coordSelAll;
 window.coordExpSel    = coordExpSel;
 window.openDetCoord   = openDetCoord;
 window.cancelPin      = cancelPin;
-window.coordExpSelPDF = coordExpSelPDF;
+/* v79b-fix: coordExpSelPDF e admExpSelPDF definidas em admin.js (carregado depois)
+   — usar wrapper para não quebrar se admin.js ainda não carregou */
+window.coordExpSelPDF = function(){ if(typeof coordExpSelPDF==='function') coordExpSelPDF(); };
 window.coordExpSelZip = coordExpSelZip;
 window.fiscToggleSel  = fiscToggleSel;
 window.fiscSelAll     = fiscSelAll;
 window.fiscExpSel     = fiscExpSel;
 window.fiscExpSelPDF  = fiscExpSelPDF;
-window.fiscExpSelZip  = function(){if(typeof fiscExpSelZip==='function')fiscExpSelZip();};
-window.admExpSelPDF   = admExpSelPDF;
-window.admExpSelZip   = function(){if(typeof admExpSelZip==='function')admExpSelZip();};
+window.fiscExpSelZip  = function(){ if(typeof fiscExpSelZip==='function') fiscExpSelZip(); };
+window.admExpSelPDF   = function(){ if(typeof admExpSelPDF==='function') admExpSelPDF(); };
+window.admExpSelZip   = function(){ if(typeof admExpSelZip==='function') admExpSelZip(); };
+window.rPainel        = rPainel;
 window.rPainel        = rPainel;
 window.coordTabSwitch = function(tab){
   var lista=el('coord-view-lista');
