@@ -386,18 +386,25 @@ function openDetCoord(id){
     if(i.dtFinalExec)h+='<div style="flex:1;text-align:center;"><div style="font-size:9px;color:#64748b;">Final</div><div style="font-size:12px;font-weight:700;color:#15803d;">'+fdt(i.dtFinalExec)+'</div></div>';
     h+='</div></div>';
   }
-  h+='<button class="btn" style="background:'+_cor+';color:#fff;" onclick="exportHTML(\''+id+'\')">&#128196; Exportar HTML</button>';
-  h+='<button class="btn" style="background:#1a2332;color:#fff;margin-top:6px;" onclick="exportPDF(\''+id+'\')">📄 Exportar PDF</button>';
-  /* v80: botões extras */
-  h+='<button class="btn" style="background:#1e40af;color:#fff;margin-top:6px;" onclick="perguntarAssinatura(\''+id+'\',null)">🔏 Assinar Digitalmente</button>';
-  h+='<button class="btn" style="background:#003580;color:#fff;margin-top:6px;" onclick="abrirSEI(\''+id+'\')">🏛️ Vincular ao SEI</button>';
-  if(Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length>0)
-    h+='<button class="btn" style="background:#25d366;color:#fff;margin-top:6px;" onclick="alertarNcCriticaWhatsApp(\''+id+'\')">📱 Alertar Coord. (WhatsApp)</button>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">';
-  h+='<button class="btn" style="background:#0f766e;color:#fff;font-size:11px;padding:10px;" onclick="gerarNOTINA(\''+id+'\')">⚠️ NOT-INA</button>';
-  h+='<button class="btn" style="background:#d97706;color:#fff;font-size:11px;padding:10px;" onclick="gerarROC(\''+id+'\')">📋 ROC</button>';
+  /* ── Exportar ── */
+  h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Exportar</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
+  h+='<button style="border:none;background:#003580;color:#fff;border-radius:12px;padding:12px;font-size:12px;font-weight:700;cursor:pointer;" onclick="exportHTML(\''+id+'\')">📄 HTML</button>';
+  h+='<button style="border:none;background:#1d4ed8;color:#fff;border-radius:12px;padding:12px;font-size:12px;font-weight:700;cursor:pointer;" onclick="exportPDF(\''+id+'\')">📑 PDF</button>';
   h+='</div>';
-  h+='<div style="height:16px;"></div>';
+  h+='<button style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="var _bc=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_bc,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar</button>';
+  /* ── Documentos contratuais ── */
+  var _ncCoord=Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;
+  h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Documentos Contratuais</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
+  h+=(_ncCoord>0
+    ?'<button style="border:none;background:#fee2e2;color:#b91c1c;border-radius:12px;padding:11px 8px;font-size:11px;font-weight:700;cursor:pointer;" onclick="gerarNOTINA(\''+id+'\')">⚠️ NOT-INA<br><span style="font-size:10px;opacity:.8;">'+_ncCoord+' NC</span></button>'
+    :'<button style="border:none;background:#f1f5f9;color:#94a3b8;border-radius:12px;padding:11px 8px;font-size:11px;cursor:default;">⚠️ NOT-INA<br><span style="font-size:10px;">sem NCs</span></button>');
+  h+='<button style="border:none;background:#fef3c7;color:#b45309;border-radius:12px;padding:11px 8px;font-size:11px;font-weight:700;cursor:pointer;" onclick="gerarROC(\''+id+'\')">📋 ROC</button>';
+  h+='</div>';
+  h+='<button style="width:100%;border:none;background:#dbeafe;color:#1e40af;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="abrirSEI(\''+id+'\')">🏛️ Vincular ao SEI</button>';
+  if(_ncCoord>0) h+='<button style="width:100%;border:none;background:#dcfce7;color:#15803d;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="alertarNcCriticaWhatsApp(\''+id+'\')">📱 Alertar por WhatsApp</button>';
+  h+='<div style="height:20px;"></div>';
   el('dbody').innerHTML=h;
   if(i.tipo==='prontuario'){el('dbody').innerHTML=renderDetPron(i);}
   var dd=el('det-del');if(dd)dd.style.display='none';

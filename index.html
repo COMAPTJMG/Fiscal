@@ -1610,30 +1610,54 @@ function _renderDet(id){
       }
     }
 
-    if(i.st==='em_andamento')h+='<button class="btn ba" onclick="finalizarI(\''+id+'\')">Finalizar Inspeção</button>';
-    if(i.st==='finalizada')h+='<button class="btn" style="background:#f59e0b;color:#fff;margin-bottom:8px;" onclick="editarRelatorio(\''+id+'\')">✏️ Editar Relatório</button>';
-    /* v79: Exportar + Compartilhar */
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
-    h+='<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:10px;" onclick="exportHTML(\''+id+'\')">📄 HTML</button>';
-    h+='<button class="btn" style="background:#1a2332;color:#fff;font-size:12px;padding:10px;" onclick="exportPDF(\''+id+'\')">📄 PDF</button>';
+    if(i.st==='em_andamento'){
+      h+='<button class="btn ba" style="font-size:13px;padding:14px;" onclick="finalizarI(\''+id+'\')">✅ Finalizar Inspeção</button>';
+      h+='<div style="height:6px;"></div>';
+    }
+    if(i.st==='finalizada'){
+      h+='<button class="btn" style="background:#f59e0b;color:#fff;font-size:13px;padding:12px;margin-bottom:6px;" onclick="editarRelatorio(\''+id+'\')">✏️ Editar Relatório</button>';
+    }
+
+    /* ── Grupo: Exportar ── */
+    h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Exportar</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
+    h+='<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:12px;border-radius:12px;" onclick="exportHTML(\''+id+'\')">📄 HTML</button>';
+    h+='<button class="btn" style="background:#1d4ed8;color:#fff;font-size:12px;padding:12px;border-radius:12px;" onclick="exportPDF(\''+id+'\')">📑 PDF</button>';
     h+='</div>';
-    h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="var _b=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar Relatório</button>';
-    /* v80: Documentos contratuais */
+    h+='<button style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="var _b=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar Relatório</button>';
+
     if(i.st==='finalizada'){
       var _ncs=Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;
-      if(_ncs>0)h+='<button class="btn" style="background:#dc2626;color:#fff;margin-bottom:6px;font-size:12px;" onclick="gerarNOTINA(\''+id+'\')">⚠️ Gerar NOT-INA ('+_ncs+' NC)</button>';
-      h+='<button class="btn" style="background:#d97706;color:#fff;margin-bottom:6px;font-size:12px;" onclick="gerarROC(\''+id+'\')">📋 Gerar ROC</button>';
-      h+='<button class="btn" style="background:#1e40af;color:#fff;margin-bottom:6px;font-size:12px;" onclick="perguntarAssinatura(\''+id+'\',null)">🔏 Assinar Digitalmente (opcional)</button>';
-      h+='<button class="btn" style="background:#003580;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirSEI(\''+id+'\')">🏛️ Vincular ao SEI</button>';
-      if(_ncs>0)h+='<button class="btn" style="background:#25d366;color:#fff;margin-bottom:6px;font-size:12px;" onclick="alertarNcCriticaWhatsApp(\''+id+'\')">📱 Alertar Coord. (WhatsApp)</button>';
-      /* v79: Comparativo */
       var _comp=compararInspecoes(i.edif,i.reg);
-      if(_comp)h+='<button class="btn" style="background:#0f766e;color:#fff;margin-bottom:6px;font-size:12px;" onclick="mostrarComparativo(\''+id+'\')">📊 Comparativo com Vistoria Anterior</button>';
+
+      /* ── Grupo: Documentos Contratuais ── */
+      h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Documentos Contratuais</div>';
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
+      if(_ncs>0){
+        h+='<button style="border:none;background:#fee2e2;color:#b91c1c;border-radius:12px;padding:11px 8px;font-size:11px;font-weight:700;cursor:pointer;" onclick="gerarNOTINA(\''+id+'\')">⚠️ NOT-INA<br><span style="font-size:10px;opacity:.8;">'+_ncs+' NC</span></button>';
+      }else{
+        h+='<button style="border:none;background:#f1f5f9;color:#94a3b8;border-radius:12px;padding:11px 8px;font-size:11px;font-weight:500;cursor:default;">⚠️ NOT-INA<br><span style="font-size:10px;">sem NCs</span></button>';
+      }
+      h+='<button style="border:none;background:#fef3c7;color:#b45309;border-radius:12px;padding:11px 8px;font-size:11px;font-weight:700;cursor:pointer;" onclick="gerarROC(\''+id+'\')">📋 ROC</button>';
+      h+='</div>';
+      h+='<button style="width:100%;border:none;background:#dbeafe;color:#1e40af;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="abrirSEI(\''+id+'\')">🏛️ Vincular ao SEI</button>';
+      if(_ncs>0){
+        h+='<button style="width:100%;border:none;background:#dcfce7;color:#15803d;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="alertarNcCriticaWhatsApp(\''+id+'\')">📱 Alertar Coordenador (WhatsApp)</button>';
+      }
+
+      /* ── Grupo: Análise ── */
+      if(_comp||i.edif){
+        h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Análise</div>';
+        if(_comp) h+='<button style="width:100%;border:none;background:#f0fdf4;color:#15803d;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="mostrarComparativo(\''+id+'\')">📊 Comparativo com Vistoria Anterior</button>';
+        if(i.edif) h+='<button style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="abrirPronEdif(this.dataset.e,this.dataset.c)" data-e="'+i.edif+'" data-c="'+(i.com||'')+'">🏛️ Prontuário da Edificação (NBR 5674)</button>';
+      }
     }
-    /* v79: Duplicar como modelo + Desfazer (só rascunhos) */
-    h+='<button class="btn" style="background:#2563eb;color:#fff;margin-bottom:6px;font-size:12px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
-    if(i.edif)h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirPronEdif(this.dataset.e,this.dataset.c)" data-e="'+i.edif+'" data-c="'+(i.com||'')+'">🏛️ Prontuário (NBR 5674)</button>';
-    h+='<div style="height:16px;"></div>';
+
+    /* ── Grupo: Outras ações ── */
+    h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Outras Ações</div>';
+    h+='<button style="width:100%;border:none;background:#eff6ff;color:#1d4ed8;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
+    if(i.edif&&!i.st==='finalizada') h+='<button style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="abrirPronEdif(this.dataset.e,this.dataset.c)" data-e="'+i.edif+'" data-c="'+(i.com||'')+'">🏛️ Prontuário (NBR 5674)</button>';
+    h+='<div style="height:20px;"></div>';
 
   } else {
     /* ── Lógica original para Periódica / Fachada / SPDA ── */
@@ -1664,16 +1688,47 @@ function _renderDet(id){
       s.its.forEach(function(it){var stv=ST[it.s||'pendente']||ST.pendente;var extras='';if(it.fotos&&it.fotos.length)extras+='<span style="font-size:9px;background:#ede9fe;color:#7c3aed;padding:2px 5px;border-radius:6px;margin-right:3px;">📷 '+it.fotos.length+'</span>';if(it.mats&&it.mats.length)extras+='<span style="font-size:9px;background:#dbeafe;color:#2563eb;padding:2px 5px;border-radius:6px;">🔧 '+it.mats.length+'</span>';var sub=it.obs||extras?((it.obs||'')+(extras?'<span style="margin-left:4px;">'+extras+'</span>':'')):'Toque para avaliar';h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #f8fafc;cursor:pointer;" onclick="openItem(\''+id+'\',\''+it._k+'\')"><span style="font-size:16px;">'+stv.e+'</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">'+(it.nm||'')+'</div><div style="font-size:11px;color:#64748b;margin-top:1px;">'+sub+'</div></div><span class="bdg" style="background:'+stv.bg+';color:'+stv.c+';font-size:10px;">'+stv.l+'</span></div>';});
       h+='</div></div>';
     });
-    if(i.st==='em_andamento')h+='<button class="btn ba" onclick="finalizarI(\''+id+'\')">Finalizar Inspecao</button>';
-    if(i.st==='finalizada')h+='<button class="btn" style="background:#f59e0b;color:#fff;margin-bottom:8px;" onclick="editarRelatorio(\''+id+'\')">✏️ Editar Relatório</button>';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
-    h+='<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:10px;" onclick="exportHTML(\''+id+'\')">📄 HTML</button>';
-    h+='<button class="btn" style="background:#1a2332;color:#fff;font-size:12px;padding:10px;" onclick="exportPDF(\''+id+'\')">📄 PDF</button>';
+    if(i.st==='em_andamento'){
+      h+='<button class="btn ba" style="font-size:13px;padding:14px;" onclick="finalizarI(\''+id+'\')">✅ Finalizar Inspeção</button>';
+      h+='<div style="height:6px;"></div>';
+    }
+    if(i.st==='finalizada') h+='<button class="btn" style="background:#f59e0b;color:#fff;font-size:13px;padding:12px;margin-bottom:6px;" onclick="editarRelatorio(\''+id+'\')">✏️ Editar Relatório</button>';
+
+    /* ── Exportar ── */
+    h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Exportar</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
+    h+='<button style="border:none;background:#003580;color:#fff;border-radius:12px;padding:12px;font-size:12px;font-weight:700;cursor:pointer;" onclick="exportHTML(\''+id+'\')">📄 HTML</button>';
+    h+='<button style="border:none;background:#1d4ed8;color:#fff;border-radius:12px;padding:12px;font-size:12px;font-weight:700;cursor:pointer;" onclick="exportPDF(\''+id+'\')">📑 PDF</button>';
     h+='</div>';
-    h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="var _b2=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b2,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar</button>';
-    h+='<button class="btn" style="background:#2563eb;color:#fff;margin-bottom:6px;font-size:12px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
-    h+='<button class="btn" style="background:#7c3aed;color:#fff;margin-bottom:6px;font-size:12px;" onclick="abrirPronEdif(this.dataset.e,this.dataset.c)" data-e="'+i.edif+'" data-c="'+(i.com||'')+'">🏛️ Prontuário (NBR 5674)</button>';
-    h+='<div style="height:16px;"></div>';
+    h+='<button style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="var _b2=new Blob([_gerarHTMLStr(\''+id+'\')],{type:\'text/html\'});shareFile(_b2,\'TJMG_'+id+'.html\',\'Relatório TJMG\')">📤 Compartilhar</button>';
+
+    if(i.st==='finalizada'){
+      var _ncs2=Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;
+      var _comp2=compararInspecoes(i.edif,i.reg);
+
+      h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Documentos Contratuais</div>';
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
+      if(_ncs2>0){
+        h+='<button style="border:none;background:#fee2e2;color:#b91c1c;border-radius:12px;padding:11px 8px;font-size:11px;font-weight:700;cursor:pointer;" onclick="gerarNOTINA(\''+id+'\')">⚠️ NOT-INA<br><span style="font-size:10px;opacity:.8;">'+_ncs2+' NC</span></button>';
+      }else{
+        h+='<button style="border:none;background:#f1f5f9;color:#94a3b8;border-radius:12px;padding:11px 8px;font-size:11px;cursor:default;">⚠️ NOT-INA<br><span style="font-size:10px;">sem NCs</span></button>';
+      }
+      h+='<button style="border:none;background:#fef3c7;color:#b45309;border-radius:12px;padding:11px 8px;font-size:11px;font-weight:700;cursor:pointer;" onclick="gerarROC(\''+id+'\')">📋 ROC</button>';
+      h+='</div>';
+      h+='<button style="width:100%;border:none;background:#dbeafe;color:#1e40af;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="abrirSEI(\''+id+'\')">🏛️ Vincular ao SEI</button>';
+      if(_ncs2>0) h+='<button style="width:100%;border:none;background:#dcfce7;color:#15803d;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="alertarNcCriticaWhatsApp(\''+id+'\')">📱 Alertar Coordenador (WhatsApp)</button>';
+
+      if(_comp2||i.edif){
+        h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Análise</div>';
+        if(_comp2) h+='<button style="width:100%;border:none;background:#f0fdf4;color:#15803d;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="mostrarComparativo(\''+id+'\')">📊 Comparativo com Vistoria Anterior</button>';
+        if(i.edif) h+='<button style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="abrirPronEdif(this.dataset.e,this.dataset.c)" data-e="'+i.edif+'" data-c="'+(i.com||'')+'">🏛️ Prontuário (NBR 5674)</button>';
+      }
+    }
+
+    h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Outras Ações</div>';
+    h+='<button style="width:100%;border:none;background:#eff6ff;color:#1d4ed8;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="duplicarComoModelo(\''+id+'\')">📋 Usar como Modelo</button>';
+    if(i.edif) h+='<button style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:12px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;" onclick="abrirPronEdif(this.dataset.e,this.dataset.c)" data-e="'+i.edif+'" data-c="'+(i.com||'')+'">🏛️ Prontuário (NBR 5674)</button>';
+    h+='<div style="height:20px;"></div>';
   }
 
   var _canDel=canDelInsp(i);
