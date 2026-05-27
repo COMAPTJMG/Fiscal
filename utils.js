@@ -287,17 +287,18 @@ function alertarPeriodiciasVencidas(){
     .forEach(function(i){
       var k=(i.reg||'')+'::'+i.edif;
       var dt=new Date((i.dtVistoria||i.data)+'T12:00:00');
-      if(!ultPorEdif[k]||dt>ultPorEdif[k])ultPorEdif[k]=dt;
+      if(!ultPorEdif[k]||dt>ultPorEdif[k].dt)ultPorEdif[k]={dt:dt,grp:i.grupo||'B'};// v83-fix: guarda grupo
     });
   var vencidas=[];
   Object.keys(ultPorEdif).forEach(function(k){
-    var ultima=ultPorEdif[k];
-    var meses=3;/* periodicidade trimestral padrão */
+    var ultima=ultPorEdif[k].dt;
+    var grp=ultPorEdif[k].grp||'B';
+    var meses=grp==='C'?6:3;/* v83-fix: Grupo C = 6 meses, A e B = 3 meses */
     var proxima=new Date(ultima);proxima.setMonth(proxima.getMonth()+meses);
     var diffDias=Math.round((proxima-hoje)/86400000);
     if(diffDias<=7){/* vence em ≤7 dias ou já venceu */
-      var edif=k.split('::')[1];
-      vencidas.push({edif:edif,diffDias:diffDias,proxima:proxima});
+      var parts=k.split('::');
+      vencidas.push({edif:parts[1],reg:parts[0],grp:grp,meses:meses,diffDias:diffDias,proxima:proxima});
     }
   });
   return vencidas;
@@ -346,7 +347,10 @@ function compararInspecoes(edif,reg){
   var calcConf=function(i){
     var its=ovals(i.itens||{}).filter(function(v){return v.s&&v.s!=='fora_periodo'&&v.s!=='nao_aplicavel';});
     if(!its.length)return null;
-    return Math.round(its.filter(function(v){return v.s==='conforme';}).length/its.length*100);
+    // v83-fix: denominador = apenas itens aplicáveis (exclui nao_aplicavel)
+    var aplic=its.filter(function(v){return v.s!=='pendente';});
+    if(!aplic.length)return null;
+    return Math.round(aplic.filter(function(v){return v.s==='conforme';}).length/aplic.length*100);
   };
   var confAtual=calcConf(atual),confAnt=calcConf(anterior);
   /* Itens que mudaram de status */
@@ -395,14 +399,14 @@ function calcAgenda(){
   });
   var agenda=[];
   Object.values(ultPorEdif).forEach(function(obj){
-    [3,6,12].forEach(function(meses){
-      var proxima=new Date(obj.dt);proxima.setMonth(proxima.getMonth()+meses);
-      var diffDias=Math.round((proxima-hoje)/86400000);
-      if(diffDias>=0&&diffDias<=60){/* próximos 60 dias */
-        agenda.push({edif:obj.insp.edif,com:obj.insp.com,reg:obj.insp.reg,
-          proxima:proxima,diffDias:diffDias,periodoMeses:meses,ultima:obj.dt});
-      }
-    });
+    var grp=obj.insp.grupo||'B';
+    var meses=grp==='C'?6:3;/* v83-fix: Grupo C=6m, A/B=3m */
+    var proxima=new Date(obj.dt);proxima.setMonth(proxima.getMonth()+meses);
+    var diffDias=Math.round((proxima-hoje)/86400000);
+    if(diffDias>=0&&diffDias<=60){/* próximos 60 dias */
+      agenda.push({edif:obj.insp.edif,com:obj.insp.com,reg:obj.insp.reg,grp:grp,
+        proxima:proxima,diffDias:diffDias,periodoMeses:meses,ultima:obj.dt});
+    }
   });
   return agenda.sort(function(a,b){return a.diffDias-b.diffDias;});
 }
