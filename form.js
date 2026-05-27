@@ -316,21 +316,24 @@ function rFCheck(c){
     var sOut=all.filter(function(a){return!isDue(a);});
     var sDueOk=sDue.filter(function(a){var k=F.id+'_'+a.id;var it=F.itens[k];return it&&(it.s==='conforme'||it.s==='nao_conforme'||it.s==='nao_aplicavel');}).length;
     var pct=sDue.length?Math.round(sDueOk/sDue.length*100):0;
-    var cor=pct===100?'#16a34a':pct>0?'#2563eb':'#003580';
+    /* v81-fix: cores claras no cabeçalho — paleta TJMG legível */
+    var cor    = pct===100?'#15803d':pct>0?'#1d4ed8':'#1e3a8a';
+    var corBg  = pct===100?'#f0fdf4':pct>0?'#eff6ff':'#eff6ff';
+    var corBdr = pct===100?'#86efac':pct>0?'#93c5fd':'#93c5fd';
 
     h+='<div style="background:#fff;border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);flex-shrink:0;">';
 
-    /* Cabeçalho da seção — sem colapso, sempre expandido */
-    h+='<div style="background:'+cor+';padding:11px 14px;">'
+    /* Cabeçalho da seção */
+    h+='<div style="background:'+corBg+';border-bottom:2px solid '+corBdr+';padding:11px 14px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;">'
       +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:13px;font-weight:800;color:#fff;line-height:1.3;">'+s.n+' '+s.nm+'</div>'
-      +'<div style="font-size:10px;color:rgba(255,255,255,.75);margin-top:2px;">'
+      +'<div style="font-size:13px;font-weight:800;color:'+cor+';line-height:1.3;">'+s.n+' '+s.nm+'</div>'
+      +'<div style="font-size:10px;color:#374151;margin-top:2px;font-weight:600;">'
       +sDueOk+'/'+sDue.length+' desta visita'+(sOut.length?' · '+sOut.length+' outro(s) período(s)':'')
       +'</div></div>'
-      +'<span style="background:rgba(255,255,255,.2);color:#fff;padding:3px 11px;border-radius:12px;font-size:12px;font-weight:900;margin-left:8px;flex-shrink:0;">'+pct+'%</span>'
+      +'<span style="background:'+cor+';color:#fff;padding:3px 11px;border-radius:12px;font-size:12px;font-weight:900;margin-left:8px;flex-shrink:0;">'+pct+'%</span>'
       +'</div>'
-      +(sDue.length?'<div style="background:rgba(255,255,255,.25);border-radius:3px;height:4px;margin-top:8px;overflow:hidden;"><div style="background:#fff;height:100%;width:'+pct+'%;border-radius:3px;"></div></div>':'')
+      +(sDue.length?'<div style="background:'+corBdr+';border-radius:3px;height:4px;margin-top:8px;overflow:hidden;"><div style="background:'+cor+';height:100%;width:'+pct+'%;border-radius:3px;"></div></div>':'')
       +'</div>';
 
     h+='<div>'; /* corpo — sempre visível */

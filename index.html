@@ -927,32 +927,51 @@ function _renderRelLista(lista){
 
   var cardsHtml=lista.map(function(i){
     var t=TIPOS[i.tipo]||TIPOS.periodica;
-    var st=i.st==='finalizada'?{l:'Enviado',bg:'#dcfce7',c:'#16a34a'}:{l:'Rascunho',bg:'#fef3c7',c:'#d97706'};
+    var st=i.st==='finalizada'?{l:'Enviado',bg:'#dcfce7',c:'#15803d'}:{l:'Rascunho',bg:'#fef9c3',c:'#a16207'};
     var pst='';
-    if(i.tipo==='prontuario'){var ps=_pronSt(i);var ptab={vencido:{l:'Vencido',bg:'#fee2e2',c:'#dc2626'},vence30:{l:'30d',bg:'#fef3c7',c:'#d97706'},vigente:{l:'Vigente',bg:'#dcfce7',c:'#16a34a'},pendente:{l:'Pend.',bg:'#f1f5f9',c:'#94a3b8'}};var pd=ptab[ps]||ptab.pendente;pst='<span class="bdg" style="background:'+pd.bg+';color:'+pd.c+';">'+pd.l+'</span>';}
+    if(i.tipo==='prontuario'){var ps=_pronSt(i);var ptab={vencido:{l:'Vencido',bg:'#fee2e2',c:'#dc2626'},vence30:{l:'30d',bg:'#fef3c7',c:'#d97706'},vigente:{l:'Vigente',bg:'#dcfce7',c:'#16a34a'},pendente:{l:'Pend.',bg:'#f1f5f9',c:'#64748b'}};var pd=ptab[ps]||ptab.pendente;pst='<span class="bdg" style="background:'+pd.bg+';color:'+pd.c+';">'+pd.l+'</span>';}
     var sel=S._fiscSel.indexOf(i.id)!==-1;
     var fin=i.st==='finalizada';
-    /* v78-fix: indicador de sync */
     var _synced=!!(i.synced_at);
-    var _syncIcon=fin?(_synced?'<span title="Sincronizado" style="font-size:10px;color:#16a34a;font-weight:700;">☁✓</span>':'<span title="Aguardando sync" style="font-size:10px;color:#d97706;font-weight:700;">☁⏳</span>'):'';
-    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 12px 4px;">'
-      +'<div onclick="fiscToggleSel(\''+i.id+'\')" style="flex-shrink:0;width:26px;height:26px;border-radius:7px;border:2px solid '+(sel?'#003580':'#cbd5e1')+';background:'+(sel?'#003580':'#fff')+';display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;cursor:pointer;transition:all .15s;">'+(sel?'✓':'')+'</div>'
-      +'<div class="card" style="flex:1;margin:0;border:2px solid '+(sel?'#003580':'transparent')+';cursor:pointer;padding:11px 12px;transition:border-color .15s;" onclick="openDet(\''+i.id+'\')">'
-        +'<div style="display:flex;align-items:center;gap:8px;">'
-          +'<div style="width:36px;height:36px;border-radius:9px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">'+t.i+'</div>'
+    var _syncIcon=fin?(_synced?'<span title="Sincronizado" style="font-size:10px;color:#16a34a;font-weight:800;">☁✓</span>':'<span title="Aguardando sync" style="font-size:10px;color:#d97706;font-weight:800;">☁⏳</span>'):'';
+
+    /* IMR mini-donut */
+    var _iArr=Object.values(i.itens||{});
+    var _avArr=_iArr.filter(function(v){return v.s&&v.s!=='fora_periodo'&&v.s!=='nao_aplicavel'&&v.s!=='pendente';});
+    var _cfArr=_avArr.filter(function(v){return v.s==='conforme'||v.s==='executado';});
+    var _iPct=_avArr.length?Math.round(_cfArr.length/_avArr.length*100):null;
+    var _iCor=_iPct===null?'#94a3b8':_iPct>=80?'#16a34a':_iPct>=60?'#d97706':'#dc2626';
+
+    return '<div style="display:flex;align-items:stretch;gap:8px;padding:4px 10px 4px;">'
+      /* Checkbox de seleção */
+      +'<div onclick="fiscToggleSel(\''+i.id+'\')" style="flex-shrink:0;width:28px;height:28px;border-radius:8px;border:2px solid '+(sel?'#003580':'#cbd5e1')+';background:'+(sel?'#003580':'#fff')+';display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;cursor:pointer;transition:all .15s;margin-top:14px;">'+(sel?'✓':'')+'</div>'
+      /* Card principal */
+      +'<div class="card" style="flex:1;margin:0;padding:12px 14px;border:2px solid '+(sel?'#003580':'#e2e8f0')+';cursor:pointer;transition:all .15s;background:#fff;" onclick="openDet(\''+i.id+'\')">'
+        +'<div style="display:flex;align-items:flex-start;gap:10px;">'
+          /* Ícone do tipo */
+          +'<div style="width:42px;height:42px;border-radius:10px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:1px solid '+t.c+'22;">'+t.i+'</div>'
+          /* Conteúdo */
           +'<div style="flex:1;min-width:0;">'
-            +'<div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+i.edif+'</div>'
-            +'<div style="font-size:10px;color:#64748b;margin-top:1px;">'+(i.com||'-')+' · '+fdt(i.dtVistoria||i.data)+'</div>'
-            +'<div style="font-size:10px;color:#94a3b8;">'+(i.fiscal||'')+'</div>'
-            +'<div style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;align-items:center;">'
-              +'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span>'
-              +'<span class="bdg" style="background:'+st.bg+';color:'+st.c+';">'+st.l+'</span>'
-              +pst+_syncIcon
+            /* Edificação */
+            +'<div style="font-size:14px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;">'+_escA(i.edif||'—')+'</div>'
+            /* Comarca + data */
+            +'<div style="font-size:11px;color:#374151;margin-top:2px;font-weight:600;">'+(i.com||'—')+' &nbsp;·&nbsp; '+fdt(i.dtVistoria||i.data)+'</div>'
+            /* Fiscal */
+            +'<div style="font-size:11px;color:#6b7280;margin-top:1px;">👤 '+(i.fiscal||'—')+(i.mat?' ('+i.mat+')':'')+'</div>'
+            /* Badges */
+            +'<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;align-items:center;">'
+              +'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';font-size:10px;font-weight:700;padding:3px 9px;">'+t.l+'</span>'
+              +'<span class="bdg" style="background:'+st.bg+';color:'+st.c+';font-size:10px;font-weight:700;padding:3px 9px;">'+st.l+'</span>'
+              +pst
+              +(_iPct!==null?'<span style="background:#f1f5f9;color:'+_iCor+';border-radius:20px;padding:3px 8px;font-size:10px;font-weight:800;">'+_iPct+'%</span>':'')
+              +_syncIcon
             +'</div>'
           +'</div>'
-          +'<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;" onclick="event.stopPropagation();">'
-            +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#003580;color:#fff;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')
-            +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#1a2332;color:#fff;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')
+          /* Botões de ação */
+          +'<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;margin-left:4px;" onclick="event.stopPropagation();">'
+            +(fin?'<button style="border:none;background:#003580;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')
+            +(fin?'<button style="border:none;background:#1e40af;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')
+            +(!fin?'<button style="border:none;background:#d97706;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="openDet(\''+i.id+'\')">✏️ Editar</button>':'')
           +'</div>'
         +'</div>'
       +'</div>'
