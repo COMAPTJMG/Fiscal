@@ -59,23 +59,27 @@ function gerarProtocolo(i) {
   var _com  = normProt(i.com);
   var _edif = normProt(i.edif);
   var _COMP = ['fachada','spda','prontuario','subestacao'];
-  if (_COMP.indexOf(i.tipo) >= 0) return 'RITMP-COMPLEMENTAR-' + _dtFmt + '-' + _com + '-' + _edif;
+  if (_COMP.indexOf(i.tipo) >= 0) { var _sfxC=(typeof uid==='function'?uid():Date.now().toString(36)).slice(0,3).toUpperCase(); return 'RITMP-COMPLEMENTAR-' + _dtFmt + '-' + _com + '-' + _edif + '-' + _sfxC; }
   if (i.tipo === 'periodica') {
     var _grpP = i.grupo ? '-GRP' + i.grupo : ''; // v83-fix: grupo no protocolo
-    return 'RITMP' + _grpP + '-' + _dtFmt + '-' + _com + '-' + _edif;
+    var _sfx = uid ? uid().slice(0,3).toUpperCase() : Math.random().toString(36).slice(2,5).toUpperCase(); // v84: unicidade
+    return 'RITMP' + _grpP + '-' + _dtFmt + '-' + _com + '-' + _edif + '-' + _sfx;
   }
   var _osRaw = (i.os || '').trim().toUpperCase();
   var _osNum = _osRaw.replace(/[^0-9]/g,'');
   var _osStr = i.tipo === 'ose'
     ? (_osRaw.startsWith('OSE') ? _osRaw : (_osNum ? 'OSE' + _osNum.padStart(3,'0') : ''))
     : (_osRaw.startsWith('OSP') ? _osRaw : (_osNum ? 'OSP' + _osNum.padStart(3,'0') : ''));
-  if (i.tipo === 'ose') return 'RITE-' + _dtFmt + (_osStr ? '-' + _osStr : '') + '-' + _com + '-' + _edif;
+  if (i.tipo === 'ose') var _sfx2=uid?uid().slice(0,3).toUpperCase():Math.random().toString(36).slice(2,5).toUpperCase();
+  return 'RITE-'/* inline */  + _dtFmt + (_osStr ? '-' + _osStr : '') + '-' + _com + '-' + _edif;
   if (i.tipo === 'osp') {
     var _ospN = (i.os || '').trim().toUpperCase().replace(/[^0-9]/g,'');
     var _ospS = _ospN ? 'OSP' + _ospN.padStart(3,'0') : '';
-    return 'OSP-' + _dtFmt + (_ospS ? '-' + _ospS : '') + '-' + _com + '-' + _edif;
+    var _sfx2=uid?uid().slice(0,3).toUpperCase():Math.random().toString(36).slice(2,5).toUpperCase();
+  return 'OSP-'/* inline */  + _dtFmt + (_ospS ? '-' + _ospS : '') + '-' + _com + '-' + _edif;
   }
-  return 'RITP-' + _dtFmt + (_osStr ? '-' + _osStr : '') + '-' + _com + '-' + _edif;
+  var _sfx2=uid?uid().slice(0,3).toUpperCase():Math.random().toString(36).slice(2,5).toUpperCase();
+  return 'RITP-'/* inline */  + _dtFmt + (_osStr ? '-' + _osStr : '') + '-' + _com + '-' + _edif;
 }
 
 function gerarTipoLbl(tipo) {
