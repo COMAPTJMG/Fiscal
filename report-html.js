@@ -396,22 +396,162 @@ function _inlineScript() {
    RELATÓRIO PRINCIPAL
    ══════════════════════════════════════════════════════════════ */
 
+/* ── Limite para HTML inline: acima disso exporta ZIP c/ fotos separadas ── */
+var FOTO_INLINE_MAX = 80; /* ~80 fotos × 280KB ≈ 22MB — seguro para browsers */
+
 function exportHTML(id) {
   try {
     var i = S.insp.find(function(x){ return x.id === id; }); if (!i) { Tt('Inspeção não encontrada.'); return; }
     if (i.tipo === 'subestacao') { exportHTMLSub(id); return; }
-    /* Carrega fotos do IDB se necessário */
-    var _hasEmptyFotos = Object.keys(i.itens || {}).some(function(k){ return !(i.itens[k].fotos || []).length; });
-    if (_hasEmptyFotos) {
-      Tt('Carregando fotos...');
-      PhotoStore.loadForInsp(i).then(function(){ _doExportHTML(id); }).catch(function(e){ console.warn('Erro fotos:', e); _doExportHTML(id); });
-      return;
-    }
-    _doExportHTML(id);
+    Tt('Carregando fotos...');
+    PhotoStore.loadForInsp(i).then(function(){
+      /* Contar total de fotos da inspeção */
+      var _totalFotos = 0;
+      Object.values(i.itens || {}).forEach(function(it){ _totalFotos += (it.fotos || []).length; });
+      _totalFotos += (i.fotos || []).length;
+
+      if (_totalFotos > FOTO_INLINE_MAX) {
+        /* Muitas fotos: exportar ZIP com fotos em arquivos separados */
+        _doExportZipFotos(id, i, _totalFotos);
+      } else {
+        _doExportHTML(id);
+      }
+    }).catch(function(e){ console.warn('Erro fotos:', e); _doExportHTML(id); });
   } catch(e) {
     console.error('exportHTML erro:', e);
-    Tt('Erro ao exportar relatório. Tente novamente.');
+    Tt('Erro ao exportar. Tente novamente.');
   }
+}
+
+/* ── Exportação ZIP: HTML leve + fotos como arquivos separados ──────────
+   Resolve o problema de relatórios com 100-1000+ fotos.
+   Estrutura do ZIP:
+     relatorio.html          ← HTML com <img src="fotos/001_item.webp">
+     fotos/
+       001_[item].webp       ← arquivo de foto real
+       002_[item].webp
+       ...
+   O HTML resultante é leve (sem base64 inline) e abre no browser
+   após extrair o ZIP localmente.                                         */
+function _doExportZipFotos(id, i, totalFotos) {
+  if (typeof JSZip === 'undefined') {
+    Tt('JSZip não disponível — exportando HTML compacto...');
+    _doExportHTML(id);
+    return;
+  }
+  Tt('📦 ' + totalFotos + ' fotos — gerando ZIP...');
+
+  var zip   = new JSZip();
+  var pasta = zip.folder('fotos');
+
+  /* Mapa: chave original (base64) → nome do arquivo no ZIP */
+  var _fotoIdx = 0;
+  var _fotoMap = {}; /* b64_id → nome_arquivo */
+
+  /* Iterar todos os itens e substituir b64 por referência de arquivo */
+  var its = Object.entries(i.itens || {});
+  its.forEach(function(entry){
+    var k = entry[0]; var it = entry[1];
+    if (!it.fotos || !it.fotos.length) return;
+    it.fotos.forEach(function(f){
+      if (!f || !f.b64) return;
+      _fotoIdx++;
+      var _slug = (it.nm || k).replace(/[^a-zA-Z0-9]/g,'_').slice(0,25);
+      var _nome = String(_fotoIdx).padStart(3,'0') + '_' + _slug + '.webp';
+      _fotoMap[f.id || f.b64.slice(0,32)] = _nome;
+      /* Decodificar base64 e adicionar ao ZIP */
+      var _b64data = f.b64.split(',')[1] || f.b64;
+      pasta.file(_nome, _b64data, { base64: true });
+    });
+  });
+  /* Fotos gerais da inspeção */
+  (i.fotos || []).forEach(function(f){
+    if (!f || !f.b64) return;
+    _fotoIdx++;
+    var _nome = String(_fotoIdx).padStart(3,'0') + '_geral.webp';
+    _fotoMap[f.id || f.b64.slice(0,32)] = _nome;
+    var _b64data = f.b64.split(',')[1] || f.b64;
+    pasta.file(_nome, _b64data, { base64: true });
+  });
+
+  /* Gerar HTML leve com referências a arquivos (sem base64 inline) */
+  var _htmlLeve = _gerarHTMLComFotosExternas(id, i, _fotoMap);
+  var _nomeHtml = _doGetFileName(i) + '.html'; // v83
+  zip.file(_nomeHtml, _htmlLeve);
+
+  /* README com instruções */
+  zip.file('LEIA-ME.txt', [
+    'RELATÓRIO TJMG — INSTRUÇÕES DE ABERTURA',
+    '=' .repeat(40),
+    '',
+    '1. Extraia TODO o conteúdo deste ZIP em uma pasta',
+    '2. Abra o arquivo "' + _nomeHtml + '" no navegador',
+    '3. As fotos ficarão na subpasta "fotos/" e serão',
+    '   carregadas automaticamente pelo relatório.',
+    '',
+    'Total de fotos: ' + totalFotos,
+    'Gerado em: ' + new Date().toLocaleString('pt-BR'),
+  ].join('
+'));
+
+  zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } })
+    .then(function(blob){
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = _doGetFileName(i) + '_FOTOS.zip';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      Tt('✅ ZIP com ' + totalFotos + ' fotos exportado! Extraia antes de abrir o HTML.');
+    })
+    .catch(function(e){
+      console.error('ZIP erro:', e);
+      Tt('Erro ao gerar ZIP. Tentando HTML...');
+      _doExportHTML(id);
+    });
+}
+
+/* Gera nome de arquivo canônico (reutilizável) */
+function _doGetFileName(i) {
+  return 'TJMG_' + ({ periodica:'RITMP',ose:'RITE',programada:'RITP',fachada:'RITMP-COMP',
+    spda:'RITMP-COMP',prontuario:'LPR',subestacao:'RIMS',osp:'OSP' }[i.tipo]||'REL')
+    + (i.tipo==='periodica'&&i.grupo?'_Grp'+i.grupo:'')
+    + '_' + normProt(i.com||'').replace(/-/g,'_').slice(0,25)
+    + '_' + normProt(i.edif||'').replace(/-/g,'_').slice(0,30)
+    + (i.os?'_'+normProt(i.os).replace(/-/g,'_'):'')
+    + '_' + fdt(i.dtVistoria||i.data).replace(/\//g,'-');
+}
+
+/* Gera HTML idêntico ao normal, mas com src="fotos/XXX.webp" no lugar de base64 */
+function _gerarHTMLComFotosExternas(id, i, fotoMap) {
+  /* Substitui temporariamente b64 por referência, gera HTML, restaura */
+  var _backup = {};
+  Object.entries(i.itens || {}).forEach(function(e){
+    var k = e[0]; var it = e[1];
+    if (!it.fotos || !it.fotos.length) return;
+    _backup[k] = it.fotos.map(function(f){ return f.b64; });
+    it.fotos.forEach(function(f){
+      var _key = f.id || (f.b64||'').slice(0,32);
+      var _nome = fotoMap[_key];
+      if (_nome) f.b64 = 'fotos/' + _nome; /* src relativo */
+    });
+  });
+
+  var html = _gerarHTMLStr(id);
+
+  /* Restaurar base64 originais */
+  Object.entries(_backup).forEach(function(e){
+    var k = e[0]; var bkp = e[1];
+    if (i.itens[k] && i.itens[k].fotos) {
+      i.itens[k].fotos.forEach(function(f, ix){ if (bkp[ix]) f.b64 = bkp[ix]; });
+    }
+  });
+
+  /* Ajustar CSS de img para funcionar com src relativo (não base64) */
+  html = html.replace(
+    'img.src.startsWith('data:')',
+    'true /* fotos externas */'
+  );
+  return html || '<html><body><p>Erro ao gerar relatório.</p></body></html>';
 }
 
 function _gerarHTMLStr(id) {
@@ -865,16 +1005,7 @@ function _doExportHTML(id) {
     var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     var a    = document.createElement('a');
     a.href   = URL.createObjectURL(blob);
-    // v83-fix: nome canônico com slug sem acentos, grupo e comarca
-    var _tipoSiglas = { periodica:'RITMP', ose:'RITE', programada:'RITP', fachada:'RITMP-COMP', spda:'RITMP-COMP', prontuario:'RITMP-COMP', subestacao:'RIMS', osp:'OSP' };
-    var _nSigla = _tipoSiglas[i.tipo] || 'REL';
-    var _nGrp   = (i.tipo === 'periodica' && i.grupo) ? '_Grp' + i.grupo : '';
-    var _nCom   = normProt(i.com  || '').replace(/-/g,'_').substring(0,30);
-    var _nEdif  = normProt(i.edif || 'EDIF').replace(/-/g,'_').substring(0,35);
-    var _nDt    = fdt(i.dtVistoria || i.data).replace(/\//g,'-');
-    var _nOs    = i.os ? '_' + normProt(i.os).replace(/-/g,'_') : '';
-    var nomeArq = 'TJMG_' + _nSigla + _nGrp + '_' + _nCom + '_' + _nEdif + _nOs + '_' + _nDt + '.html';
-    a.download = nomeArq;
+    a.download = _doGetFileName(i) + '.html'; // v83: centralizado em _doGetFileName
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
