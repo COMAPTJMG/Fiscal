@@ -413,18 +413,33 @@ input:focus,textarea:focus{border-color:var(--a);}
     <div class="lbl">Observações</div>
     <textarea id="iob" style="margin-bottom:4px;min-height:80px;background:#f8fafc;color:#0f172a;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;font-size:14px;resize:none;width:100%;box-sizing:border-box;" placeholder="Descreva o que foi encontrado..."></textarea>
     <button onclick="addVoiceBtn('iob');initVoice(el('iob'),this)" style="border:none;border-radius:8px;padding:6px 10px;font-size:12px;background:#003580;color:#fff;cursor:pointer;margin-bottom:10px;width:100%;font-weight:700;">🎙️ Ditar por Voz</button>
-    <!-- Fotos — v83: grade compacta, multi-select massivo, contador, limpar tudo -->
+    <!-- Fotos — v84: câmera direta, compressão adaptativa, multi-select, reordenar -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
       <div class="lbl" style="margin-bottom:0;">📷 Fotos <span id="ifcnt" style="background:#7c3aed;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none;">0</span></div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
-        <label style="background:#003580;color:#fff;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;">
-          📸 Câmera<input type="file" accept="image/*" capture="environment" multiple style="display:none;" onchange="addItemPhoto(this)">
-        </label>
-        <label style="background:#7c3aed;color:#fff;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;">
+        <button onclick="abrirCameraDir()" style="background:#003580;color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;" title="Câmera direta (sem salvar na galeria)">📷 Câmera</button>
+        <label style="background:#7c3aed;color:#fff;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Selecionar múltiplas fotos da galeria">
           🖼️ Galeria<input type="file" accept="image/*" multiple style="display:none;" onchange="addItemPhoto(this)">
         </label>
-        <button onclick="if(_ifotos.length&&confirm('Remover todas as '+_ifotos.length+' fotos?')){_ifotos=[];renderItemPhotos();}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;display:none;" id="btn-limpar-fotos">🗑</button>
+        <button onclick="_toggleSelFoto()" id="btn-sel-foto" style="background:#f1f5f9;color:#64748b;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;display:none;" title="Selecionar fotos para remover em lote">☐ Sel.</button>
+        <button onclick="if(_ifotos.length&&confirm('Remover todas as '+_ifotos.length+' fotos?')){_ifotos=[];_selFotos={};renderItemPhotos();}" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;display:none;" id="btn-limpar-fotos" title="Remover todas as fotos">🗑</button>
       </div>
+    </div>
+    <!-- Barra de progresso de processamento -->
+    <div id="ifprog" style="display:none;background:#f8fafc;border-radius:8px;padding:8px 12px;margin-bottom:8px;border:1px solid #e2e8f0;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:11px;font-weight:700;color:#003580;">Processando fotos...</span>
+        <span id="ifprog_txt" style="font-size:11px;color:#64748b;">0/0</span>
+      </div>
+      <div style="background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden;">
+        <div id="ifprog_bar" style="height:100%;background:linear-gradient(90deg,#003580,#7c3aed);border-radius:4px;width:0%;transition:width .15s;"></div>
+      </div>
+    </div>
+    <!-- Ações de seleção múltipla -->
+    <div id="ifsel_bar" style="display:none;background:#003580;border-radius:8px;padding:8px 12px;margin-bottom:8px;display:none;align-items:center;gap:8px;">
+      <span id="ifsel_cnt" style="font-size:12px;font-weight:700;color:#fff;flex:1;">0 selecionadas</span>
+      <button onclick="_removerSelecionadas()" style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">🗑 Remover</button>
+      <button onclick="_toggleSelFoto()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">✕ Cancelar</button>
     </div>
     <div id="ifpv" style="margin-bottom:12px;"></div>
     <!-- Materiais -->
@@ -1748,55 +1763,132 @@ function delDet(){
 var _eid='',_ekey='',_ifotos=[],_imats=[],_eMode='insp';
 
 function renderItemPhotos(){
-  /* v83: grade 3 colunas compacta — muitas fotos visíveis de uma vez */
-  var pv=el('ifpv');if(!pv)return;
-  var cnt=el('ifcnt');var btnL=el('btn-limpar-fotos');
+  /* v84: grade 3 colunas, modo seleção múltipla, badges de reordenação */
+  var pv=el('ifpv'); if(!pv)return;
+  var cnt=el('ifcnt'), btnL=el('btn-limpar-fotos'), btnSel=el('btn-sel-foto');
   var n=_ifotos.length;
-  if(cnt){cnt.textContent=n;cnt.style.display=n?'inline':'none';}
-  if(btnL)btnL.style.display=n>1?'block':'none';
+  if(cnt){cnt.textContent=n; cnt.style.display=n?'inline':'none';}
+  if(btnL) btnL.style.display=n>1?'block':'none';
+  if(btnSel) btnSel.style.display=n>1?'block':'none';
+  _atualizarBarSel();
   if(!n){
     pv.innerHTML='<div style="color:#94a3b8;font-size:11px;text-align:center;padding:18px 0;background:#f8fafc;border-radius:10px;border:2px dashed #e2e8f0;">'
       +'<div style="font-size:28px;margin-bottom:4px;">📷</div>'
       +'Nenhuma foto. Use Câmera ou Galeria.</div>';
     return;
   }
+  var modoSel=_modoSel;
   var itens=_ifotos.map(function(f,ix){
-    return '<div style="position:relative;border-radius:8px;overflow:hidden;background:#0f172a;aspect-ratio:1;cursor:pointer;" onclick="_editarFoto('+ix+')">'
-      +'<img src="'+f.b64+'" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">'
+    var selecionado=!!_selFotos[ix];
+    return '<div style="position:relative;border-radius:8px;overflow:hidden;background:#0f172a;aspect-ratio:1;cursor:pointer;'
+      +(modoSel&&selecionado?'outline:3px solid #003580;':'')
+      +'" onclick="'+(modoSel?'_toggleFotoSel('+ix+')':'_editarFoto('+ix+')')+'">'
+      +'<img src="'+f.b64+'" style="width:100%;height:100%;object-fit:cover;display:block;opacity:'+(modoSel&&selecionado?'0.7':'1')+';" loading="lazy">'
       +'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.6) 0%,transparent 55%);pointer-events:none;"></div>'
-      +(f.leg?'<div style="position:absolute;bottom:3px;left:3px;right:20px;font-size:9px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.8);">'+f.leg+'</div>':'')
-      +'<button onclick="event.stopPropagation();_ifotos.splice('+ix+',1);renderItemPhotos()" '
-        +'style="position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(220,38,38,.9);border:none;color:#fff;border-radius:50%;font-size:12px;font-weight:900;cursor:pointer;line-height:20px;text-align:center;padding:0;">×</button>'
+      +(f.leg?'<div style="position:absolute;bottom:3px;left:3px;right:3px;font-size:9px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.8);">'+f.leg+'</div>':'')
+      +(modoSel
+        ?'<div style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:'+(selecionado?'#003580':'rgba(0,0,0,.4)')+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">'+(selecionado?'✓':'')+'</div>'
+        :'<button onclick="event.stopPropagation();_ifotos.splice('+ix+',1);renderItemPhotos()" '
+          +'style="position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(220,38,38,.9);border:none;color:#fff;border-radius:50%;font-size:12px;font-weight:900;cursor:pointer;line-height:20px;text-align:center;padding:0;">×</button>')
       +'<div style="position:absolute;top:3px;left:3px;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;font-size:8px;font-weight:700;padding:1px 4px;">'+(ix+1)+'</div>'
       +'</div>';
   }).join('');
   pv.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:6px;">'+itens+'</div>'
-    +'<div style="font-size:10px;color:#94a3b8;text-align:center;margin-top:2px;">Toque em uma foto para editar legenda ou anotar • '+n+' foto'+(n>1?'s':'')+' neste item</div>';
+    +'<div style="font-size:10px;color:#94a3b8;text-align:center;margin-top:2px;">'
+    +(modoSel?'Toque para selecionar · '+Object.keys(_selFotos).length+' selecionada(s)':'Toque para editar legenda · '+n+' foto'+(n>1?'s':'')+' neste item')
+    +'</div>';
 }
 
+/* ── Estado de seleção múltipla ── */
+var _modoSel=false, _selFotos={};
+function _toggleSelFoto(){
+  _modoSel=!_modoSel;
+  _selFotos={};
+  var btnSel=el('btn-sel-foto');
+  if(btnSel){btnSel.textContent=_modoSel?'✓ Concluir':'☐ Sel.'; btnSel.style.background=_modoSel?'#003580':'#f1f5f9'; btnSel.style.color=_modoSel?'#fff':'#64748b';}
+  _atualizarBarSel();
+  renderItemPhotos();
+}
+function _toggleFotoSel(ix){
+  if(_selFotos[ix]) delete _selFotos[ix]; else _selFotos[ix]=true;
+  _atualizarBarSel();
+  renderItemPhotos();
+}
+function _atualizarBarSel(){
+  var bar=el('ifsel_bar'); if(!bar)return;
+  var n=Object.keys(_selFotos).length;
+  if(_modoSel&&n>0){bar.style.display='flex'; var c=el('ifsel_cnt'); if(c)c.textContent=n+' foto'+(n>1?'s':'')+' selecionada'+(n>1?'s':'');}
+  else{bar.style.display='none';}
+}
+function _removerSelecionadas(){
+  var idxs=Object.keys(_selFotos).map(Number).sort(function(a,b){return b-a;});
+  if(!idxs.length){Tt('Nenhuma foto selecionada.');return;}
+  if(!confirm('Remover '+idxs.length+' foto(s) selecionada(s)?'))return;
+  idxs.forEach(function(ix){_ifotos.splice(ix,1);});
+  _selFotos={}; _modoSel=false;
+  var btnSel=el('btn-sel-foto');
+  if(btnSel){btnSel.textContent='☐ Sel.';btnSel.style.background='#f1f5f9';btnSel.style.color='#64748b';}
+  renderItemPhotos();
+  Tt('✅ '+idxs.length+' foto(s) removida(s)');
+}
+
+/* ── Modal de detalhe com navegação + reordenação ── */
 function _editarFoto(ix){
-  var f=_ifotos[ix];if(!f)return;
+  var f=_ifotos[ix]; if(!f)return;
   var ov=document.createElement('div');
   ov.id='_fd_ov';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;';
-  ov.innerHTML='<div style="background:#fff;border-radius:14px;width:100%;max-width:420px;overflow:hidden;max-height:90vh;overflow-y:auto;">'
-    +'<div style="position:relative;background:#0f172a;">'
-    +'<img src="'+f.b64+'" style="width:100%;max-height:45vh;object-fit:contain;display:block;">'
-    +'<div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);color:#fff;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">Foto '+(ix+1)+' / '+_ifotos.length+'</div>'
-    +'</div>'
-    +'<div style="padding:14px;">'
-    +'<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:5px;">Legenda</div>'
-    +'<input id="_fleg_inp" placeholder="Ex: Quadro QD-02 — aquecimento no terminal L3..." value="'+(f.leg||'')+'" '
-      +'style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px;box-sizing:border-box;">'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
-    +'<button onclick="_salvarLegendaFoto('+ix+')" style="background:#003580;color:#fff;border:none;border-radius:8px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;">✓ Salvar</button>'
-    +'<button onclick="_anotarEFechar('+ix+')" style="background:#0f766e;color:#fff;border:none;border-radius:8px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Anotar</button>'
-    +'</div>'
-    +'<button onclick="_removerFoto('+ix+')" style="width:100%;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;">🗑 Remover esta foto</button>'
-    +'<button onclick="document.body.removeChild(document.getElementById(\'_fd_ov\'))" style="width:100%;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;padding:10px;font-size:12px;cursor:pointer;">Fechar</button>'
-    +'</div></div>';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;';
+  function _html(i){
+    var fi=_ifotos[i]; if(!fi)return;
+    return '<div style="background:#fff;border-radius:14px;width:calc(100% - 24px);max-width:440px;overflow:hidden;margin:12px auto;">'
+      +'<div style="position:relative;background:#0f172a;">'
+      +'<img src="'+fi.b64+'" style="width:100%;max-height:48vh;object-fit:contain;display:block;">'
+      /* Setas de navegação sobre a imagem */
+      +(i>0?'<button onclick="event.stopPropagation();_fd_nav(-1)" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.6);border:none;color:#fff;font-size:22px;border-radius:50%;width:36px;height:36px;cursor:pointer;">‹</button>':'')
+      +(i<_ifotos.length-1?'<button onclick="event.stopPropagation();_fd_nav(1)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.6);border:none;color:#fff;font-size:22px;border-radius:50%;width:36px;height:36px;cursor:pointer;">›</button>':'')
+      +'<div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);color:#fff;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">'+(i+1)+'/'+_ifotos.length+'</div>'
+      +'<button onclick="document.body.removeChild(document.getElementById(\'_fd_ov\'))" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;line-height:28px;text-align:center;">×</button>'
+      +'</div>'
+      +'<div style="padding:12px;">'
+      /* Legenda */
+      +'<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:4px;">Legenda</div>'
+      +'<input id="_fleg_inp" placeholder="Ex: Quadro QD-02 — aquecimento no terminal L3..." value="'+(fi.leg||'')+'" '
+        +'style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px;box-sizing:border-box;">'
+      /* Ações principais */
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +'<button onclick="_salvarLegendaFoto('+i+')" style="background:#003580;color:#fff;border:none;border-radius:8px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;">✓ Salvar</button>'
+      +'<button onclick="_anotarEFechar('+i+')" style="background:#0f766e;color:#fff;border:none;border-radius:8px;padding:11px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Anotar</button>'
+      +'</div>'
+      /* Reordenação */
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +(i>0?'<button onclick="_moverFoto('+i+',-1)" style="background:#f1f5f9;color:#374151;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;">↑ Mover antes</button>':'<div></div>')
+      +(i<_ifotos.length-1?'<button onclick="_moverFoto('+i+',1)" style="background:#f1f5f9;color:#374151;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;">↓ Mover depois</button>':'<div></div>')
+      +'</div>'
+      +'<button onclick="_removerFoto('+i+')" style="width:100%;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;">🗑 Remover esta foto</button>'
+      +'<button onclick="document.body.removeChild(document.getElementById(\'_fd_ov\'))" style="width:100%;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;padding:10px;font-size:12px;cursor:pointer;">Fechar</button>'
+      +'</div></div>';
+  }
+  ov._idx=ix;
+  ov.innerHTML=_html(ix);
   document.body.appendChild(ov);
+  ov._rerender=function(){ov.innerHTML=_html(ov._idx); setTimeout(function(){var inp=document.getElementById('_fleg_inp');if(inp)inp.focus();},60);};
   setTimeout(function(){var inp=document.getElementById('_fleg_inp');if(inp)inp.focus();},80);
+  /* Swipe horizontal para navegar */
+  var _sx=0;
+  ov.addEventListener('touchstart',function(e){_sx=e.touches[0].clientX;},{passive:true});
+  ov.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-_sx;
+    if(Math.abs(dx)>50){_fd_nav(dx<0?1:-1);}
+  },{passive:true});
+}
+function _fd_nav(d){
+  var ov=document.getElementById('_fd_ov');if(!ov)return;
+  var ni=ov._idx+d;
+  if(ni<0||ni>=_ifotos.length)return;
+  var leg=document.getElementById('_fleg_inp');
+  if(leg)_ifotos[ov._idx].leg=leg.value;
+  ov._idx=ni;
+  ov._rerender();
 }
 function _salvarLegendaFoto(ix){
   var inp=document.getElementById('_fleg_inp');
@@ -1806,57 +1898,164 @@ function _salvarLegendaFoto(ix){
   Tt('Legenda salva ✓');
 }
 function _anotarEFechar(ix){
+  var leg=document.getElementById('_fleg_inp');
+  if(leg)_ifotos[ix].leg=leg.value;
   var ov=document.getElementById('_fd_ov');if(ov)document.body.removeChild(ov);
   abrirAnnot(_ifotos[ix].b64,function(b64){_ifotos[ix].b64=b64;renderItemPhotos();});
 }
 function _removerFoto(ix){
   if(!confirm('Remover esta foto?'))return;
   _ifotos.splice(ix,1);
+  var ov=document.getElementById('_fd_ov');
+  if(ov){if(!_ifotos.length){document.body.removeChild(ov);}else{ov._idx=Math.min(ov._idx,_ifotos.length-1);ov._rerender();}}
   renderItemPhotos();
-  var ov=document.getElementById('_fd_ov');if(ov)document.body.removeChild(ov);
+}
+function _moverFoto(ix,d){
+  var ni=ix+d; if(ni<0||ni>=_ifotos.length)return;
+  var tmp=_ifotos[ix]; _ifotos[ix]=_ifotos[ni]; _ifotos[ni]=tmp;
+  var ov=document.getElementById('_fd_ov');
+  if(ov){ov._idx=ni; ov._rerender();}
+  renderItemPhotos();
+}
+
+/* ── Câmera direta (getUserMedia) — sem salvar na galeria ── */
+function abrirCameraDir(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    /* Fallback: input file com câmera */
+    var inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';
+    inp.onchange=function(){addItemPhoto(inp);};inp.click();return;
+  }
+  var ov=document.createElement('div');
+  ov.id='_cam_ov';
+  ov.style.cssText='position:fixed;inset:0;background:#000;z-index:10001;display:flex;flex-direction:column;';
+  ov.innerHTML='<div style="flex:1;position:relative;overflow:hidden;">'
+    +'<video id="_cam_vid" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;"></video>'
+    /* Guia de enquadramento */
+    +'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">'
+    +'<div style="width:80%;max-width:320px;aspect-ratio:4/3;border:2px solid rgba(255,255,255,.4);border-radius:8px;"></div>'
+    +'</div>'
+    +'<div style="position:absolute;top:12px;left:0;right:0;text-align:center;">'
+    +'<span style="background:rgba(0,0,0,.55);color:#fff;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;">📷 Câmera TJMG</span>'
+    +'</div>'
+    +'</div>'
+    +'<div style="background:#0f172a;padding:16px;display:flex;align-items:center;justify-content:space-around;gap:12px;">'
+    +'<button onclick="_camFechar()" style="background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:50%;width:48px;height:48px;font-size:20px;cursor:pointer;">✕</button>'
+    +'<button onclick="_camCapturar()" id="_cam_btn" style="background:#fff;border:4px solid rgba(255,255,255,.4);color:#0f172a;border-radius:50%;width:72px;height:72px;font-size:28px;cursor:pointer;font-weight:700;">⊙</button>'
+    +'<button onclick="_camVirar()" id="_cam_flip" style="background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:50%;width:48px;height:48px;font-size:20px;cursor:pointer;">🔄</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+  var _facingMode='environment';
+  var _stream=null;
+  function _iniciar(){
+    if(_stream){_stream.getTracks().forEach(function(t){t.stop();});}
+    navigator.mediaDevices.getUserMedia({video:{facingMode:_facingMode,width:{ideal:1920},height:{ideal:1080}}})
+      .then(function(s){
+        _stream=s;
+        var vid=document.getElementById('_cam_vid');
+        if(vid){vid.srcObject=s;vid.play();}
+        ov._stream=s;
+      })
+      .catch(function(e){
+        console.warn('Camera err:',e);
+        _camFechar();
+        var inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';
+        inp.onchange=function(){addItemPhoto(inp);};inp.click();
+      });
+  }
+  window._camVirar=function(){_facingMode=_facingMode==='environment'?'user':'environment';_iniciar();};
+  window._camFechar=function(){
+    if(ov._stream)ov._stream.getTracks().forEach(function(t){t.stop();});
+    var o=document.getElementById('_cam_ov');if(o)document.body.removeChild(o);
+  };
+  window._camCapturar=function(){
+    var vid=document.getElementById('_cam_vid');if(!vid)return;
+    var cv=document.createElement('canvas');
+    cv.width=vid.videoWidth||1280;cv.height=vid.videoHeight||720;
+    cv.getContext('2d').drawImage(vid,0,0);
+    /* Compressão adaptativa */
+    var MAX=_calcMaxLado(_ifotos.length+1);
+    var q=_calcQualidade(_ifotos.length+1);
+    var w=cv.width,h=cv.height,sc=Math.min(1,MAX/Math.max(w,h));
+    w=Math.round(w*sc);h=Math.round(h*sc);
+    var cv2=document.createElement('canvas');cv2.width=w;cv2.height=h;
+    cv2.getContext('2d').drawImage(cv,0,0,w,h);
+    var b64=cv2.toDataURL('image/webp',q)||cv2.toDataURL('image/jpeg',q);
+    _ifotos.push({id:uid(),b64:b64,leg:''});
+    renderItemPhotos();
+    /* Flash visual */
+    var fl=document.createElement('div');
+    fl.style.cssText='position:absolute;inset:0;background:#fff;opacity:.7;pointer-events:none;border-radius:0;';
+    ov.querySelector('div').appendChild(fl);
+    setTimeout(function(){fl.remove();},120);
+    Tt('📷 Foto '+ _ifotos.length+' capturada');
+  };
+  _iniciar();
+}
+
+/* ── Compressão adaptativa por volume ── */
+function _calcMaxLado(n){
+  if(n<=30)  return 1440; /* alta qualidade */
+  if(n<=80)  return 1280;
+  if(n<=200) return 1024;
+  return 800;             /* volume alto: prioriza armazenamento */
+}
+function _calcQualidade(n){
+  if(n<=30)  return 0.85;
+  if(n<=80)  return 0.78;
+  if(n<=200) return 0.70;
+  return 0.60;
 }
 
 function addItemPhoto(inp){
   if(!inp.files||!inp.files.length)return;
-  var files=Array.from(inp.files);var done=0;var total=files.length;
-  var _barId='_foto_prog_bar';
-  var _bar=el(_barId);
-  if(!_bar){
-    _bar=document.createElement('div');_bar.id=_barId;
-    _bar.style.cssText='position:fixed;top:0;left:0;height:4px;background:#003580;transition:width .2s;z-index:9999;width:0;';
-    document.body.appendChild(_bar);
-  }
-  _bar.style.width='0';_bar.style.display='block';
-  function _atualizarBar(){
-    done++;var pct=Math.round(done/total*100);_bar.style.width=pct+'%';
+  var files=Array.from(inp.files);
+  var total=files.length, done=0;
+  var baseN=_ifotos.length; /* fotos já existentes antes desta adição */
+
+  /* Barra de progresso no modal */
+  var prog=el('ifprog'), progBar=el('ifprog_bar'), progTxt=el('ifprog_txt');
+  if(prog)prog.style.display='block';
+  function _tick(){
+    done++;
+    var pct=Math.round(done/total*100);
+    if(progBar)progBar.style.width=pct+'%';
+    if(progTxt)progTxt.textContent=done+'/'+total;
     if(done===total){
       renderItemPhotos();
-      setTimeout(function(){_bar.style.display='none';},600);
-      Tt('✅ '+total+' foto(s) processada(s)!');
+      setTimeout(function(){if(prog)prog.style.display='none';},800);
+      Tt('✅ '+total+' foto'+(total>1?'s':'')+' adicionada'+(total>1?'s':'')+'! Total: '+_ifotos.length);
     }
   }
-  Tt(total+' foto(s) sendo processada(s)...');
-  /* v79-fix: compressão 1280px / 0.75 quality na captura (-70% tamanho) */
-  files.forEach(function(f){
+  if(progTxt)progTxt.textContent='0/'+total;
+  if(progBar)progBar.style.width='0%';
+
+  files.forEach(function(f,fi){
     var r=new FileReader();
     r.onload=function(e){
       var img=new Image();
       img.onload=function(){
-        var MAX=1280;var w=img.width,h=img.height;
+        /* Compressão adaptativa baseada no total projetado */
+        var nTotal=baseN+total;
+        var MAX=_calcMaxLado(nTotal);
+        var Q=_calcQualidade(nTotal);
+        var w=img.width,h=img.height;
         var sc=Math.min(1,MAX/Math.max(w,h));
-        w=Math.round(w*sc);h=Math.round(h*sc);
+        w=Math.round(w*sc); h=Math.round(h*sc);
         var cv=document.createElement('canvas');cv.width=w;cv.height=h;
         cv.getContext('2d').drawImage(img,0,0,w,h);
-        var b64=cv.toDataURL('image/webp',0.78)||cv.toDataURL('image/jpeg',0.78); /* v80: WebP (-30%) */
+        var b64=cv.toDataURL('image/webp',Q)||cv.toDataURL('image/jpeg',Q);
         _ifotos.push({id:uid(),b64:b64,leg:''});
-        _atualizarBar();
+        _tick();
       };
+      img.onerror=function(){_tick();};
       img.src=e.target.result;
     };
+    r.onerror=function(){_tick();};
     r.readAsDataURL(f);
   });
   inp.value='';
 }
+
 
 function renderItemMats(){
   var ml=el('imlst');if(!ml)return;
