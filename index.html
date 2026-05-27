@@ -1,4 +1,13 @@
-<!DOCTYPE html>
+<!DOCT
+<div class="scr" id="s-dashboard">
+  <div class="hdr" style="background:#1e3a5f;">
+    <span class="bkb" onclick="navt('home')">&#8592;</span>
+    <div style="flex:1;"><div class="ht">📊 Análise de Conformidade</div><div class="hs">Por comarca · Região Norte</div></div>
+  </div>
+  <div class="sa" id="dashboard-body" style="padding:0;"></div>
+  <div id="bn5" class="bnav"></div>
+</div>
+YPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -299,9 +308,10 @@ input:focus,textarea:focus{border-color:var(--a);}
   <div style="flex:1;"><div class="ht" id="ftit">Formulario</div><div class="hs" id="fsub">Etapa 1</div></div>
   <div style="display:flex;align-items:center;gap:4px;">
     <button onclick="_cronoPausado?retomaCrono():pausarCrono()" title="Pausar/Retomar cronômetro"
-      style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:4px 7px;font-size:10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:monospace;">
-      <span id="crono-disp" style="font-size:12px;letter-spacing:.5px;">00:00</span>
-      <span style="font-size:9px;opacity:.7;">⏸</span>
+      style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:10px;padding:5px 10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:monospace;">
+      <span style="font-size:11px;opacity:.7;">⏱</span>
+      <span id="crono-disp" style="font-size:15px;letter-spacing:1.5px;min-width:44px;">00:00</span>
+      <span id="crono-ico" style="font-size:9px;opacity:.6;">▶</span>
     </button>
     <button onclick="_mostrarDetalhesGPS()" id="gps-btn-header" title="Ver dados do GPS"
       style="background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.8);border-radius:8px;padding:4px 7px;font-size:11px;cursor:pointer;">📍</button>
@@ -745,6 +755,8 @@ function rHome(){
   h+='<button id="btn-sync-manual" onclick="syncManual()" style="width:100%;border:none;background:'+(navigator.onLine?'#0f766e':'#94a3b8')+';color:#fff;border-radius:12px;padding:11px 14px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:4px;">'
     +'<span style="font-size:18px;">☁️</span>'
     +'<div style="flex:1;text-align:left;"><div style="font-weight:800;">Sincronizar Equipe</div><div style="font-size:9px;opacity:.8;font-weight:500;">'+(navigator.onLine?_fmtLastSync():'Sem conexão')+'</div></div>'
+    +(function(){var _p=filterByReg(S.insp).filter(function(i){return i.st==="finalizada"&&!i.synced_at;}).length; return _p>0?'<div style="background:#ef4444;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">'+_p+'</div>':'';})()
+    
     +'<span style="font-size:18px;opacity:.6;">↑↓</span>'
     +'</button>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">'
@@ -2117,9 +2129,13 @@ function _openItemModal(it,k){
     if(_istLbl&&_istLbl.classList.contains('lbl'))_istLbl.style.display='';
     var ops=_getStatusOps(_getTipoAtual());
     var _curSt=it.s||'pendente';
+    /* v84: botões maiores — mais fáceis de tocar em campo */
     _istEl.innerHTML=ops.map(function(op){
       var stv=ST[op];var sel=_curSt===op;
-      return'<button onclick="setISt(\''+op+'\')" style="border:2px solid '+(sel?stv.c:'#e2e8f0')+';border-radius:10px;padding:9px 6px;font-size:10px;font-weight:700;color:'+(sel?stv.c:'#94a3b8')+';background:'+(sel?stv.bg:'#fff')+';cursor:pointer;text-align:center;line-height:1.4;">'+stv.e+'<br>'+stv.l+'</button>';
+      return'<button onclick="setISt(\''+op+'\')" style="border:2px solid '+(sel?stv.c:'#e2e8f0')+';border-radius:12px;padding:12px 6px;font-size:13px;font-weight:700;color:'+(sel?stv.c:'#94a3b8')+';background:'+(sel?stv.bg:'#fff')+';cursor:pointer;text-align:center;line-height:1.5;transition:all .15s;min-height:64px;">'
+        +'<div style="font-size:26px;line-height:1;">'+stv.e+'</div>'
+        +'<div style="font-size:11px;margin-top:4px;font-weight:800;">'+stv.l+'</div>'
+        +'</button>';
     }).join('');
   }
   el('m-item').style.display='flex';
