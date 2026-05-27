@@ -881,22 +881,151 @@ window.SEI_URL               = SEI_URL;
 /* ══════════════════════════════════════════════════════════════
    GPS AUTOMÁTICO (v81)
    ══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   GPS APRIMORADO (v82)
+   - Múltiplas tentativas para melhor precisão
+   - watchPosition para atualização contínua
+   - Badge visual no formulário
+   - Histórico de posições para trilha da vistoria
+   ══════════════════════════════════════════════════════════════ */
+var _gpsWatch   = null;  /* ID do watchPosition */
+var _gpsTrilha  = [];    /* Histórico de posições durante a vistoria */
+var _gpsMelhor  = null;  /* Melhor posição capturada (menor acc) */
+
 function capturarGPS(cb){
   if(!navigator.geolocation){if(cb)cb(null);return;}
   navigator.geolocation.getCurrentPosition(function(pos){
-    var gps={lat:pos.coords.latitude.toFixed(6),lon:pos.coords.longitude.toFixed(6),acc:Math.round(pos.coords.accuracy)};
+    var gps={
+      lat: pos.coords.latitude.toFixed(6),
+      lon: pos.coords.longitude.toFixed(6),
+      acc: Math.round(pos.coords.accuracy),
+      alt: pos.coords.altitude ? Math.round(pos.coords.altitude) : null,
+      ts:  new Date().toISOString()
+    };
     if(cb)cb(gps);
-  },function(){if(cb)cb(null);},{timeout:8000,maximumAge:60000});
+  },function(err){
+    if(cb)cb(null);
+    console.warn('[GPS] erro:',err.message);
+  },{timeout:12000, maximumAge:30000, enableHighAccuracy:true});
 }
+
 function iniciarGPS(){
+  if(!navigator.geolocation){
+    _mostrarBadgeGPS(null,'negado');
+    return;
+  }
+
+  /* Exibe badge "buscando" imediatamente */
+  _mostrarBadgeGPS(null,'buscando');
+
+  /* 1ª captura rápida (pode ter baixa precisão) */
   capturarGPS(function(gps){
-    if(!gps||!F)return;
-    F.gps=gps;
-    Tt('📍 GPS: '+gps.lat+', '+gps.lon+' (±'+gps.acc+'m)');
+    if(gps&&F){
+      F.gps=gps;
+      _gpsMelhor=gps;
+      _mostrarBadgeGPS(gps,'ok');
+      DB.sv();
+    }
   });
+
+  /* watchPosition: atualiza continuamente durante a vistoria */
+  if(_gpsWatch!==null){navigator.geolocation.clearWatch(_gpsWatch);_gpsWatch=null;}
+  _gpsTrilha=[];
+  _gpsWatch=navigator.geolocation.watchPosition(
+    function(pos){
+      var gps={
+        lat: pos.coords.latitude.toFixed(6),
+        lon: pos.coords.longitude.toFixed(6),
+        acc: Math.round(pos.coords.accuracy),
+        alt: pos.coords.altitude?Math.round(pos.coords.altitude):null,
+        ts:  new Date().toISOString()
+      };
+      /* Guardar trilha (max 20 pontos) */
+      _gpsTrilha.push(gps);
+      if(_gpsTrilha.length>20) _gpsTrilha.shift();
+      /* Atualizar se precisão melhorou */
+      if(!_gpsMelhor||gps.acc<_gpsMelhor.acc){
+        _gpsMelhor=gps;
+        if(F){F.gps=gps;F.gpsTrilha=_gpsTrilha;}
+        _mostrarBadgeGPS(gps,'ok');
+      }
+    },
+    function(err){console.warn('[GPS watch]',err.message);},
+    {enableHighAccuracy:true, maximumAge:10000, timeout:20000}
+  );
 }
-window.iniciarGPS=iniciarGPS;
-window.capturarGPS=capturarGPS;
+
+function pararGPS(){
+  if(_gpsWatch!==null){
+    navigator.geolocation.clearWatch(_gpsWatch);
+    _gpsWatch=null;
+  }
+  /* Salvar trilha final */
+  if(F&&_gpsTrilha.length>0) F.gpsTrilha=_gpsTrilha;
+  _gpsTrilha=[];_gpsMelhor=null;
+}
+
+function _mostrarBadgeGPS(gps,status){
+  var badge=el('gps-badge-form');
+  if(!badge){
+    badge=document.createElement('div');badge.id='gps-badge-form';
+    badge.style.cssText='position:fixed;top:calc(var(--st)+8px);right:8px;z-index:500;'
+      +'border-radius:20px;padding:4px 10px;font-size:10px;font-weight:800;'
+      +'display:flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);';
+    badge.onclick=function(){_mostrarDetalhesGPS();};
+    document.getElementById('app').appendChild(badge);
+  }
+  if(status==='buscando'){
+    badge.style.background='#fef3c7';badge.style.color='#92400e';
+    badge.innerHTML='📡 Buscando GPS...';
+  }else if(status==='ok'&&gps){
+    var qualidade=gps.acc<=10?'🟢':gps.acc<=30?'🟡':gps.acc<=100?'🟠':'🔴';
+    var txtQ=gps.acc<=10?'Excelente':gps.acc<=30?'Bom':gps.acc<=100?'Regular':'Fraco';
+    badge.style.background='#f0fdf4';badge.style.color='#15803d';
+    badge.innerHTML=qualidade+' GPS ±'+gps.acc+'m ('+txtQ+')';
+  }else if(status==='negado'){
+    badge.style.background='#fee2e2';badge.style.color='#dc2626';
+    badge.innerHTML='❌ GPS negado';
+  }
+  /* Esconder se não estiver no formulário */
+  var onForm=document.querySelector('#s-form.act');
+  badge.style.display=onForm?'flex':'none';
+}
+
+function _mostrarDetalhesGPS(){
+  var gps=F&&F.gps;if(!gps){Tt('GPS ainda não capturado.');return;}
+  var mapUrl='https://www.google.com/maps?q='+gps.lat+','+gps.lon;
+  var m=el('m-gps-det');if(!m){
+    m=document.createElement('div');m.id='m-gps-det';
+    m.className='mdl ctr';m.style.display='none';m.style.zIndex='650';
+    document.getElementById('app').appendChild(m);
+  }
+  var qualidade=gps.acc<=10?'🟢 Excelente':gps.acc<=30?'🟡 Bom':gps.acc<=100?'🟠 Regular':'🔴 Fraco';
+  m.innerHTML='<div class="mdc" style="max-width:380px;background:#fff;color:#0f172a;">'
+    +'<div style="font-size:15px;font-weight:800;color:#003580;margin-bottom:14px;">📍 Dados do GPS</div>'
+    +'<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px;margin-bottom:12px;">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+      +'<div style="text-align:center;"><div style="font-size:10px;color:#64748b;font-weight:700;">LATITUDE</div><div style="font-size:14px;font-weight:800;color:#15803d;font-family:monospace;">'+gps.lat+'</div></div>'
+      +'<div style="text-align:center;"><div style="font-size:10px;color:#64748b;font-weight:700;">LONGITUDE</div><div style="font-size:14px;font-weight:800;color:#15803d;font-family:monospace;">'+gps.lon+'</div></div>'
+      +'<div style="text-align:center;"><div style="font-size:10px;color:#64748b;font-weight:700;">PRECISÃO</div><div style="font-size:14px;font-weight:800;color:#0f172a;">±'+gps.acc+'m</div></div>'
+      +'<div style="text-align:center;"><div style="font-size:10px;color:#64748b;font-weight:700;">QUALIDADE</div><div style="font-size:13px;font-weight:700;">'+qualidade+'</div></div>'
+      +'</div>'
+    +'</div>'
+    +(_gpsTrilha.length>1?'<div style="font-size:11px;color:#64748b;margin-bottom:12px;">🗺️ '+_gpsTrilha.length+' pontos registrados durante a vistoria</div>':'')
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+    +'<button class="btn bo" onclick="cm(\'m-gps-det\')" style="font-size:12px;">Fechar</button>'
+    +'<button class="btn ba" onclick="window.open(\''+mapUrl+'\',\'_blank\')" style="font-size:12px;">🗺️ Ver no Mapa</button>'
+    +'</div>'
+    +'<button style="width:100%;margin-top:8px;border:none;background:#fef3c7;color:#92400e;border-radius:10px;padding:9px;font-size:11px;font-weight:700;cursor:pointer;" onclick="iniciarGPS();cm(\'m-gps-det\')">🔄 Atualizar GPS</button>'
+    +'</div>';
+  m.style.display='flex';
+}
+
+window.iniciarGPS       = iniciarGPS;
+window.pararGPS         = pararGPS;
+window.capturarGPS      = capturarGPS;
+window._mostrarBadgeGPS = _mostrarBadgeGPS;
+window._mostrarDetalhesGPS = _mostrarDetalhesGPS;
 
 /* ══════════════════════════════════════════════════════════════
    HAPTIC FEEDBACK (v81)
@@ -1009,28 +1138,116 @@ window.pararRealtime=pararRealtime;
 /* ══════════════════════════════════════════════════════════════
    CRONÔMETRO DE VISTORIA (v81)
    ══════════════════════════════════════════════════════════════ */
-var _cronoStart=null;var _cronoTimer=null;
+/* ══════════════════════════════════════════════════════════════
+   CRONÔMETRO APRIMORADO (v82)
+   - Alertas de tempo (30min, 1h, 2h)
+   - Pausar/retomar
+   - Cor muda conforme tempo
+   - Salva tempo de pausa no relatório
+   ══════════════════════════════════════════════════════════════ */
+var _cronoStart    = null;
+var _cronoTimer    = null;
+var _cronoPausado  = false;
+var _cronoAcumul   = 0;    /* segundos acumulados antes da pausa */
+var _cronoAlertas  = [30,60,120]; /* minutos para alertar */
+var _cronoAlertados= {};
+
 function iniciarCrono(){
-  _cronoStart=Date.now();
-  if(_cronoTimer)clearInterval(_cronoTimer);
-  _cronoTimer=setInterval(function(){
-    var el_c=el('crono-disp');
-    if(!el_c)return;
-    var seg=Math.floor((Date.now()-_cronoStart)/1000);
-    var m=Math.floor(seg/60);var s=seg%60;
-    el_c.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  },1000);
+  _cronoStart   = Date.now();
+  _cronoPausado = false;
+  _cronoAcumul  = 0;
+  _cronoAlertados = {};
+  if(_cronoTimer) clearInterval(_cronoTimer);
+
+  _cronoTimer = setInterval(function(){
+    if(_cronoPausado) return;
+    var el_c = el('crono-disp');
+    if(!el_c) return;
+
+    var seg   = Math.floor(_cronoAcumul + (Date.now()-_cronoStart)/1000);
+    var m     = Math.floor(seg/60);
+    var s     = seg%60;
+    var h     = Math.floor(m/60);
+    var mm    = m%60;
+
+    var txt   = h>0
+      ? String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(s).padStart(2,'0')
+      : String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+
+    /* Cor progressiva por tempo */
+    var cor = m<30?'rgba(255,255,255,.75)':m<60?'#fbbf24':m<120?'#f97316':'#ef4444';
+    el_c.textContent = txt;
+    el_c.style.color = cor;
+
+    /* Alertas de tempo */
+    _cronoAlertas.forEach(function(limMin){
+      if(m>=limMin && !_cronoAlertados[limMin]){
+        _cronoAlertados[limMin]=true;
+        haptic('medio');
+        Tt('⏱️ Vistoria em andamento há '+limMin+'min — verifique o progresso!');
+      }
+    });
+  }, 1000);
 }
+
+function pausarCrono(){
+  if(!_cronoStart||_cronoPausado) return;
+  _cronoAcumul += (Date.now()-_cronoStart)/1000;
+  _cronoStart   = null;
+  _cronoPausado = true;
+  var el_c = el('crono-disp');
+  if(el_c) el_c.style.opacity='0.4';
+  Tt('⏸️ Cronômetro pausado');
+}
+
+function retomaCrono(){
+  if(!_cronoPausado) return;
+  _cronoStart   = Date.now();
+  _cronoPausado = false;
+  var el_c = el('crono-disp');
+  if(el_c) el_c.style.opacity='1';
+  Tt('▶️ Cronômetro retomado');
+}
+
 function pararCrono(){
-  if(_cronoTimer){clearInterval(_cronoTimer);_cronoTimer=null;}
-  if(!_cronoStart)return 0;
-  var dur=Math.round((Date.now()-_cronoStart)/60000);
-  _cronoStart=null;
-  if(F)F.duracaoMin=dur;
+  if(_cronoTimer){ clearInterval(_cronoTimer); _cronoTimer=null; }
+  if(!_cronoStart && !_cronoAcumul) return 0;
+
+  var totalSeg = Math.round(_cronoAcumul + (_cronoStart ? (Date.now()-_cronoStart)/1000 : 0));
+  var dur       = Math.round(totalSeg/60);
+
+  _cronoStart   = null;
+  _cronoPausado = false;
+  _cronoAcumul  = 0;
+
+  if(F){
+    F.duracaoMin     = dur;
+    F.duracaoFormatada = _formatarDuracao(totalSeg);
+  }
+
+  /* Esconder badge GPS */
+  var badge=el('gps-badge-form');
+  if(badge) badge.style.display='none';
+
+  /* Parar GPS watch */
+  if(typeof pararGPS==='function') pararGPS();
+
   return dur;
 }
-window.iniciarCrono=iniciarCrono;
-window.pararCrono=pararCrono;
+
+function _formatarDuracao(seg){
+  var h=Math.floor(seg/3600);
+  var m=Math.floor((seg%3600)/60);
+  var s=seg%60;
+  if(h>0) return h+'h '+m+'min';
+  if(m>0) return m+'min '+s+'s';
+  return s+'s';
+}
+
+window.iniciarCrono  = iniciarCrono;
+window.pausarCrono   = pausarCrono;
+window.retomaCrono   = retomaCrono;
+window.pararCrono    = pararCrono;
 
 /* ══════════════════════════════════════════════════════════════
    MODO NÃO PERTURBE + WAKELOCK (v81)

@@ -726,6 +726,13 @@ function _gerarHTMLStr(id) {
       + (i.tipo==='osp'&&i.dtInicioExec ? '<div class="ficha-item"><div class="ficha-label">Início Execução</div><div class="ficha-val">' + fdt(i.dtInicioExec) + '</div></div>' : '')
       + (i.tipo==='osp'&&i.diasPrazo    ? '<div class="ficha-item"><div class="ficha-label">Prazo</div><div class="ficha-val">' + i.diasPrazo + ' dias</div></div>' : '')
       + (i.tipo==='osp'&&i.dtFinalExec  ? '<div class="ficha-item"><div class="ficha-label">Data Final</div><div class="ficha-val">' + fdt(i.dtFinalExec) + '</div></div>' : '')
+      /* v82: GPS e duração */
+      + (i.gps ? '<div class="ficha-item"><div class="ficha-label">📍 Local (GPS)</div><div class="ficha-val mono" style="font-size:10pt;">'
+          + i.gps.lat + ', ' + i.gps.lon
+          + ' <span style="color:#6b7280;font-size:9pt;">(±' + i.gps.acc + 'm' + (i.gps.acc<=10?' · Excelente':i.gps.acc<=30?' · Bom':i.gps.acc<=100?' · Regular':' · Fraco') + ')</span>'
+          + '</div></div>' : '')
+      + (i.duracaoFormatada ? '<div class="ficha-item"><div class="ficha-label">⏱️ Duração da Vistoria</div><div class="ficha-val">' + i.duracaoFormatada + (i.duracaoMin?' ('+i.duracaoMin+' min)':'') + '</div></div>' : (i.duracaoMin ? '<div class="ficha-item"><div class="ficha-label">⏱️ Duração</div><div class="ficha-val">' + i.duracaoMin + ' min</div></div>' : ''))
+      + (i.seiProc ? '<div class="ficha-item"><div class="ficha-label">🏛️ Processo SEI</div><div class="ficha-val mono">' + _esc(i.seiProc) + '</div></div>' : '')
       + '</div></div>'
 
       /* KPIs */
