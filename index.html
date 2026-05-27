@@ -681,7 +681,7 @@ function rHome(){
   var s=S.sessao;if(!s)return;
   var R=REG[s.reg]||{l:s.reg||'',c:'#003580',bg:'#dbeafe'};
   var ola=el('h-ola'),sub=el('h-sub');
-  if(ola)ola.textContent='Ola, '+s.nome.split(' ')[0]+'!';
+  if(ola)ola.textContent='Olá, '+s.nome.split(' ')[0]+'!';
   if(sub)sub.textContent='Contrato TJMG '+(R.ct||'CT 017/2026')+' - Regiao '+R.l;
   var ub=el('ubar');
   if(ub)ub.innerHTML='<div class="av" style="width:34px;height:34px;font-size:12px;background:'+R.c+';">'+ini(s.nome)+'</div>'
@@ -737,14 +737,14 @@ function rHome(){
     +'</div>'
     +'<div class="cta" onclick="navt(\'tipos\')">'
     +'<span style="font-size:22px;">+</span>'
-    +'<div style="flex:1;"><div style="font-size:14px;font-weight:800;color:#fff;">Criar Relatorio</div>'
+    +'<div style="flex:1;"><div style="font-size:14px;font-weight:800;color:#fff;">Criar Relatório</div>'
     +'<div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:2px;">Periódica, OSE, Programada e Laudos</div></div>'
     +'<span style="color:rgba(255,255,255,.5);font-size:22px;">></span></div>'
     +'<div style="display:flex;gap:8px;">'
     +'<button class="btn" style="flex:1;font-size:12px;padding:11px;background:#dc2626;color:#fff;border-radius:12px;" onclick="window.open(\'https://docs.google.com/forms/d/e/1FAIpQLSdFA3STupTnP3qFWX_3MXYhWXBl04VEBp4JbaPpfjIkT2QsDg/viewform\',\'_blank\')">⚡ OSE (abertura)</button>'
     +'<button class="btn" style="flex:1;font-size:12px;padding:11px;background:#0f766e;color:#fff;border-radius:12px;" onclick="iniciarF(\'osp\')">📋 OSP (abertura)</button>'
     +'<button class="btn" style="flex:1;font-size:12px;padding:11px;background:#0369a1;color:#fff;border-radius:12px;" onclick="window.open(\'https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbw6mdSZgqgx6QXzaJHicq-kOkfFiHgIuwyIpkJ5AceVNhPx3407DPA6S4aLImPD6iyz/exec\',\'_blank\')">📊 Dashboard Emergencial</button>'
-    +'<button class="btn boa" style="flex:1;font-size:12px;padding:11px;" onclick="navt(\'rel\')">Relatorios</button></div>'
+    +'<button class="btn boa" style="flex:1;font-size:12px;padding:11px;" onclick="navt(\'rel\')">Relatórios</button></div>'
     +(isGlobal(s)
       ?'<button class="btn" style="width:100%;font-size:13px;padding:13px;background:#dc2626;color:#fff;border-radius:12px;border-bottom:3px solid #991b1b;display:flex;align-items:center;justify-content:center;gap:10px;" onclick="window.open(\'https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbyZqfhmkI2HzZ_y8Y6UzIWvmPmKD_v3M-vC7za-N68M2fb1Wxx6qFUM-jKUedbU-LT3/exec\',\'_blank\')"><span style="font-size:20px;">🧯</span><div style="text-align:left;"><div style="font-weight:800;">Controle PCI — Norte</div><div style="font-size:10px;opacity:.8;">Extintores · Mangueiras · RTI</div></div></button>'
        +'<button class="btn" style="width:100%;font-size:13px;padding:13px;background:#be185d;color:#fff;border-radius:12px;border-bottom:3px solid #9d174d;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;" onclick="window.open(\'https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbwmy_f43xtAiqAuglPSzMkdb72wFM7k-wZ7JGCyr_um5S-zrGsT-3kNcNLxGJPla7Cnqg/exec\',\'_blank\')"><span style="font-size:20px;">🧯</span><div style="text-align:left;"><div style="font-weight:800;">Controle PCI — Sul</div><div style="font-size:10px;opacity:.8;">Extintores · Mangueiras · RTI</div></div></button>'
@@ -788,10 +788,10 @@ function rHome(){
     envs.slice(0,3).forEach(function(i){
       var t=TIPOS[i.tipo]||TIPOS.periodica;
       var _iArr=Object.values(i.itens||{});var _avArr=_iArr.filter(function(v){return v.s&&v.s!=='fora_periodo'&&v.s!=='nao_aplicavel'&&v.s!=='pendente';});var _cfArr=_avArr.filter(function(v){return v.s==='conforme'||v.s==='executado';});var _iPct=_avArr.length?Math.round(_cfArr.length/_avArr.length*100):null;var _iCor=_iPct===null?'#94a3b8':_iPct>=80?'#16a34a':_iPct>=60?'#d97706':'#dc2626';
-      h+='<div class="card" style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openDet(\''+i.id+'\')"><div style="width:34px;height:34px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;">'+t.i+'</div><div style="flex:1;"><div style="font-size:12px;font-weight:700;">'+i.edif+'</div><div style="font-size:10px;color:#64748b;">'+(i.com||'-')+' - '+fdt(i.dtVistoria||i.data)+'</div></div>'+(_iPct!==null?'<div style="display:flex;align-items:center;gap:3px;">'+miniDonut(_iPct,_iCor,11)+'<span style="font-size:10px;font-weight:800;color:'+_iCor+';">'+_iPct+'%</span></div>':'')+'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span><span class="bdg" style="background:#dcfce7;color:#16a34a;">Enviado</span></div>';
+      h+='<div class="card" style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openDet(\''+i.id+'\')"><div style="width:34px;height:34px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;">'+t.i+'</div><div style="flex:1;"><div style="font-size:12px;font-weight:700;">'+i.edif+'</div><div style="font-size:10px;color:#64748b;">'+(i.com||'-')+' · '+fdt(i.dtVistoria||i.data)+'</div></div>'+(_iPct!==null?'<div style="display:flex;align-items:center;gap:3px;">'+miniDonut(_iPct,_iCor,11)+'<span style="font-size:10px;font-weight:800;color:'+_iCor+';">'+_iPct+'%</span></div>':'')+'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span>'+(i.tipo==='periodica'&&i.grupo?'<span class="bdg" style="background:#dbeafe;color:#1e40af;">Grp '+i.grupo+'</span>':'')+'<span class="bdg" style="background:#dcfce7;color:#16a34a;">Enviado</span></div>';
     });
   }
-  if(!S.insp.length)h+='<div style="text-align:center;padding:32px;"><div style="font-size:48px;">&#128203;</div><div style="font-size:14px;color:#94a3b8;margin-top:10px;font-weight:600;">Nenhuma inspecao</div><div style="font-size:12px;color:#cbd5e1;margin-top:4px;">Toque em Criar Relatorio</div></div>';
+  if(!S.insp.length)h+='<div style="text-align:center;padding:32px;"><div style="font-size:48px;">&#128203;</div><div style="font-size:14px;color:#94a3b8;margin-top:10px;font-weight:600;">Nenhuma inspeção</div><div style="font-size:12px;color:#cbd5e1;margin-top:4px;">Toque em Criar Relatório</div></div>';
   h+='<div style="height:8px;"></div>';
   el('hbody').innerHTML=h;
   /* v79: Swipe nos cards de rascunho (esquerda = excluir, direita = duplicar) */
@@ -969,6 +969,7 @@ function _renderRelLista(lista){
             /* Badges */
             +'<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;align-items:center;">'
               +'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';font-size:10px;font-weight:700;padding:3px 9px;">'+t.l+'</span>'
+              +(i.tipo==='periodica'&&i.grupo?'<span class="bdg" style="background:#dbeafe;color:#1e40af;font-size:10px;font-weight:700;padding:3px 9px;">Grp '+i.grupo+'</span>':'')
               +'<span class="bdg" style="background:'+st.bg+';color:'+st.c+';font-size:10px;font-weight:700;padding:3px 9px;">'+st.l+'</span>'
               +pst
               +(_iPct!==null?'<span style="background:#f1f5f9;color:'+_iCor+';border-radius:20px;padding:3px 8px;font-size:10px;font-weight:800;">'+_iPct+'%</span>':'')
