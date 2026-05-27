@@ -440,41 +440,123 @@ var _vozNavAtiva=false;var _vozNavRec=null;
 
 function ativarVozNav(){
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){Tt('Navegação por voz não suportada neste dispositivo.');return;}
+  if(!SR){
+    Tt('❌ Voz não suportada. Use Chrome/Edge no Android.');
+    return;
+  }
+
   if(_vozNavAtiva){
     _vozNavAtiva=false;
-    if(_vozNavRec)_vozNavRec.stop();
-    Tt('Navegação por voz desativada.');return;
+    if(_vozNavRec){try{_vozNavRec.stop();}catch(e){}}
+    var p=el('voz-painel');if(p)p.remove();
+    Tt('🎙️ Navegação por voz desativada.');
+    return;
   }
+
   _vozNavAtiva=true;
-  Tt('🎙️ Navegação por voz ativada! Comandos: "próximo", "voltar", "conforme", "não conforme", "foto"');
+  haptic('medio');
+
+  /* Painel flutuante de status */
+  var painel=el('voz-painel');if(!painel){
+    painel=document.createElement('div');painel.id='voz-painel';
+    painel.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);'
+      +'background:rgba(0,32,96,.95);color:#fff;border-radius:20px;padding:10px 18px;'
+      +'display:flex;align-items:center;gap:10px;z-index:7000;box-shadow:0 4px 20px rgba(0,0,0,.4);'
+      +'backdrop-filter:blur(8px);min-width:240px;justify-content:center;';
+    document.getElementById('app').appendChild(painel);
+  }
+
+  /* Animar pulsação quando ouvindo */
+  function atualizarPainel(estado,ultimo){
+    var icone=estado==='ouvindo'?'🎙️':estado==='processando'?'⏳':'💤';
+    var cor  =estado==='ouvindo'?'#22c55e':estado==='processando'?'#f59e0b':'#94a3b8';
+    painel.innerHTML='<span style="font-size:18px;">'+icone+'</span>'
+      +'<div style="flex:1;">'
+        +'<div style="font-size:11px;font-weight:800;">Voz Ativa — '+(estado==='ouvindo'?'Fale agora':'Aguardando')+'</div>'
+        +(ultimo?'<div style="font-size:10px;opacity:.75;">Último: "'+ultimo+'"</div>':'<div style="font-size:10px;opacity:.6;">Comandos: próximo · voltar · conforme · NC · foto · salvar</div>')
+      +'</div>'
+      +'<button onclick="ativarVozNav()" style="border:none;background:rgba(255,255,255,.2);color:#fff;'
+        +'border-radius:10px;padding:4px 10px;font-size:12px;cursor:pointer;">✕</button>';
+    painel.style.borderBottom='3px solid '+cor;
+  }
+  atualizarPainel('aguardando','');
+
+  /* Mapeamento de comandos */
+  var COMANDOS=[
+    {test:function(c){return c.includes('próximo')||c.includes('proximo')||c.includes('avançar');},
+     acao:function(){if(typeof fnxt==='function')fnxt();return'Próxima etapa';}, label:'próximo'},
+    {test:function(c){return c.includes('voltar')||c.includes('anterior');},
+     acao:function(){if(typeof fprv==='function')fprv();return'Etapa anterior';}, label:'voltar'},
+    {test:function(c){return c.includes('conforme')&&!c.includes('não')&&!c.includes('nao');},
+     acao:function(){
+       var btn=document.querySelector('[onclick*="conforme"]')||document.querySelector('[data-st="conforme"]');
+       if(btn)btn.click();return'Marcado: Conforme';
+     }, label:'conforme'},
+    {test:function(c){return c.includes('não conforme')||c.includes('nao conforme')||c.includes('nc')||c.includes('não conforma');},
+     acao:function(){
+       var btn=document.querySelector('[onclick*="nao_conforme"]')||document.querySelector('[data-st="nao_conforme"]');
+       if(btn)btn.click();return'Marcado: NC';
+     }, label:'não conforme'},
+    {test:function(c){return c.includes('não aplicável')||c.includes('nao aplicavel')||c.includes('na');},
+     acao:function(){
+       var btn=document.querySelector('[onclick*="nao_aplicavel"]');
+       if(btn)btn.click();return'Marcado: N/A';
+     }, label:'não aplicável'},
+    {test:function(c){return c.includes('foto')||c.includes('câmera')||c.includes('camera');},
+     acao:function(){
+       var inp=document.querySelector('input[type="file"][capture]');if(inp)inp.click();
+       return'Câmera aberta';
+     }, label:'foto'},
+    {test:function(c){return c.includes('salvar')||c.includes('gravar');},
+     acao:function(){if(typeof salvarR==='function')salvarR();return'Salvo!';}, label:'salvar'},
+    {test:function(c){return c.includes('finalizar')||c.includes('concluir');},
+     acao:function(){if(typeof salvarF==='function')salvarF();return'Finalizado!';}, label:'finalizar'},
+    {test:function(c){return c.includes('abrir item')||c.includes('detalhe');},
+     acao:function(){
+       var card=document.querySelector('.fcard');if(card)card.click();
+       return'Item aberto';
+     }, label:'abrir item'},
+    {test:function(c){return c.includes('desativar voz')||c.includes('parar voz');},
+     acao:function(){setTimeout(ativarVozNav,200);return'Voz desativada';}, label:'desativar voz'}
+  ];
 
   function ouvir(){
     if(!_vozNavAtiva)return;
     var r=new SR();_vozNavRec=r;
-    r.lang='pt-BR';r.continuous=false;r.maxAlternatives=1;
+    r.lang='pt-BR';r.continuous=false;r.maxAlternatives=3;
+    r.onstart=function(){atualizarPainel('ouvindo','');};
     r.onresult=function(e){
-      var cmd=(e.results[0][0].transcript||'').toLowerCase().trim();
-      if(cmd.includes('próximo')||cmd.includes('proximo')){if(typeof fnxt==='function')fnxt();}
-      else if(cmd.includes('voltar')||cmd.includes('anterior')){if(typeof fprv==='function')fprv();}
-      else if(cmd.includes('conforme')){
-        var btn=document.querySelector('[data-st="conforme"]');if(btn)btn.click();
+      atualizarPainel('processando','');
+      /* Testar todas as alternativas */
+      var transcripts=[];
+      for(var i=0;i<e.results[0].length;i++) transcripts.push(e.results[0][i].transcript.toLowerCase().trim());
+      var executou=false;
+      for(var ci=0;ci<COMANDOS.length&&!executou;ci++){
+        for(var ti=0;ti<transcripts.length&&!executou;ti++){
+          if(COMANDOS[ci].test(transcripts[ti])){
+            var resultado=COMANDOS[ci].acao();
+            haptic('leve');
+            atualizarPainel('aguardando',transcripts[0]);
+            Tt('🎙️ "'+transcripts[0]+'" → '+resultado);
+            executou=true;
+          }
+        }
       }
-      else if(cmd.includes('não conforme')||cmd.includes('nao conforme')){
-        var btn2=document.querySelector('[data-st="nao_conforme"]');if(btn2)btn2.click();
+      if(!executou){
+        atualizarPainel('aguardando',transcripts[0]);
+        /* Não reconhecido — não mostrar erro, só feedback visual */
       }
-      else if(cmd.includes('foto')){
-        var inp=document.querySelector('input[type="file"][capture]');if(inp)inp.click();
-      }
-      else if(cmd.includes('salvar')){if(typeof salvarR==='function')salvarR();}
-      else if(cmd.includes('finalizar')){if(typeof salvarF==='function')salvarF();}
-      setTimeout(ouvir,300);
+      setTimeout(ouvir,400);
     };
-    r.onerror=function(){setTimeout(ouvir,1000);};
+    r.onerror=function(e){
+      if(e.error!=='no-speech') atualizarPainel('aguardando','erro: '+e.error);
+      setTimeout(ouvir,800);
+    };
     r.onend=function(){if(_vozNavAtiva)setTimeout(ouvir,300);};
     r.start();
   }
   ouvir();
+  Tt('🎙️ Voz ativada! Comandos: próximo, voltar, conforme, não conforme, foto, salvar...');
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -617,36 +699,159 @@ function gerarRelatorioFinalFiscalizacao(reg){
    TERMO DE RECEBIMENTO (Lei 14.133/2021, Art. 140)
    ══════════════════════════════════════════════════════════════ */
 function gerarTermoRecebimento(tipo,mes){
-  var s=S.sessao||{};var reg=s.reg||'NORTE';
-  var R=typeof REG!=='undefined'&&REG[reg]?REG[reg]:{l:reg,ct:'CT 017/2026'};
+  /* Modal interativo para preenchimento antes de gerar */
+  var m=el('m-termo');if(!m){
+    m=document.createElement('div');m.id='m-termo';
+    m.className='mdl ctr';m.style.display='none';m.style.zIndex='600';
+    document.getElementById('app').appendChild(m);
+  }
+  var s=S.sessao||{};
+  var reg=s.reg||'NORTE';
+  var R=(typeof REG!=='undefined'&&REG[reg])?REG[reg]:{l:reg,ct:'CT 017/2026'};
   var hoje=new Date();
-  var dtHoje=fdt(hoje.toISOString().slice(0,10));
+  var mesDefault=hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0');
   var tipoLabel=tipo==='definitivo'?'DEFINITIVO':'PROVISÓRIO';
+  var tipoDesc=tipo==='definitivo'
+    ?'Após vistoria e confirmação de que todos os serviços estão corretos, sem pendências.'
+    :'Recebimento inicial para verificação. Não exclui responsabilidade por defeitos ocultos.';
+
+  m.innerHTML='<div class="mdc mds" style="max-width:480px;max-height:88vh;overflow-y:auto;background:#fff;color:#0f172a;">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">'
+    +'<div style="width:44px;height:44px;border-radius:12px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:20px;">📜</div>'
+    +'<div><div style="font-size:15px;font-weight:800;color:#003580;">Termo de Recebimento '+tipoLabel+'</div>'
+    +'<div style="font-size:11px;color:#64748b;">'+tipoDesc+'</div></div>'
+    +'<button onclick="cm(\'m-termo\')" style="margin-left:auto;border:none;background:#f1f5f9;border-radius:8px;padding:5px 10px;font-size:13px;color:#64748b;cursor:pointer;">✕</button>'
+    +'</div>'
+    +'<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#1e40af;line-height:1.6;">'
+    +'<strong>Base legal:</strong> Art. 140 da Lei nº 14.133/2021 — o recebimento '+(tipo==='definitivo'?'definitivo':'provisório')+' é obrigatório e deve ser lavrado em termo formal.'
+    +'</div>'
+    /* Campos de preenchimento */
+    +'<div class="lbl">Contrato</div>'
+    +'<input id="tr-ct" value="'+_escA(R.ct)+'" placeholder="Ex: CT 017/2026" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
+    +'<div class="lbl">Empresa Contratada</div>'
+    +'<input id="tr-emp" value="RENOVA ENGENHARIA" placeholder="Nome da empresa" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
+    +'<div class="lbl">Período de Medição (mês/ano)</div>'
+    +'<input id="tr-mes" value="'+mesDefault+'" placeholder="YYYY-MM" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
+    +'<div class="lbl">Valor da Medição (R$)</div>'
+    +'<input id="tr-val" type="number" placeholder="Ex: 150000.00" step="0.01" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
+    +'<div class="lbl">Glosa Aplicada (%)</div>'
+    +'<input id="tr-glosa" type="number" placeholder="Ex: 5 (para 5%)" step="0.1" min="0" max="100" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
+    +'<div class="lbl">Número SEI do Processo (opcional)</div>'
+    +'<input id="tr-sei" placeholder="Ex: 0700016-12.2026.8.13.0000" style="margin-bottom:14px;background:#f8fafc;color:#0f172a;">'
+    +'<div class="lbl">Observações (opcional)</div>'
+    +'<textarea id="tr-obs" placeholder="Pendências, ressalvas ou informações adicionais..." style="min-height:56px;margin-bottom:14px;background:#f8fafc;color:#0f172a;"></textarea>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+    +'<button class="btn bo" onclick="cm(\'m-termo\')">Cancelar</button>'
+    +'<button class="btn ba" onclick="_gerarTermoHTML(\''+tipo+'\')">📄 Gerar Documento</button>'
+    +'</div>'
+    +'</div>';
+  m.style.display='flex';
+}
+
+function _gerarTermoHTML(tipo){
+  var s=S.sessao||{};var reg=s.reg||'NORTE';
+  var R=(typeof REG!=='undefined'&&REG[reg])?REG[reg]:{l:reg,ct:'CT 017/2026'};
+  var hoje=new Date();
+  var dia=String(hoje.getDate()).padStart(2,'0');
+  var meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var dataExtenso=dia+' de '+meses[hoje.getMonth()]+' de '+hoje.getFullYear();
+  var tipoLabel=tipo==='definitivo'?'DEFINITIVO':'PROVISÓRIO';
+
+  var ct   =el('tr-ct')   ?el('tr-ct').value.trim()   :R.ct;
+  var emp  =el('tr-emp')  ?el('tr-emp').value.trim()  :'—';
+  var mes  =el('tr-mes')  ?el('tr-mes').value.trim()  :'';
+  var val  =el('tr-val')  ?el('tr-val').value.trim()  :'';
+  var glosa=el('tr-glosa')?el('tr-glosa').value.trim():'0';
+  var sei  =el('tr-sei')  ?el('tr-sei').value.trim()  :'';
+  var obs  =el('tr-obs')  ?el('tr-obs').value.trim()  :'';
+  cm('m-termo');
+
+  /* Calcular valor líquido */
+  var valNum  =parseFloat(val)||0;
+  var glosaNum=parseFloat(glosa)||0;
+  var glosaR  =valNum*(glosaNum/100);
+  var liquido =valNum-glosaR;
+  var fmtVal  =function(v){return'R$ '+v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');};
+
+  /* Formatar mês */
+  var mesLabel='';
+  if(mes){var mp=mes.split('-');if(mp.length===2)mesLabel=meses[parseInt(mp[1])-1]+'/'+mp[0];}
 
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
     +'<title>Termo de Recebimento '+tipoLabel+'</title>'
-    +'<style>body{font-family:Arial,sans-serif;font-size:11pt;margin:3cm 2cm;color:#000;line-height:1.8;}'
-    +'h1{font-size:13pt;text-align:center;text-transform:uppercase;margin-bottom:4px;}'
-    +'.sub{text-align:center;font-size:10pt;color:#555;margin-bottom:30px;}'
-    +'.footer{margin-top:60px;display:flex;justify-content:space-between;}'
-    +'.ass{text-align:center;border-top:1px solid #000;width:220px;padding-top:4px;font-size:9pt;}'
-    +'@media print{body{margin:2cm;}}</style></head><body>'
-    +'<h1>TERMO DE RECEBIMENTO '+tipoLabel+' DE SERVIÇO</h1>'
-    +'<div class="sub">'+R.ct+' · Região '+R.l+'</div>'
-    +'<p>Aos '+dtHoje+', a Comissão de Recebimento designada pela Portaria competente, reuniu-se para o recebimento '+(tipo==='definitivo'?'definitivo':'provisório')+' dos serviços de manutenção predial executados pela empresa contratada, referente ao período de medição '+(mes||'_____/2026')+'.</p>'
-    +'<p>Os serviços foram executados em conformidade com o objeto do '+R.ct+', observadas as especificações técnicas, as normas técnicas aplicáveis (NBR 5674, NBR 14037) e as exigências constantes nos Anexos do contrato.</p>'
-    +(tipo==='definitivo'?'<p><b>Declaramos</b>, para os devidos fins, que os serviços encontram-se em perfeitas condições de uso e funcionamento, atendendo às especificações contratadas, não havendo pendências registradas.</p>':'<p>O presente recebimento <b>não exclui a responsabilidade da contratada</b> por quaisquer vícios ou defeitos ocultos que venham a ser identificados no período de garantia.</p>')
-    +'<p>Este Termo é lavrado em conformidade com o Art. 140 da Lei nº 14.133/2021.</p>'
-    +'<div class="footer">'
-    +'<div class="ass">_______________________<br>Fiscal TJMG<br>'+_escA(s.nome||'—')+'</div>'
-    +'<div class="ass">_______________________<br>Coordenador TJMG</div>'
-    +'<div class="ass">_______________________<br>Representante Contratada</div>'
-    +'</div></body></html>';
+    +'<style>'
+    +'  @page{margin:2.5cm 2cm;}'
+    +'  body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.8;color:#000;margin:0;}'
+    +'  .cabecalho{text-align:center;border-bottom:3px double #000;padding-bottom:14px;margin-bottom:20px;}'
+    +'  .brasao{font-size:32pt;margin-bottom:4px;}'
+    +'  .org{font-size:10pt;font-weight:bold;letter-spacing:.5px;}'
+    +'  h1{font-size:13pt;font-weight:bold;text-transform:uppercase;text-align:center;margin:20px 0 4px;letter-spacing:1px;}'
+    +'  h2{font-size:12pt;text-align:center;color:#555;font-weight:normal;margin:0 0 20px;}'
+    +'  .corpo p{text-align:justify;margin:10px 0;}'
+    +'  .destaque{font-weight:bold;}'
+    +'  table{width:100%;border-collapse:collapse;margin:14px 0;}'
+    +'  td,th{border:1px solid #000;padding:6px 10px;font-size:10pt;}'
+    +'  th{background:#e8e8e8;font-weight:bold;text-align:left;}'
+    +'  .assinaturas{margin-top:60px;display:flex;justify-content:space-between;gap:20px;}'
+    +'  .ass{text-align:center;flex:1;}'
+    +'  .ass .linha{border-top:1px solid #000;margin-bottom:4px;}'
+    +'  .ass .nm{font-size:10pt;font-weight:bold;}'
+    +'  .ass .cargo{font-size:9pt;}'
+    +'  .rodape{margin-top:40px;border-top:1px solid #000;padding-top:8px;font-size:8pt;color:#555;text-align:center;}'
+    +'  @media print{body{-webkit-print-color-adjust:exact;}}'
+    +'</style></head><body>'
+    +'<div class="cabecalho">'
+    +'<div class="brasao">⚖️</div>'
+    +'<div class="org">TRIBUNAL DE JUSTIÇA DO ESTADO DE MINAS GERAIS</div>'
+    +'<div style="font-size:9pt;">Coordenadoria de Manutenção Predial — COMAPT</div>'
+    +'</div>'
+    +'<h1>Termo de Recebimento '+tipoLabel+' de Serviço</h1>'
+    +'<h2>'+ct+' · Região '+R.l+(mesLabel?' · '+mesLabel:'')+'</h2>'
+    +'<div class="corpo">'
+    +'<table style="margin-bottom:16px;">'
+    +'<tr><th style="width:35%;">Contrato</th><td>'+_escA(ct)+'</td></tr>'
+    +'<tr><th>Empresa Contratada</th><td>'+_escA(emp)+'</td></tr>'
+    +'<tr><th>Região Administrativa</th><td>'+R.l+'</td></tr>'
+    +(mesLabel?'<tr><th>Período de Medição</th><td>'+mesLabel+'</td></tr>':'')
+    +(sei?'<tr><th>Processo SEI</th><td>'+_escA(sei)+'</td></tr>':'')
+    +'<tr><th>Data do Termo</th><td>'+dataExtenso+'</td></tr>'
+    +'</table>'
+    +(valNum>0?'<table>'
+      +'<tr><th colspan="2" style="background:#dbeafe;text-align:center;">Valores da Medição</th></tr>'
+      +'<tr><th>Valor Bruto da Medição</th><td>'+fmtVal(valNum)+'</td></tr>'
+      +'<tr><th>Glosa Aplicada (IMR '+glosaNum+'%)</th><td style="color:#dc2626;">— '+fmtVal(glosaR)+'</td></tr>'
+      +'<tr><th style="background:#dcfce7;">Valor Líquido a Pagar</th><td style="font-weight:bold;color:#15803d;">'+fmtVal(liquido)+'</td></tr>'
+      +'</table>':'')
+    +'<p>Aos <span class="destaque">'+dataExtenso+'</span>, a fiscalização do TJMG, designada para o acompanhamento do '
+    +_escA(ct)+', realizou o recebimento <span class="destaque">'+tipoLabel+'</span> dos serviços de manutenção predial '
+    +'executados pela empresa <span class="destaque">'+_escA(emp)+'</span>.</p>'
+    +'<p>Os serviços foram verificados quanto à sua conformidade com o objeto contratual, as normas técnicas aplicáveis '
+    +'(<span class="destaque">NBR 5674, NBR 14037, NBR 5419, NBR 5410</span>) e as especificações constantes nos Anexos do contrato.</p>'
+    +(tipo==='definitivo'
+      ?'<p>Após a análise técnica, <span class="destaque">DECLARA-SE</span> que os serviços apresentados '
+       +'encontram-se <span class="destaque">em perfeitas condições</span> de uso e funcionamento, atendendo '
+       +'integralmente às especificações contratadas, não havendo pendências registradas para a presente medição.</p>'
+      :'<p>O presente recebimento provisório <span class="destaque">não exclui</span> a responsabilidade da empresa '
+       +'contratada por quaisquer vícios ou defeitos ocultos que venham a ser identificados durante o período de '
+       +'observação e garantia, nos termos da legislação aplicável.</p>')
+    +(obs?'<p><span class="destaque">Observações e ressalvas:</span> '+_escA(obs)+'</p>':'')
+    +'<p>Este Termo é lavrado em conformidade com o <span class="destaque">Art. 140 da Lei nº 14.133/2021</span>.</p>'
+    +'</div>'
+    +'<div class="assinaturas">'
+    +'<div class="ass"><div class="linha"></div><div class="nm">'+_escA(s.nome||'Fiscal TJMG')+'</div><div class="cargo">Fiscal · Matrícula '+_escA(s.mat||'—')+'</div></div>'
+    +'<div class="ass"><div class="linha"></div><div class="nm">Coordenador TJMG</div><div class="cargo">Coordenadoria de Manutenção Predial</div></div>'
+    +'<div class="ass"><div class="linha"></div><div class="nm">Representante da Contratada</div><div class="cargo">'+_escA(emp)+'</div></div>'
+    +'</div>'
+    +'<div class="rodape">TJMG · COMAPT · Termo gerado eletronicamente pelo TJMG Fiscal PWA · '+dataExtenso+(sei?' · SEI: '+_escA(sei):'')+'</div>'
+    +'</body></html>';
 
   var blob=new Blob([html],{type:'text/html'});
-  shareFile(blob,'Termo_Recebimento_'+tipoLabel+'_'+(mes||'').replace('/','_')+'.html','Termo '+tipoLabel);
-  Tt('✅ Termo de Recebimento '+tipoLabel+' gerado!');
+  var fn='Termo_'+tipoLabel+'_'+(mesLabel||dataExtenso).replace(/[\s/]/g,'_')+'.html';
+  shareFile(blob,fn,'Termo de Recebimento '+tipoLabel);
+  if(typeof auditLog==='function') auditLog('termo_recebimento',{tipo:tipoLabel,reg:reg,mes:mesLabel,sei:sei});
+  Tt('✅ Termo '+tipoLabel+' gerado! Abra, revise e imprima.');
 }
+window._gerarTermoHTML=_gerarTermoHTML;
 
 /* ══════════════════════════════════════════════════════════════
    EXPORTS
@@ -1134,45 +1339,129 @@ window.publicarComunicado=publicarComunicado;
    TUTORIAL INTERATIVO (v81) — exibe 1x por usuário
    ══════════════════════════════════════════════════════════════ */
 var _tutorialPassos=[
-  {sel:'#btn-sync-manual',txt:'☁️ Sincroniza seus relatórios com a equipe. Sempre que tiver internet, sincronize!'},
-  {sel:'.cta',txt:'➕ Toque aqui para criar um novo relatório de inspeção.'},
-  {sel:'#bn0 .tab:first-child',txt:'🏠 Volta para a tela inicial com seus rascunhos.'},
-  {sel:'#bn0 .tab:nth-child(3)',txt:'📋 Aqui ficam todos os relatórios que você criou.'},
-  {sel:'#bn0 .tab:nth-child(5)',txt:'👤 Perfil: configurações, ferramentas e sair.'}
+  /* Tela Home */
+  {tela:'home', sel:'#h-ola',
+   titulo:'👋 Bem-vindo ao TJMG Fiscal!',
+   txt:'Este é seu sistema de fiscalização predial. Vamos te apresentar as principais funcionalidades em 10 passos rápidos.',
+   bg:'#003580'},
+  {tela:'home', sel:'#btn-sync-manual',
+   titulo:'☁️ Sincronização',
+   txt:'Este botão sincroniza seus relatórios com toda a equipe. <strong>Sempre sincronize</strong> quando tiver internet — antes e depois de ir ao campo.',
+   bg:'#0f766e'},
+  {tela:'home', sel:'#busca-global',
+   titulo:'🔍 Busca Global',
+   txt:'Encontre qualquer relatório digitando o nome da edificação, comarca, OS ou fiscal. A busca funciona mesmo offline.',
+   bg:'#2563eb'},
+  {tela:'home', sel:'.cta',
+   titulo:'➕ Criar Novo Relatório',
+   txt:'Toque aqui para iniciar uma nova inspeção. Você escolhe o tipo: Manutenção Periódica, Emergencial, OSP, Fachada, SPDA e outros.',
+   bg:'#003580'},
+  /* Bottom Nav */
+  {tela:'home', sel:'#bn0',
+   titulo:'🧭 Navegação Principal',
+   txt:'<strong>Início</strong> — seus rascunhos e resumo do dia.<br><strong>Novo</strong> — criar relatório.<br><strong>Relatórios</strong> — histórico completo.<br><strong>Agenda</strong> — próximas vistorias.<br><strong>Perfil</strong> — configurações e ferramentas.',
+   bg:'#1e293b'},
+  /* Formulário */
+  {tela:'form', sel:'#fhdr',
+   titulo:'📋 Formulário de Inspeção',
+   txt:'O formulário tem etapas: <strong>Dados → Checklist → Materiais → Concluir</strong>. Preencha sequencialmente. O sistema salva automaticamente a cada 5 segundos — nunca perde nada.',
+   bg:'#003580'},
+  {tela:'form', sel:'#crono-disp',
+   titulo:'⏱️ Cronômetro + GPS',
+   txt:'O cronômetro registra o tempo da vistoria. O GPS captura sua localização automaticamente ao iniciar — serve como prova de presença na edificação.',
+   bg:'#003580'},
+  /* Relatórios */
+  {tela:'rel', sel:'#rflt',
+   titulo:'🗂️ Filtros de Relatório',
+   txt:'Filtre por tipo (Periódica, OSE, OSP...) ou status (Rascunho/Enviado). Selecione múltiplos para exportar em bloco — HTML, PDF ou ZIP.',
+   bg:'#003580'},
+  /* Perfil */
+  {tela:'perf', sel:'#s-perfil',
+   titulo:'⚙️ Perfil e Ferramentas',
+   txt:'No perfil você acessa: <strong>IMR</strong>, <strong>Mapa</strong>, <strong>QR Codes</strong>, <strong>Excel SINAPI</strong>, <strong>Termos de Recebimento</strong>, <strong>Relatório Mensal</strong>, <strong>SEI TJMG</strong> e muito mais.',
+   bg:'#003580'},
+  /* Final */
+  {tela:'home', sel:'#h-ola',
+   titulo:'✅ Pronto para fiscalizar!',
+   txt:'Você está pronto. Lembre-se: <strong>sincronize sempre</strong> que tiver internet. Em caso de dúvidas, este tutorial está disponível no Perfil → Ver Tutorial.',
+   bg:'#16a34a'}
 ];
+
 function iniciarTutorial(forca){
   var key='_tutorialFeito_'+(S.sessao?S.sessao.userId:'');
   if(!forca&&localStorage.getItem(key)==='1')return;
   localStorage.setItem(key,'1');
+
+  /* Ir para home antes de começar */
+  if(typeof rHome==='function'){rHome();if(typeof G==='function')G('s-home');}
+
   var passo=0;
+  var overlay=el('m-tutorial');
+  if(!overlay){
+    overlay=document.createElement('div');overlay.id='m-tutorial';
+    overlay.style.cssText='position:fixed;inset:0;z-index:8000;pointer-events:none;';
+    document.getElementById('app').appendChild(overlay);
+  }
+
   function mostrarPasso(){
-    var overlay=el('m-tutorial');
-    if(!overlay){
-      overlay=document.createElement('div');overlay.id='m-tutorial';
-      overlay.style.cssText='position:fixed;inset:0;z-index:8000;pointer-events:none;';
-      document.getElementById('app').appendChild(overlay);
+    if(passo>=_tutorialPassos.length){
+      overlay.innerHTML='';
+      haptic('sucesso');
+      Tt('✅ Tutorial concluído! Bom trabalho de campo!');
+      return;
     }
-    if(passo>=_tutorialPassos.length){overlay.innerHTML='';return;}
     var p=_tutorialPassos[passo];
     var alvo=document.querySelector(p.sel);
-    var rect=alvo?alvo.getBoundingClientRect():{top:200,left:20,width:200,height:48};
-    overlay.innerHTML='<div style="position:fixed;inset:0;background:rgba(0,0,0,.6);pointer-events:all;" onclick="void(0)"></div>'
-      +'<div style="position:fixed;top:'+(rect.top-6)+'px;left:'+(rect.left-6)+'px;width:'+(rect.width+12)+'px;height:'+(rect.height+12)+'px;border:3px solid #60a5fa;border-radius:14px;box-shadow:0 0 0 4px rgba(96,165,250,.3);pointer-events:none;"></div>'
-      +'<div style="position:fixed;top:'+(rect.bottom+12)+'px;left:12px;right:12px;background:#fff;border-radius:14px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);pointer-events:all;">'
-      +'<div style="font-size:13px;color:#0f172a;line-height:1.6;margin-bottom:12px;">'+p.txt+'</div>'
-      +'<div style="display:flex;justify-content:space-between;">'
-      +'<button onclick="el(\'m-tutorial\').innerHTML=\'\'" style="border:none;background:#f1f5f9;color:#64748b;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;">Pular</button>'
-      +'<button onclick="passo++;mostrarPasso&&mostrarPasso()" style="border:none;background:#003580;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;">'+(passo<_tutorialPassos.length-1?'Próximo ›':'Concluir ✓')+'</button>'
-      +'</div></div>';
+    var rect=alvo?alvo.getBoundingClientRect():{top:window.innerHeight/2-40,left:20,width:window.innerWidth-40,height:48};
+    var ttop=rect.bottom+12;
+    /* Se o tooltip sai da tela, mostrar acima */
+    if(ttop+180>window.innerHeight) ttop=rect.top-192;
+    if(ttop<8) ttop=8;
+
+    overlay.innerHTML=
+      /* Overlay escuro */
+      '<div style="position:fixed;inset:0;background:rgba(0,0,0,.65);pointer-events:all;" onclick="void(0)"></div>'
+      /* Destaque do elemento */
+      +(alvo?'<div style="position:fixed;top:'+(rect.top-6)+'px;left:'+(rect.left-6)+'px;width:'+(rect.width+12)+'px;height:'+(rect.height+12)+'px;'
+        +'border:3px solid #60a5fa;border-radius:14px;box-shadow:0 0 0 4px rgba(96,165,250,.25),0 0 0 9999px rgba(0,0,0,.0);pointer-events:none;'
+        +'animation:tut-pulse 1.5s infinite;"></div>':'')
+      /* Tooltip */
+      +'<div style="position:fixed;top:'+ttop+'px;left:12px;right:12px;background:#fff;border-radius:16px;'
+        +'padding:16px 18px;box-shadow:0 8px 32px rgba(0,0,0,.25);pointer-events:all;max-width:500px;margin:0 auto;">'
+        /* Cabeçalho */
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+          +'<div style="width:36px;height:36px;border-radius:10px;background:'+(p.bg||'#003580')+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">'+p.titulo.split(' ')[0]+'</div>'
+          +'<div style="flex:1;font-size:14px;font-weight:800;color:#0f172a;">'+p.titulo.replace(/^\S+\s/,'')+'</div>'
+          +'<span style="background:#f1f5f9;color:#64748b;border-radius:12px;padding:2px 8px;font-size:10px;font-weight:700;">'+(passo+1)+'/'+_tutorialPassos.length+'</span>'
+        +'</div>'
+        /* Barra de progresso */
+        +'<div style="background:#f1f5f9;border-radius:4px;height:4px;margin-bottom:10px;overflow:hidden;">'
+          +'<div style="background:'+(p.bg||'#003580')+';height:100%;width:'+Math.round((passo+1)/_tutorialPassos.length*100)+'%;border-radius:4px;transition:width .3s;"></div>'
+        +'</div>'
+        /* Texto */
+        +'<div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:14px;">'+p.txt+'</div>'
+        /* Botões */
+        +'<div style="display:flex;gap:8px;">'
+          +'<button onclick="el(\'m-tutorial\').innerHTML=\'\'" '
+            +'style="border:1px solid #e2e8f0;background:#fff;color:#64748b;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">'
+            +'Pular tutorial</button>'
+          +'<button id="btn-tut-prox" onclick="window._tutNext()" '
+            +'style="flex:1;border:none;background:'+(p.bg||'#003580')+';color:#fff;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer;">'
+            +(passo<_tutorialPassos.length-1?'Próximo ›':'🎉 Concluir')+'</button>'
+        +'</div>'
+      +'</div>'
+      /* CSS de animação */
+      +'<style>@keyframes tut-pulse{0%,100%{box-shadow:0 0 0 4px rgba(96,165,250,.25);}50%{box-shadow:0 0 0 8px rgba(96,165,250,.4);}}</style>';
+
     passo++;
   }
-  /* Capturar mostrarPasso no escopo */
-  window._tutPasso=function(){mostrarPasso();};
-  overlay.innerHTML='';
-  /* Atrasar para DOM estar pronto */
-  setTimeout(function(){
-    passo=0;mostrarPasso();
-  },1500);
+
+  window._tutNext=function(){
+    haptic('leve');
+    mostrarPasso();
+  };
+
+  setTimeout(function(){passo=0;mostrarPasso();},600);
 }
 window.iniciarTutorial=iniciarTutorial;
 
