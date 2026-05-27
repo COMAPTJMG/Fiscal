@@ -751,36 +751,14 @@ select {
 #fbody input::placeholder, #fbody textarea::placeholder { color: #94a3b8; }
 
 /* ══════════════════════════════════════════════════════════════
-   MODO ESCURO — v81 (SOMENTE via toggle manual no perfil)
-   NÃO ativa automaticamente pelo SO
+   MODO ESCURO — DESATIVADO em v82
+   Tema TJMG é exclusivamente claro (paleta institucional).
+   A classe .dark-mode foi neutralizada: mesmo se aplicada por engano
+   ou cache antigo, NENHUMA variável muda e o app permanece TJMG-claro.
    ══════════════════════════════════════════════════════════════ */
 body.dark-mode {
-  --bg:      #0f172a;
-  --surface: #1e293b;
-  --s2:      #1e293b;
-  --s3:      #1a2840;
-  --bo:      #334155;
-  --bo-md:   #475569;
-  --tx:      #f1f5f9;
-  --t2:      #94a3b8;
-  --t3:      #64748b;
-  background: #0f172a;
+  /* Intencionalmente vazio — paleta clara TJMG mantida */
 }
-body.dark-mode .card,
-body.dark-mode .fcard { background: var(--surface); border-color: var(--bo); }
-body.dark-mode input,
-body.dark-mode textarea,
-body.dark-mode select {
-  background: var(--s3);
-  color: var(--tx);
-  border-color: var(--bo);
-}
-body.dark-mode .bnv,
-body.dark-mode .hdr { color: #fff; }
-body.dark-mode .bnv { background: #1e293b; border-top-color: #334155; }
-body.dark-mode .sbr { background: #1e293b; border-bottom-color: #334155; }
-body.dark-mode .ubar { background: #1e293b; border-bottom-color: #334155; }
-body.dark-mode #offbar { background: linear-gradient(90deg,#78350f,#d97706); }
 
 /* ══════════════════════════════════════════════════════════════
    ALTO CONTRASTE — v81

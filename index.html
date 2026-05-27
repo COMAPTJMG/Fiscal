@@ -247,7 +247,7 @@ input:focus,textarea:focus{border-color:var(--a);}
      TELA: AUDITORIA (v79)
 ════════════════════════════════════════════════════════════ -->
 <div class="scr" id="s-audit" style="padding-top:var(--st)">
-  <div class="hdr" style="background:#1e293b;">
+  <div class="hdr ha">
     <div class="bkb" onclick="Gb('s-perfil');rPerf()">&#8249;</div>
     <div style="flex:1;"><div class="ht">🔍 Log de Auditoria</div><div class="hs">Ações registradas</div></div>
   </div>
@@ -265,7 +265,7 @@ input:focus,textarea:focus{border-color:var(--a);}
 
 <!-- ── VIGÊNCIA DE CONTRATOS (v81) ── -->
 <div class="scr" id="s-vigencia" style="padding-top:var(--st)">
-  <div class="hdr" style="background:#1e293b;">
+  <div class="hdr ha">
     <div class="bkb" onclick="Gb('s-perfil');rPerf()">&#8249;</div>
     <div style="flex:1;"><div class="ht">📅 Contratos</div><div class="hs">Vigência e prazos</div></div>
   </div>
@@ -866,7 +866,7 @@ function rRel(){
     rstsEl.style.display='flex';
     rstsEl.innerHTML=sopts.map(function(o){
       var sel=S.rsts===o.k;
-      return'<button onclick="S.rsts=\''+o.k+'\';rRel()" style="border:none;padding:4px 11px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;'+(sel&&o.bg?'background:'+o.bg+';color:'+o.c+';':'background:'+(sel?'#1e293b':'#e2e8f0')+';color:'+(sel?'#fff':'#64748b')+';')+'">'
+      return'<button onclick="S.rsts=\''+o.k+'\';rRel()" style="border:none;padding:4px 11px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;'+(sel&&o.bg?'background:'+o.bg+';color:'+o.c+';':'background:'+(sel?'#003580':'#e2e8f0')+';color:'+(sel?'#fff':'#64748b')+';')+'">'
         +(o.bg&&!sel?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+o.c+';margin-right:4px;vertical-align:middle;"></span>':'')
         +o.l+'</button>';
     }).join('');
@@ -1077,7 +1077,7 @@ function rPerf(){
     )
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
     +'<button class="btn" style="background:#0f766e;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-imr\');rIMR()">📊 IMR</button>'
-    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-audit\');rAudit()">🔍 Auditoria</button>'
+    +'<button class="btn" style="background:#0a4099;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-audit\');rAudit()">🔍 Auditoria</button>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
     +'<button class="btn" style="background:#d97706;color:#fff;font-size:12px;padding:11px;" onclick="gerarRelatorioMensal()">📋 Rel. Mensal</button>'
@@ -1092,15 +1092,14 @@ function rPerf(){
     +'<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:11px;" onclick="gerarTermoRecebimento(\'definitivo\')">📜 Termo Def.</button>'
     +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
-    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-vigencia\');rVigenciaContratos()">📅 Contratos</button>'
+    +'<button class="btn" style="background:#0a4099;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-vigencia\');rVigenciaContratos()">📅 Contratos</button>'
     +'<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:11px;" onclick="G(\'s-changelog\');rChangelog()">🆕 Novidades</button>'
     +'</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">'
-    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:11px;padding:10px;" onclick="toggleModoEscuro()">🌙 Escuro</button>'
-    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:11px;padding:10px;" onclick="toggleAltoContraste()">♿ Contraste</button>'
-    +'<button class="btn" style="background:#1e293b;color:#fff;font-size:11px;padding:10px;" onclick="toggleFonteMaior()">Aa Fonte</button>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+    +'<button class="btn" style="background:#475569;color:#fff;font-size:12px;padding:11px;" onclick="toggleAltoContraste()">♿ Contraste</button>'
+    +'<button class="btn" style="background:#475569;color:#fff;font-size:12px;padding:11px;" onclick="toggleFonteMaior()">Aa Fonte Maior</button>'
     +'</div>'
-    +'<button class="btn" style="background:#0f172a;color:#fff;margin-bottom:8px;font-size:12px;" onclick="ativarVozNav()">🎙️ Navegação por Voz</button>'
+    +'<button class="btn" style="background:#0a4099;color:#fff;margin-bottom:8px;font-size:12px;" onclick="ativarVozNav()">🎙️ Navegação por Voz</button>'
     +'<button class="btn" style="background:#64748b;color:#fff;margin-bottom:8px;font-size:12px;" onclick="iniciarTutorial(true)">🎓 Ver Tutorial</button>'
     +'<button class="btn boa" onclick="logout()">Trocar Técnico / Sair</button>'
     +'<button class="btn" style="background:#fee2e2;color:#dc2626;" onclick="logout()">Sair – '+s.nome.split(' ')[0]+'</button>'
@@ -1154,7 +1153,7 @@ function fpci(){
     +'<div class="stat" style="border-color:#ea580c;padding:8px;"><div style="font-size:17px;font-weight:900;color:#ea580c;">'+v3+'</div><div style="font-size:9px;color:#64748b;">30 dias</div></div>'
     +'<div class="stat" style="border-color:#dc2626;padding:8px;"><div style="font-size:17px;font-weight:900;color:#dc2626;">'+ve+'</div><div style="font-size:9px;color:#64748b;">Vencidos</div></div>'
     +'<div class="stat" style="border-color:'+R.c+';padding:8px;"><div style="font-size:17px;font-weight:900;color:'+R.c+';">'+d.length+'</div><div style="font-size:9px;color:#64748b;">Filtrados</div></div></div>'
-    +'<div style="background:#1e293b;display:flex;gap:6px;padding:8px 12px;">'
+    +'<div style="background:#003580;display:flex;gap:6px;padding:8px 12px;">'
     +'<div style="flex:3;font-size:10px;font-weight:700;color:#fff;">Comarca / Edificação</div>'
     +'<div style="flex:2;font-size:10px;font-weight:700;color:#fff;">Tipo</div>'
     +'<div style="flex:1;font-size:10px;font-weight:700;color:#fff;text-align:center;">Qtd</div>'

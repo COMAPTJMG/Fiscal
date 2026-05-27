@@ -704,22 +704,24 @@ function haptic(tipo){
 window.haptic=haptic;
 
 /* ══════════════════════════════════════════════════════════════
-   MODO ESCURO (v81)
+   MODO ESCURO — DESATIVADO em v82
+   Tema TJMG é exclusivamente claro (paleta institucional).
+   Funções mantidas como no-op para não quebrar chamadas existentes.
    ══════════════════════════════════════════════════════════════ */
 function toggleModoEscuro(){
-  var dark=localStorage.getItem('_darkMode')==='1';
-  dark=!dark;
-  localStorage.setItem('_darkMode',dark?'1':'0');
-  aplicarModoEscuro(dark);
-  Tt(dark?'🌙 Modo escuro ativado':'☀️ Modo claro ativado');
+  /* v82-fix: dark-mode removido. Tema TJMG é único e claro. */
+  localStorage.removeItem('_darkMode');
+  document.body.classList.remove('dark-mode');
+  Tt('Tema TJMG ativo');
 }
-function aplicarModoEscuro(dark){
-  document.body.classList.toggle('dark-mode',dark);
+function aplicarModoEscuro(){
+  /* v82-fix: no-op — paleta TJMG sempre clara */
+  document.body.classList.remove('dark-mode');
 }
 function iniciarTema(){
-  /* Só ativa modo escuro se o usuário ligou manualmente — nunca pelo SO */
-  var dark=localStorage.getItem('_darkMode')==='1';
-  aplicarModoEscuro(dark);
+  /* v82-fix: limpa qualquer resíduo de dark-mode salvo antes da v82 */
+  localStorage.removeItem('_darkMode');
+  document.body.classList.remove('dark-mode');
 }
 window.toggleModoEscuro=toggleModoEscuro;
 window.iniciarTema=iniciarTema;
