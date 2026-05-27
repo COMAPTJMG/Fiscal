@@ -30,7 +30,18 @@ function _injetarLeaflet(cb) {
 
   var js = document.createElement('script');
   js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  js.onload = cb;
+  js.onload = function() {
+    /* MarkerCluster: agrupa marcadores próximos */
+    var clCss = document.createElement('link');
+    clCss.rel = 'stylesheet';
+    clCss.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
+    document.head.appendChild(clCss);
+    var clJs = document.createElement('script');
+    clJs.src = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+    clJs.onload = cb;
+    clJs.onerror = cb; /* fallback sem cluster */
+    document.head.appendChild(clJs);
+  };
   document.head.appendChild(js);
 }
 
@@ -58,6 +69,18 @@ function _renderMapa() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18
     }).addTo(_mapInst);
+
+    /* Inicializar camada de cluster */
+    window._clusterLayer = typeof L.markerClusterGroup === 'function'
+      ? L.markerClusterGroup({
+          maxClusterRadius: 60,
+          showCoverageOnHover: false,
+          zoomToBoundsOnClick: true,
+          spiderfyOnMaxZoom: true,
+          disableClusteringAtZoom: 15
+        })
+      : null;
+    if (window._clusterLayer) window._clusterLayer.addTo(_mapInst);
 
     _mapReady = true;
     _plotarMarcadores();
@@ -144,7 +167,9 @@ function _plotarMarcadores() {
       + '</div>';
 
     marker.bindPopup(popup, { maxWidth: 240 });
-    marker.addTo(_mapInst);
+    /* Adiciona ao cluster (ou direto ao mapa se cluster não disponível) */
+    if (window._clusterLayer) marker.addTo(window._clusterLayer);
+    else marker.addTo(_mapInst);
   });
 
   /* Ajusta viewport */
