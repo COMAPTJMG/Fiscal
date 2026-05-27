@@ -587,18 +587,51 @@ function gerarRelatorioMensal(mesDado){
   var imrPct=imrRes&&imrRes.imr!==null?Math.round(imrRes.imr*100):null;
   var faixa=imrPct!==null&&typeof getFaixaIMR==='function'?getFaixaIMR(imrRes.imr):null;
 
+  /* v84: design institucional idêntico aos demais relatórios */
+  var _css='<style>'
+    +'@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&family=Source+Serif+4:opsz,wght@8..60,700&display=swap");'
+    +'*{box-sizing:border-box;margin:0;padding:0;}'
+    +'body{font-family:"IBM Plex Sans",sans-serif;font-size:12px;color:#1f2937;background:#fff;line-height:1.5;}'
+    +'.topo{background:#1e3a5f;color:#fff;padding:16px 24px;}'
+    +'.topo-inst{font-size:11px;opacity:.75;margin-top:2px;}'
+    +'.topo-nome{font-size:15px;font-weight:800;font-family:"Source Serif 4",serif;}'
+    +'.topo-ref{font-size:10px;opacity:.6;margin-top:4px;}'
+    +'.faixa{background:#003580;color:#fff;padding:10px 24px;display:flex;justify-content:space-between;align-items:center;}'
+    +'.faixa-titulo{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}'
+    +'.faixa-data{font-size:11px;opacity:.7;}'
+    +'.corpo{padding:20px 24px 40px;max-width:900px;margin:0 auto;}'
+    +'.sec-titulo{font-family:"Source Serif 4",serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#1e3a5f;border-bottom:2px solid #1e3a5f;padding-bottom:5px;margin:20px 0 12px;}'
+    +'.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}'
+    +'.kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;text-align:center;}'
+    +'.kpi-n{font-size:24px;font-weight:900;color:#1e3a5f;}'
+    +'.kpi-l{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}'
+    +'.kpi.imr .kpi-n{color:'+(imrPct!==null?(imrPct>=80?'#16a34a':imrPct>=60?'#d97706':'#dc2626'):'#94a3b8')+'}'
+    +'table{width:100%;border-collapse:collapse;font-size:11px;}'
+    +'th{background:#1e3a5f;color:#fff;padding:7px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.04em;}'
+    +'td{padding:7px 10px;border-bottom:1px solid #f1f5f9;}'
+    +'tr:hover td{background:#f8fafc;}'
+    +'.td-ok{color:#16a34a;font-weight:700;}'
+    +'.td-nc{color:#dc2626;font-weight:700;}'
+    +'.td-warn{color:#d97706;font-weight:700;}'
+    +'.rodape{margin-top:40px;padding:12px 24px;background:#f8fafc;border-top:2px solid #e2e8f0;font-size:9.5px;color:#9ca3af;text-align:center;}'
+    +'@page{size:A4;margin:12mm 14mm 16mm;}'
+    +'@media print{body{font-size:11px;}.topo,.faixa{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}'
+    +'</style>';
+
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
     +'<title>Relatório Mensal '+mesNome[mIdx]+'/'+mAno+'</title>'
-    +'<style>body{font-family:Arial,sans-serif;font-size:10pt;margin:2cm;color:#000;}'
-    +'h1{font-size:13pt;text-align:center;color:#003580;margin-bottom:4px;}'
-    +'.sub{text-align:center;font-size:10pt;color:#555;margin-bottom:20px;}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:14px;}'
-    +'td,th{border:1px solid #ccc;padding:5px 7px;font-size:9pt;}'
-    +'th{background:#dbeafe;font-weight:700;text-align:left;}'
-    +'h2{font-size:11pt;margin:14px 0 6px;border-bottom:2px solid #003580;padding-bottom:3px;}'
-    +'@media print{body{margin:1.5cm;}}</style></head><body>'
-    +'<h1>RELATÓRIO MENSAL DE FISCALIZAÇÃO</h1>'
-    +'<div class="sub">'+R.ct+' · Região '+R.l+' · '+mesNome[mIdx]+'/'+mAno+'</div>'
+    +_css
+    +'</head><body>'
+    +'<div class="topo">'
+    +'<div class="topo-inst">Tribunal de Justiça do Estado de Minas Gerais · DENGEP / GEMAP</div>'
+    +'<div class="topo-nome">Relatório Mensal de Fiscalização</div>'
+    +'<div class="topo-ref">'+R.ct+' · Região '+R.l+' · '+mesNome[mIdx]+'/'+mAno+'</div>'
+    +'</div>'
+    +'<div class="faixa">'
+    +'<span class="faixa-titulo">RELMF — Período: '+mesNome[mIdx]+'/'+mAno+'</span>'
+    +'<span class="faixa-data">Emitido em: '+new Date().toLocaleDateString('pt-BR')+'</span>'
+    +'</div>'
+    +'<div class="corpo">'
     +'<table><tr><th colspan="2">RESUMO EXECUTIVO</th></tr>'
     +'<tr><td>Total de inspeções finalizadas</td><td><b>'+base.length+'</b></td></tr>'
     +(imrPct!==null?'<tr><td>IMR apurado</td><td><b>'+imrPct+'%</b> — '+(faixa?faixa.label:'—')+'</td></tr>':'')
@@ -617,6 +650,20 @@ function gerarRelatorioMensal(mesDado){
         +'<td>'+(i.seiProc||'—')+'</td></tr>';
     }).join('')
     +'</table>'
+    /* KPIs */
+    +(function(){
+      var _allNcs=base.reduce(function(s,i){return s+Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;},0);
+      var _avgConf=dados&&dados.length?Math.round(dados.reduce(function(s,d){return s+(d||0);},0)/dados.length):null;
+      return '<div class="sec-titulo">Resumo Executivo</div>'
+        +'<div class="kpis">'
+        +'<div class="kpi"><div class="kpi-n">'+base.length+'</div><div class="kpi-l">Inspeções</div></div>'
+        +(imrPct!==null?'<div class="kpi imr"><div class="kpi-n">'+imrPct+'%</div><div class="kpi-l">IMR Apurado</div></div>':'')
+        +(imrPct!==null&&faixa?'<div class="kpi"><div class="kpi-n">'+Math.round(faixa.glosa*100)+'%</div><div class="kpi-l">Glosa</div></div>':'')
+        +'<div class="kpi"><div class="kpi-n" style="color:#dc2626;">'+_allNcs+'</div><div class="kpi-l">Total NCs</div></div>'
+        +'</div>';
+    })()
+    +'</div>'/* corpo */
+    +'<div class="rodape">Tribunal de Justiça do Estado de Minas Gerais · GEMAP · TJMG Fiscal PWA v84 · '+R.ct+'</div>'
     +'</body></html>';
 
   var blob=new Blob([html],{type:'text/html'});
@@ -1740,4 +1787,148 @@ function rVigenciaContratos(){
   h+='</div>';
   vb.innerHTML=h;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD ANALÍTICO POR COMARCA — v84
+   Gráfico de barras: conformidade por comarca, pior→melhor
+   Identificação rápida de comarcas problemáticas
+   ══════════════════════════════════════════════════════════════ */
+function rDashboard() {
+  var db = el('dashboard-body'); if (!db) return;
+  var s  = S.sessao || {};
+  var base = filterByReg(S.insp).filter(function(i) {
+    return i.st === 'finalizada' && i.tipo === 'periodica';
+  });
+
+  if (!base.length) {
+    db.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">'
+      + '<div style="font-size:40px;">📊</div>'
+      + '<div style="font-size:14px;font-weight:600;margin-top:10px;">Nenhuma inspeção finalizada</div>'
+      + '</div>';
+    return;
+  }
+
+  /* Agrupar por comarca */
+  var comarcas = {};
+  base.forEach(function(i) {
+    var c = i.com || 'Sem comarca';
+    if (!comarcas[c]) comarcas[c] = { insps: [], ncs: 0, fotos: 0 };
+    var its = Object.values(i.itens || {});
+    var aplic = its.filter(function(v) {
+      return v.s && v.s !== 'fora_periodo' && v.s !== 'nao_aplicavel' && v.s !== 'pendente';
+    });
+    var conf  = aplic.filter(function(v) { return v.s === 'conforme'; }).length;
+    var nc    = aplic.filter(function(v) { return v.s === 'nao_conforme'; }).length;
+    var ft    = its.reduce(function(s,v){ return s + (v.fotos||[]).length; }, 0);
+    var pct   = aplic.length ? Math.round(conf / aplic.length * 100) : null;
+    comarcas[c].insps.push({ pct: pct, nc: nc, data: i.dtVistoria || i.data, id: i.id });
+    comarcas[c].ncs   += nc;
+    comarcas[c].fotos += ft;
+  });
+
+  /* Calcular média por comarca */
+  var dados = Object.keys(comarcas).map(function(c) {
+    var insps = comarcas[c].insps.filter(function(x) { return x.pct !== null; });
+    var media = insps.length
+      ? Math.round(insps.reduce(function(s,x){ return s+x.pct; },0) / insps.length)
+      : null;
+    return {
+      comarca: c,
+      media:   media,
+      n:       comarcas[c].insps.length,
+      ncs:     comarcas[c].ncs,
+      fotos:   comarcas[c].fotos,
+      ultima:  comarcas[c].insps.sort(function(a,b){ return (b.data||'') > (a.data||'') ? 1 : -1; })[0]
+    };
+  }).filter(function(d) { return d.media !== null; });
+
+  /* Ordenar pior → melhor */
+  dados.sort(function(a, b) { return a.media - b.media; });
+
+  var maxVal = Math.max.apply(null, dados.map(function(d){ return d.media; }));
+
+  /* ── Cabeçalho ── */
+  var hoje = new Date();
+  var mesAtual = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0');
+  var noMes = base.filter(function(i){ return (i.dtVistoria||i.data||'').startsWith(mesAtual); }).length;
+
+  /* ── HTML ── */
+  var h = '<div style="padding:12px;">';
+
+  /* KPIs topo */
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">';
+  h += '<div style="background:#dbeafe;border-radius:10px;padding:12px;text-align:center;">'
+     + '<div style="font-size:22px;font-weight:900;color:#1e40af;">'+dados.length+'</div>'
+     + '<div style="font-size:9px;color:#1e40af;text-transform:uppercase;font-weight:700;">Comarcas</div></div>';
+  h += '<div style="background:#dcfce7;border-radius:10px;padding:12px;text-align:center;">'
+     + '<div style="font-size:22px;font-weight:900;color:#166534;">'+base.length+'</div>'
+     + '<div style="font-size:9px;color:#166534;text-transform:uppercase;font-weight:700;">Inspeções</div></div>';
+  h += '<div style="background:#fef3c7;border-radius:10px;padding:12px;text-align:center;">'
+     + '<div style="font-size:22px;font-weight:900;color:#92400e;">'+noMes+'</div>'
+     + '<div style="font-size:9px;color:#92400e;text-transform:uppercase;font-weight:700;">Este mês</div></div>';
+  h += '</div>';
+
+  /* Legenda de cores */
+  h += '<div style="display:flex;gap:10px;margin-bottom:12px;font-size:10px;font-weight:700;">';
+  h += '<span style="color:#dc2626;">● Crítico &lt;60%</span>';
+  h += '<span style="color:#d97706;">● Regular 60-80%</span>';
+  h += '<span style="color:#16a34a;">● Bom ≥80%</span>';
+  h += '</div>';
+
+  /* Gráfico de barras */
+  h += '<div style="font-size:11px;font-weight:800;color:#003580;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Conformidade por Comarca (pior → melhor)</div>';
+  h += '<div style="display:flex;flex-direction:column;gap:5px;">';
+
+  dados.forEach(function(d) {
+    var cor = d.media >= 80 ? '#16a34a' : d.media >= 60 ? '#d97706' : '#dc2626';
+    var bgCor = d.media >= 80 ? '#dcfce7' : d.media >= 60 ? '#fef3c7' : '#fee2e2';
+    var pct = d.media;
+    var barW = Math.round(pct / 100 * 100);
+
+    h += '<div style="background:#f8fafc;border-radius:8px;padding:8px 10px;border-left:4px solid '+cor+';">';
+    /* Linha 1: comarca + % */
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">';
+    h += '<div style="font-size:12px;font-weight:700;color:#1e293b;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px;">'+d.comarca+'</div>';
+    h += '<div style="font-size:14px;font-weight:900;color:'+cor+';flex-shrink:0;">'+pct+'%</div>';
+    h += '</div>';
+    /* Barra */
+    h += '<div style="background:#e2e8f0;border-radius:4px;height:8px;margin-bottom:5px;overflow:hidden;">';
+    h += '<div style="width:'+barW+'%;height:100%;background:'+cor+';border-radius:4px;transition:width .4s;"></div>';
+    h += '</div>';
+    /* Linha 2: detalhes */
+    h += '<div style="display:flex;gap:8px;font-size:9.5px;color:#64748b;">';
+    h += '<span>📋 '+d.n+' inspeção'+(d.n>1?'s':'')+'</span>';
+    if (d.ncs > 0) h += '<span style="color:'+cor+';font-weight:700;">⚠ '+d.ncs+' NC</span>';
+    if (d.fotos > 0) h += '<span>📸 '+d.fotos+'</span>';
+    h += '</div>';
+    h += '</div>';
+  });
+
+  h += '</div>';
+
+  /* Tabela ranking completo */
+  h += '<div style="margin-top:16px;font-size:11px;font-weight:800;color:#003580;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Ranking Completo</div>';
+  h += '<div style="background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;">';
+  h += '<div style="display:grid;grid-template-columns:24px 1fr 50px 50px;background:#1e3a5f;padding:7px 10px;">';
+  ['#','Comarca','Conf.','NCs'].forEach(function(col){
+    h += '<div style="font-size:9px;font-weight:800;color:#fff;letter-spacing:.05em;">'+col+'</div>';
+  });
+  h += '</div>';
+  dados.forEach(function(d, ix) {
+    var cor = d.media >= 80 ? '#16a34a' : d.media >= 60 ? '#d97706' : '#dc2626';
+    var bg  = ix % 2 === 0 ? '#fff' : '#f8fafc';
+    h += '<div style="display:grid;grid-template-columns:24px 1fr 50px 50px;padding:7px 10px;background:'+bg+';border-top:1px solid #f1f5f9;">';
+    h += '<div style="font-size:10px;color:#94a3b8;font-weight:700;">'+(ix+1)+'</div>';
+    h += '<div style="font-size:11px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+d.comarca+'</div>';
+    h += '<div style="font-size:12px;font-weight:800;color:'+cor+';">'+d.media+'%</div>';
+    h += '<div style="font-size:11px;color:'+(d.ncs>0?'#dc2626':'#94a3b8')+';font-weight:'+(d.ncs>0?'700':'400')+';">'+d.ncs+'</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+  h += '</div>'; /* padding wrapper */
+
+  db.innerHTML = h;
+}
+window.rDashboard = rDashboard;
+
 window.rVigenciaContratos=rVigenciaContratos;
