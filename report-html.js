@@ -1,13 +1,21 @@
 ﻿'use strict';
 /* ============================================================
-   TJMG Fiscal PWA — report-html.js  v69
+   TJMG Fiscal PWA — report-html.js  v83
    Fase 3 da modularização: geração de relatórios HTML locais.
 
-   ═══ MELHORIAS v69 vs v68 ═══
-   ✅ VISUAL: Tipografia refinada, espaçamentos melhorados,
-      gradientes suaves, sombras de profundidade, ícones SVG
-   ✅ SUMÁRIO EXECUTIVO: Resumo expandido com gráfico de rosca SVG
-   ✅ MARCA D'ÁGUA: "RASCUNHO" diagonal quando st !== 'finalizada'
+   ═══ MELHORIAS v83 vs v69 ═══
+   ✅ SUMÁRIO: removida redundância de dados (edif/comarca/data/fiscal
+      já constam na Ficha de Identificação imediatamente abaixo)
+   ✅ SUMÁRIO: adicionado badge de Grupo A/B/C (periódica)
+   ✅ SUMÁRIO: detalhamento de conformes/NC/NA/pendentes explícito
+   ✅ SUMÁRIO: alerta automático quando NC > 0 e fotos = 0 (TR 5.4.1.3)
+   ✅ CONFORMIDADE: denominador exclui itens N/A (cálculo correto)
+   ✅ PROTOCOLO: Grupo incluído (ex: RITMP-GRPA-...)
+   ✅ TIPO-FAIXA: badge visual Grupo A/B/C na faixa do relatório
+   ✅ FICHA: campo "Grupo de Manutenção" adicionado
+   ✅ NOME ARQUIVO: slug sem acentos via normProt, comarca + grupo
+      (ex: TJMG_RITMP_GrpA_SAO_ROMAO_FORUM_NOVO_FORUM_08-04-2026.html)
+   ✅ SUBESTAÇÃO: mesmo tratamento de sumário e nome de arquivo
    ✅ QR CODE: QR Code SVG com protocolo do documento
    ✅ NUMERAÇÃO DE PÁGINAS: Rodapé com contador de páginas (@media print)
    ✅ ÍNDICE: Sumário clicável com âncoras para cada sistema
@@ -52,7 +60,10 @@ function gerarProtocolo(i) {
   var _edif = normProt(i.edif);
   var _COMP = ['fachada','spda','prontuario','subestacao'];
   if (_COMP.indexOf(i.tipo) >= 0) return 'RITMP-COMPLEMENTAR-' + _dtFmt + '-' + _com + '-' + _edif;
-  if (i.tipo === 'periodica')     return 'RITMP-' + _dtFmt + '-' + _com + '-' + _edif;
+  if (i.tipo === 'periodica') {
+    var _grpP = i.grupo ? '-GRP' + i.grupo : ''; // v83-fix: grupo no protocolo
+    return 'RITMP' + _grpP + '-' + _dtFmt + '-' + _com + '-' + _edif;
+  }
   var _osRaw = (i.os || '').trim().toUpperCase();
   var _osNum = _osRaw.replace(/[^0-9]/g,'');
   var _osStr = i.tipo === 'ose'
@@ -434,9 +445,10 @@ function _gerarHTMLStr(id) {
     if (i.mats && i.mats.length) stats.mats += i.mats.length;
 
     var _isOse  = i.tipo === 'ose';
+    var _aplic  = stats.total - stats.na; // v83-fix: N/A não entra no denominador
     var _pct    = _isOse
-      ? (stats.total ? Math.round(stats.exec  / stats.total * 100) : 0)
-      : (stats.total ? Math.round(stats.conf  / stats.total * 100) : 0);
+      ? (_aplic ? Math.round(stats.exec / _aplic * 100) : 0)
+      : (_aplic ? Math.round(stats.conf / _aplic * 100) : 0);
     var _pctCor = _pct >= 80 ? '#15803d' : _pct >= 50 ? '#d97706' : '#b91c1c';
     var _pctG   = _pct >= 80 ? '#15803d,#22c55e' : _pct >= 50 ? '#b45309,#f59e0b' : '#b91c1c,#ef4444';
 
@@ -651,20 +663,34 @@ function _gerarHTMLStr(id) {
       + _gestorBox
       + '</div>';
 
-    /* ── Sumário Executivo ── */
+    /* ── Sumário Executivo — v83: sem repetição de dados da ficha abaixo ── */
+    var _grpInfo = { A:'Grupo A · Periódica 3m + API', B:'Grupo B · Periódica 3 meses', C:'Grupo C · Periódica 6 meses' };
+    var _grpHex  = { A:'#1d4ed8', B:'#0369a1', C:'#0f766e' };
+    var _grpBadge = (i.tipo === 'periodica' && i.grupo)
+      ? '<div style="margin-bottom:8px;"><span style="display:inline-block;background:' + (_grpHex[i.grupo]||'#1d4ed8') + '18;color:' + (_grpHex[i.grupo]||'#1d4ed8') + ';border:1px solid ' + (_grpHex[i.grupo]||'#1d4ed8') + '44;border-radius:4px;font-size:10.5px;font-weight:700;padding:3px 10px;letter-spacing:.03em;">' + (_grpInfo[i.grupo]||'Grupo '+i.grupo) + '</span></div>'
+      : '';
+    var _ncSemFotoAlert = (stats.nc > 0 && stats.fotos === 0)
+      ? '<div style="background:#fff7ed;border:1px solid #fed7aa;border-left:4px solid #ea580c;border-radius:5px;padding:8px 12px;margin-top:8px;font-size:11px;color:#9a3412;"><b>⚠ Atenção:</b> ' + stats.nc + ' não conformidade(s) sem registro fotográfico. O item 5.4.1.3 do TR exige fotos de todas as NCs — o relatório poderá ser devolvido pela Fiscalização.</div>'
+      : '';
     var sumarioHtml = '<div class="sumario">'
       + '<div class="sumario-info">'
       + '<div class="sumario-title">📊 Sumário Executivo</div>'
+      + _grpBadge
       + '<div class="sumario-grid">'
-      + '<div class="sumario-item">📍 <b>' + _safe(i.edif) + '</b></div>'
-      + '<div class="sumario-item">🏛️ <b>' + _safe(i.com) + '</b></div>'
-      + '<div class="sumario-item">📅 <b>' + fdt(_dataVist) + '</b></div>'
-      + '<div class="sumario-item">👤 <b>' + fiscalNome + '</b></div>'
       + '<div class="sumario-item">📋 <b>' + stats.total + ' itens</b> inspecionados</div>'
+      + (_osp
+          ? '<div class="sumario-item">✅ <b>' + stats.exec + ' executados</b></div>'
+            + '<div class="sumario-item">❌ <b>' + stats.nexec + ' não executados</b></div>'
+            + '<div class="sumario-item">⏳ <b>' + (stats.pend+stats.emexec) + ' pendentes</b></div>'
+          : '<div class="sumario-item">✅ <b>' + stats.conf + ' conformes</b></div>'
+            + '<div class="sumario-item">❌ <b>' + stats.nc + ' não conformes</b></div>'
+            + (stats.na ? '<div class="sumario-item">➖ <b>' + stats.na + ' N/A</b></div>' : ''))
       + '<div class="sumario-item">📸 <b>' + stats.fotos + ' fotos</b> registradas</div>'
       + (stats.mats ? '<div class="sumario-item">🔧 <b>' + stats.mats + ' materiais</b> utilizados</div>' : '')
       + (regLbl ? '<div class="sumario-item">🗺️ <b>' + regLbl + '</b></div>' : '')
-      + '</div></div>'
+      + '</div>'
+      + _ncSemFotoAlert
+      + '</div>'
       + '<div class="sumario-donut">'
       + _gerarDonutSvg(_pct, _pctCor, 90)
       + '<div class="sumario-donut-label">' + (_osp ? 'Execução' : 'Conformidade') + '</div>'
@@ -703,7 +729,7 @@ function _gerarHTMLStr(id) {
 
       /* Faixa tipo */
       + '<div class="tipo-faixa">'
-      + '<span class="tipo-badge">' + tipoLbl + '</span>'
+      + '<span class="tipo-badge">' + tipoLbl + (i.tipo==='periodica'&&i.grupo?' &nbsp;<span style="background:rgba(255,255,255,.2);padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600;">Grupo '+i.grupo+'</span>':'') + '</span>'
       + '<span class="tipo-data">' + geradoEm + '</span>'
       + '</div>'
 
@@ -719,6 +745,7 @@ function _gerarHTMLStr(id) {
       + '<div class="ficha-grid">'
       + '<div class="ficha-item"><div class="ficha-label">Edificação</div><div class="ficha-val">' + _safe(i.edif) + '</div></div>'
       + '<div class="ficha-item"><div class="ficha-label">Comarca</div><div class="ficha-val">' + _safe(i.com) + '</div></div>'
+      + (i.tipo==='periodica'&&i.grupo ? '<div class="ficha-item"><div class="ficha-label">Grupo de Manutenção</div><div class="ficha-val">' + (_grpInfo[i.grupo]||'Grupo '+i.grupo) + '</div></div>' : '')
       + '<div class="ficha-item"><div class="ficha-label">' + ((i.tipo==='periodica'||i.tipo==='ose'||i.tipo==='programada')?'Data de Início':'Data da Vistoria') + '</div><div class="ficha-val">' + fdt(_dataVist) + '</div></div>'
       + ((i.tipo==='periodica'||i.tipo==='ose'||i.tipo==='programada')&&i.dtVistoriaFim ? '<div class="ficha-item"><div class="ficha-label">Data Final</div><div class="ficha-val">' + fdt(i.dtVistoriaFim) + '</div></div>' : '')
       + '<div class="ficha-item"><div class="ficha-label">Fiscal Responsável</div><div class="ficha-val">' + fiscalNome + '</div></div>'
@@ -795,10 +822,15 @@ function _doExportHTML(id) {
     var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     var a    = document.createElement('a');
     a.href   = URL.createObjectURL(blob);
-    var nomeArq = 'TJMG_' + (i.tipo || 'REL').toUpperCase()
-      + '_' + (i.edif || 'EDIF').replace(/[^a-zA-Z0-9]/g,'_')
-      + (i.os ? '_' + i.os.replace(/[^a-zA-Z0-9]/g,'_') : '')
-      + '_' + fdt(i.dtVistoria || i.data).replace(/\//g,'-') + '.html';
+    // v83-fix: nome canônico com slug sem acentos, grupo e comarca
+    var _tipoSiglas = { periodica:'RITMP', ose:'RITE', programada:'RITP', fachada:'RITMP-COMP', spda:'RITMP-COMP', prontuario:'RITMP-COMP', subestacao:'RIMS', osp:'OSP' };
+    var _nSigla = _tipoSiglas[i.tipo] || 'REL';
+    var _nGrp   = (i.tipo === 'periodica' && i.grupo) ? '_Grp' + i.grupo : '';
+    var _nCom   = normProt(i.com  || '').replace(/-/g,'_').substring(0,30);
+    var _nEdif  = normProt(i.edif || 'EDIF').replace(/-/g,'_').substring(0,35);
+    var _nDt    = fdt(i.dtVistoria || i.data).replace(/\//g,'-');
+    var _nOs    = i.os ? '_' + normProt(i.os).replace(/-/g,'_') : '';
+    var nomeArq = 'TJMG_' + _nSigla + _nGrp + '_' + _nCom + '_' + _nEdif + _nOs + '_' + _nDt + '.html';
     a.download = nomeArq;
     document.body.appendChild(a);
     a.click();
@@ -853,6 +885,8 @@ function _gerarHTMLSubStr(id) {
     var pct  = total ? Math.round(marc / total * 100) : 0;
     var pCor = pct >= 80 ? '#15803d' : pct >= 50 ? '#d97706' : '#b91c1c';
     var pG   = pct >= 80 ? '#15803d,#22c55e' : pct >= 50 ? '#b45309,#f59e0b' : '#b91c1c,#ef4444';
+    var conforme = marc;          // v83-fix: para o sumário da subestação
+    var naoConf  = total - marc;  // v83-fix
 
     var geradoEm   = new Date().toLocaleString('pt-BR', { dateStyle:'full', timeStyle:'short' });
     var numDoc     = insp.protocolo || gerarProtocolo(insp);
@@ -1027,17 +1061,15 @@ function _gerarHTMLSubStr(id) {
       + '<div class="ass-cargo">Responsável Técnico — TJMG</div>'
       + '</div></div>';
 
-    /* ── Sumário Executivo ── */
+    /* ── Sumário Executivo — v83: sem repetição de dados da ficha abaixo ── */
     var sumarioHtml = '<div class="sumario">'
       + '<div class="sumario-info">'
       + '<div class="sumario-title">📊 Sumário Executivo</div>'
       + '<div class="sumario-grid">'
-      + '<div class="sumario-item">📍 <b>' + _safe(insp.edif) + '</b></div>'
-      + '<div class="sumario-item">🏛️ <b>' + _safe(insp.com) + '</b></div>'
-      + '<div class="sumario-item">📅 <b>' + dt + '</b></div>'
-      + '<div class="sumario-item">👤 <b>' + fiscalNome + '</b></div>'
       + '<div class="sumario-item">⚡ <b>' + tipoSub + '</b> · <b>' + tipoMan + '</b></div>'
       + '<div class="sumario-item">📋 <b>' + total + ' itens</b> no checklist</div>'
+      + '<div class="sumario-item">✅ <b>' + conforme + ' conformes</b></div>'
+      + '<div class="sumario-item">❌ <b>' + naoConf + ' não conformes</b></div>'
       + '</div></div>'
       + '<div class="sumario-donut">'
       + _gerarDonutSvg(pct, pCor, 90)
@@ -1174,8 +1206,10 @@ function _doExportHTMLSub(id) {
     var blob    = new Blob([html], { type: 'text/html;charset=utf-8' });
     var a       = document.createElement('a');
     a.href      = URL.createObjectURL(blob);
-    var nomeArq = 'Sub_' + tipoSub
-      + '_' + (insp.com  || 'COMARCA').replace(/[^a-zA-Z0-9]/g,'_')
+    // v83-fix: nome canônico subestação com slug sem acentos
+    var nomeArq = 'TJMG_RIMS_Sub' + tipoSub
+      + '_' + normProt(insp.com  || 'COMARCA').replace(/-/g,'_').substring(0,30)
+      + '_' + normProt(insp.edif || '').replace(/-/g,'_').substring(0,30)
       + '_' + fdt(insp.data || Date.now()).replace(/\//g,'-') + '.html';
     a.download = nomeArq;
     document.body.appendChild(a);
