@@ -4,7 +4,7 @@
    v82-fix: paleta TJMG consistente, dark-mode removido
 */
 
-const V = 'tjmg-v83';
+const V = 'tjmg-v84';
 const BYPASS = [
   'supabase.co',
   'googleapis.com',
@@ -17,10 +17,33 @@ const BYPASS = [
   'unpkg.com'
 ];
 
-/* ── Install: pré-cache ── */
+/* ── Install: pré-cache dos assets essenciais ── */
+var PRECACHE_URLS = [
+  './', './index.html', './design.css', './manifest.json',
+  './config.js', './data.js', './state.js', './utils.js',
+  './db.js', './photo-store.js', './sync.js', './auth.js',
+  './router.js', './report-html.js', './report-pdf.js',
+  './form.js', './extras.js', './admin.js', './imr.js',
+  './map.js', './coords.js', './photo-annotate.js',
+  './prontuario-edif.js', './audit.js',
+  './icon-192.png', './icon-512.png', './favicon.ico'
+];
+
 self.addEventListener('install', function(e) {
-  /* Ativa imediatamente sem esperar aba fechar */
-  self.skipWaiting();
+  e.waitUntil(
+    caches.open(V).then(function(cache) {
+      /* pré-cache silencioso — falhas individuais não bloqueiam */
+      return Promise.allSettled(
+        PRECACHE_URLS.map(function(url) {
+          return cache.add(url).catch(function(err) {
+            console.warn('[SW] pré-cache falhou:', url, err.message);
+          });
+        })
+      );
+    }).then(function() {
+      return self.skipWaiting();
+    })
+  );
 });
 
 /* ── Activate: limpa caches antigos ── */
