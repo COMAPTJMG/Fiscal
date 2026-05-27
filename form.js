@@ -2283,7 +2283,23 @@ function fnxt(){
   F.et++;rFe(true);
 }
 function fprv(){if(F.et>0){F.et--;rFe(true);}else fback();}
-function fback(){if(F._editando){cf('X','Sair','Descartar alterações e voltar ao relatório?',function(){stopAutoSave();F._editando=false;openDet(F.id);G('s-det');});}else{cf('X','Sair','Salvar rascunho e sair?',function(){salvarR();stopAutoSave();Gb('s-home');rHome();});}}
+function fback(){
+  if(F._editando){
+    cf('X','Sair','Descartar alterações e voltar ao relatório?',function(){
+      stopAutoSave();
+      if(typeof pararCrono==='function') pararCrono();
+      if(typeof pararGPS==='function') pararGPS();
+      F._editando=false;openDet(F.id);G('s-det');
+    });
+  }else{
+    cf('X','Sair','Salvar rascunho e sair?',function(){
+      salvarR();stopAutoSave();
+      if(typeof pararCrono==='function') pararCrono();
+      if(typeof pararGPS==='function') pararGPS();
+      Gb('s-home');rHome();
+    });
+  }
+}
 function salvarR(){
   normalizeFormState(F);
   saveRascunhoAuto(true);
