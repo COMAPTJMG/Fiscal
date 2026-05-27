@@ -1,19 +1,20 @@
 'use strict';
 // ============================================================
 // router.js — Navegação entre telas: G, Gb, navt, bH
-// TJMG Fiscal PWA — v79 (+ aba Agenda)
+// TJMG Fiscal PWA — v84 (+ aba Dashboard analítico)
 // ============================================================
 
 function G(id){var c=document.querySelector('.scr.act');var n=el(id);if(!n||c===n)return;if(c){c.classList.add('bk');setTimeout(function(){c.classList.remove('act','bk');},300);}n.classList.add('act');}
 function Gb(id){var c=document.querySelector('.scr.act');var n=el(id);if(!n||c===n)return;c.classList.remove('act');n.classList.add('act');}
-var BNS=['bn0','bn1','bn2','bn3','bn4'];
+var BNS=['bn0','bn1','bn2','bn3','bn4','bn5'];
 function bH(act){
   var ts=[
-    {id:'home', i:'&#127968;',l:'Início'},
-    {id:'tipos', i:'+',       l:'Novo'},
-    {id:'rel',  i:'&#128196;',l:'Relatórios'},
-    {id:'agenda',i:'&#128197;',l:'Agenda'},
-    {id:'perf', i:'&#128100;',l:'Perfil'}
+    {id:'home',      i:'&#127968;', l:'Início'},
+    {id:'tipos',     i:'+',         l:'Novo'},
+    {id:'rel',       i:'&#128196;', l:'Relatórios'},
+    {id:'agenda',    i:'&#128197;', l:'Agenda'},
+    {id:'dashboard', i:'&#128202;', l:'Análise'},
+    {id:'perf',      i:'&#128100;', l:'Perfil'}
   ];
   var h='';
   ts.forEach(function(t){
@@ -28,11 +29,12 @@ function bH(act){
 }
 function navt(t){
   var m={
-    home:  {s:'s-home',   r:rHome},
-    tipos: {s:'s-tipos',  r:rTipos},
-    rel:   {s:'s-rel',    r:rRel},
-    agenda:{s:'s-agenda', r:rAgenda},
-    perf:  {s:'s-perfil', r:rPerf}
+    home:      {s:'s-home',      r:rHome},
+    tipos:     {s:'s-tipos',     r:rTipos},
+    rel:       {s:'s-rel',       r:rRel},
+    agenda:    {s:'s-agenda',    r:rAgenda},
+    dashboard: {s:'s-dashboard', r:function(){BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('dashboard');});if(typeof rDashboard==='function')rDashboard();}},
+    perf:      {s:'s-perfil',    r:rPerf}
   };
   var x=m[t];if(!x)return;x.r();
   BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH(t);});
