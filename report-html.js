@@ -297,19 +297,33 @@ function _cssBase(tipoCorHex) {
     '.mat-desc{padding:8px 14px;font-size:12px;}.mat-qty{padding:8px 14px;font-size:12px;font-weight:700;text-align:right;}',
     '.mat-un{padding:8px 14px;font-size:11px;color:#64748b;text-align:center;}',
 
-    /* Fotos */
-    '.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0;}',
+    /* Fotos — v83: maiores, galeria profissional */
+    '.foto-sec-hdr{display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(90deg,#ede9fe,#f5f3ff);border-left:3px solid #7c3aed;border-radius:0 6px 6px 0;}',
+    '.foto-sec-hdr-ico{font-size:14px;}',
+    '.foto-sec-hdr-txt{font-size:11px;font-weight:700;color:#5b21b6;text-transform:uppercase;letter-spacing:.06em;}',
+    '.foto-sec-hdr-cnt{font-size:10px;color:#7c3aed;background:#fff;border-radius:10px;padding:1px 8px;font-weight:700;margin-left:auto;}',
+    '.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:0 0 6px;}',
     '.foto-item{display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid #dde3ec;background:#f8fafc;cursor:zoom-in;transition:transform .15s,box-shadow .15s;break-inside:avoid;}',
-    '.foto-item:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.1);}',
-    '.foto-item img{width:100%;height:130px;object-fit:cover;display:block;}',
-    '.foto-item figcaption{font-size:10px;color:#64748b;padding:5px 10px;text-align:center;background:#fff;border-top:1px solid #eef1f6;}',
-    '.foto-err{width:100%;height:130px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;}',
+    '.foto-item:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.12);}',
+    '.foto-item img{width:100%;height:180px;object-fit:cover;display:block;}',
+    '.foto-item figcaption{font-size:10.5px;color:#475569;padding:6px 10px;text-align:center;background:#fff;border-top:1px solid #eef1f6;font-style:italic;min-height:24px;}',
+    '.foto-err{width:100%;height:180px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;}',
+
+    /* Galeria consolidada de todas as fotos */
+    '.galeria-sec{margin-top:32px;border-top:2px solid #ede9fe;padding-top:20px;}',
+    '.galeria-titulo{font-size:13px;font-weight:800;color:#5b21b6;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:8px;}',
+    '.galeria-sub{font-size:11px;color:#64748b;margin-bottom:14px;}',
+    '.galeria-item-nm{font-size:10px;font-weight:700;color:#1e293b;background:#f1f5f9;padding:3px 8px;border-radius:4px;margin-bottom:6px;display:inline-block;}',
+    '.galeria-grupo{margin-bottom:20px;}',
 
     /* Lightbox */
-    '#foto-lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(4px);}',
+    '#foto-lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(6px);}',
     '#foto-lb.open{display:flex;}',
-    '#foto-lb img{max-width:94vw;max-height:90vh;border-radius:12px;box-shadow:0 10px 60px rgba(0,0,0,.5);}',
-    '#foto-lb-cap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);color:#fff;padding:8px 24px;border-radius:24px;font-size:13px;pointer-events:none;white-space:nowrap;backdrop-filter:blur(8px);}',
+    '#foto-lb img{max-width:96vw;max-height:92vh;border-radius:10px;box-shadow:0 10px 60px rgba(0,0,0,.6);}',
+    '#foto-lb-cap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:8px 24px;border-radius:24px;font-size:13px;pointer-events:none;white-space:nowrap;backdrop-filter:blur(8px);}',
+    '#foto-lb-nav{position:fixed;top:50%;left:0;right:0;display:flex;justify-content:space-between;padding:0 16px;transform:translateY(-50%);pointer-events:none;}',
+    '#foto-lb-nav button{pointer-events:all;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:28px;padding:10px 18px;border-radius:10px;cursor:pointer;backdrop-filter:blur(4px);}',
+    '#foto-lb-nav button:hover{background:rgba(255,255,255,.3);}',
 
     /* Assinatura */
     '.ass-wrap{margin-top:48px;padding-top:28px;border-top:2px solid #e2e8f0;display:flex;flex-wrap:wrap;gap:24px;}',
@@ -337,8 +351,10 @@ function _cssBase(tipoCorHex) {
     '.check-table{break-inside:auto;}',
     '.check-table thead{display:table-header-group;}',
     '.item-row{break-inside:avoid;page-break-inside:avoid;}',
-    '.foto-grid{grid-template-columns:repeat(3,1fr)!important;}',
-    '.foto-item img{height:85px!important;}',
+    '.foto-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px!important;}',
+    '.foto-item img{height:160px!important;}',
+    '.galeria-sec{page-break-before:always;}',
+    '.galeria-grupo{break-inside:avoid;}',
     '.corpo{padding:16px!important;}',
     '.watermark{font-size:70px!important;}',
     '.rodape-page{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:9px;color:#94a3b8;padding:4px;}',
@@ -348,18 +364,8 @@ function _cssBase(tipoCorHex) {
 
 /* ── Script inline para o HTML exportado ─────────────────── */
 function _inlineScript() {
-  return 'function abrirLB(fig){'
-    + 'var img=fig.querySelector("img");if(!img)return;'
-    + 'var cap=fig.querySelector("figcaption");'
-    + 'var lbImg=document.getElementById("foto-lb-img");'
-    + 'if(lbImg)lbImg.src=img.src;'
-    + 'var lbCap=document.getElementById("foto-lb-cap");'
-    + 'if(lbCap)lbCap.textContent=cap?cap.textContent:"";'
-    + 'var lb=document.getElementById("foto-lb");'
-    + 'if(lb)lb.classList.add("open");'
-    + '}'
-    + 'function fecharLB(){var lb=document.getElementById("foto-lb");if(lb)lb.classList.remove("open");}'
-    + 'document.addEventListener("keydown",function(e){if(e.key==="Escape")fecharLB();});'
+  /* v83: lightbox com navegação por setas e teclado */
+  return 'var _lbAll=[],_lbIdx=0;'    + 'function abrirLB(fig){'    + '_lbAll=Array.from(document.querySelectorAll(\'.foto-item img\'));'    + 'var img=fig.querySelector(\"img\");if(!img)return;'    + '_lbIdx=_lbAll.indexOf(img);_lbMostrar();}'    + 'function _lbMostrar(){'    + 'var img=_lbAll[_lbIdx];if(!img)return;'    + 'var lbImg=document.getElementById(\"foto-lb-img\");if(lbImg)lbImg.src=img.src;'    + 'var fig=img.closest(\"figure\");'    + 'var cap=fig&&fig.querySelector(\"figcaption\");'    + 'var lbCap=document.getElementById(\"foto-lb-cap\");'    + 'if(lbCap)lbCap.textContent=(cap&&cap.textContent.trim()?cap.textContent.trim()+\" — \":\"\")+(_lbIdx+1)+\"/\"+_lbAll.length;'    + 'var lb=document.getElementById(\"foto-lb\");if(lb)lb.classList.add(\"open\");}'    + 'function fecharLB(){var lb=document.getElementById(\"foto-lb\");if(lb)lb.classList.remove(\"open\");}'    + 'function _lbNav(d){if(!_lbAll.length)return;_lbIdx=(_lbIdx+d+_lbAll.length)%_lbAll.length;_lbMostrar();}'    + 'document.addEventListener(\"keydown\",function(e){'    + 'var lb=document.getElementById(\"foto-lb\");if(!lb||!lb.classList.contains(\"open\"))return;'    + 'if(e.key===\"Escape\")fecharLB();'    + 'if(e.key===\"ArrowRight\"||e.key===\"ArrowDown\")_lbNav(1);'    + 'if(e.key===\"ArrowLeft\"||e.key===\"ArrowUp\")_lbNav(-1);});'
     + 'function gerarPDF(btn){'
     + 'if(!btn)return;btn.disabled=true;btn.textContent="Gerando PDF...";'
     + 'var bar=document.querySelector(".btn-bar");if(bar)bar.style.display="none";'
@@ -509,7 +515,12 @@ function _gerarHTMLStr(id) {
 
         var fotosHtml = '';
         if (it.fotos && it.fotos.length) {
-          fotosHtml = '<div class="foto-grid">';
+          fotosHtml = '<div class="foto-sec-hdr">'
+            + '<span class="foto-sec-hdr-ico">📸</span>'
+            + '<span class="foto-sec-hdr-txt">Registros Fotográficos</span>'
+            + '<span class="foto-sec-hdr-cnt">' + it.fotos.length + ' foto(s)</span>'
+            + '</div>'
+            + '<div class="foto-grid">';
           it.fotos.forEach(function(f){
             if (!f || !f.b64) return;
             fotosHtml += '<figure class="foto-item" onclick="abrirLB(this)">'
@@ -792,6 +803,38 @@ function _gerarHTMLStr(id) {
       /* Materiais consolidados */
       + matsGerais
 
+      /* ── Galeria Fotográfica Consolidada — v83 ── */
+      + (function(){
+          var _grupos = [];
+          its.forEach(function(it){
+            if (!it.fotos || !it.fotos.length) return;
+            _grupos.push({ nm: it.nm || it.n || '—', fotos: it.fotos });
+          });
+          /* Fotos gerais da inspeção (não ligadas a item) */
+          if (i.fotos && i.fotos.length) _grupos.push({ nm: 'Registros Gerais', fotos: i.fotos });
+          var _totalFotos = _grupos.reduce(function(s,g){return s+g.fotos.length;},0);
+          if (!_totalFotos) return '';
+
+          var gHtml = _grupos.map(function(g){
+            var imgs = g.fotos.map(function(f){
+              if (!f || !f.b64) return '';
+              return '<figure class="foto-item" onclick="abrirLB(this)">'
+                + '<img src="' + f.b64 + '" alt="' + _esc(f.leg || 'Foto') + '" loading="lazy">'
+                + '<figcaption>' + _esc(f.leg || '') + '</figcaption></figure>';
+            }).join('');
+            return '<div class="galeria-grupo">'
+              + '<div class="galeria-item-nm">📋 ' + _esc(g.nm) + ' &nbsp;<span style="font-weight:400;color:#64748b;">(' + g.fotos.length + ' foto' + (g.fotos.length>1?'s':'') + ')</span></div>'
+              + '<div class="foto-grid">' + imgs + '</div>'
+              + '</div>';
+          }).join('');
+
+          return '<div class="galeria-sec">'
+            + '<div class="galeria-titulo">📸 Galeria de Registros Fotográficos</div>'
+            + '<div class="galeria-sub">Total: ' + _totalFotos + ' foto(s) registrada(s) em ' + _grupos.length + ' item(ns) desta inspeção.</div>'
+            + gHtml
+            + '</div>';
+        })()
+
       /* Obs OSP */
       + (i.tipo === 'osp'
           ? '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 18px;margin-top:24px;">'
@@ -803,7 +846,7 @@ function _gerarHTMLStr(id) {
 
       + '</div>'  /* corpo */
       + '</div>'  /* page */
-      + '<div id="foto-lb" onclick="fecharLB()"><img id="foto-lb-img" src=""><div id="foto-lb-cap"></div></div>'
+      + '<div id="foto-lb" onclick="if(event.target===this)fecharLB()"><img id="foto-lb-img" src=""><div id="foto-lb-cap"></div><div id="foto-lb-nav"><button onclick="_lbNav(-1);event.stopPropagation()">&#8592;</button><button onclick="_lbNav(1);event.stopPropagation()">&#8594;</button></div></div>'
       + '<scr' + 'ipt>' + _inlineScript() + '<\/script>'
       + '</body></html>';
 
@@ -1187,7 +1230,7 @@ function _gerarHTMLSubStr(id) {
       + '</div>'  /* corpo */
       + '</div>'  /* page */
 
-      + '<div id="foto-lb" onclick="fecharLB()"><img id="foto-lb-img" src=""><div id="foto-lb-cap"></div></div>'
+      + '<div id="foto-lb" onclick="if(event.target===this)fecharLB()"><img id="foto-lb-img" src=""><div id="foto-lb-cap"></div><div id="foto-lb-nav"><button onclick="_lbNav(-1);event.stopPropagation()">&#8592;</button><button onclick="_lbNav(1);event.stopPropagation()">&#8594;</button></div></div>'
       + '<scr' + 'ipt>' + _inlineScript() + '<\/script>'
       + '</body></html>';
 
