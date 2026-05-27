@@ -49,12 +49,19 @@ var _sessMonitorTimer=null;
 function _onUserActivity(){
   if(!S.sessao||!S.sessao._t)return;
   var age=Date.now()-S.sessao._t;
-  /* Renova se entre 7h e 8h: reseta _t para agora - 1h (dá mais 7h) */
-  if(age>7*3600000&&age<8*3600000){
-    S.sessao._t=Date.now()-3600000;
-    try{var _sc=JSON.parse(JSON.stringify(S.sessao));localStorage.setItem('ts',JSON.stringify(_sc));}catch(e){}
-    _sessWarnSent=false;
-    setTimeout(function(){try{Tt('✅ Sessão renovada automaticamente.');}catch(e){}},200);
+  var TTL=28800000; /* 8h */
+  /* v84-fix: renovar sessão a cada atividade do usuário (não só na janela 7-8h)
+     Se o fiscal estiver ativamente usando o app, a sessão nunca expira. */
+  if(age>60000){ /* só renova se passou mais de 1 min desde a última renovação */
+    S.sessao._t=Date.now();
+    if(age>TTL-3600000&&_sessWarnSent){ /* era para expirar em breve: avisar que renovou */
+      _sessWarnSent=false;
+      setTimeout(function(){try{Tt('✅ Sessão renovada.');}catch(e){}},200);
+    }
+    try{
+      var _sc=JSON.parse(JSON.stringify(S.sessao));
+      localStorage.setItem('ts',JSON.stringify(_sc));
+    }catch(e){}
   }
 }
 function startSessaoMonitor(){
