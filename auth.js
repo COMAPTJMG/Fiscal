@@ -681,7 +681,12 @@ function rCoordNCs(){
       h+='<div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.4;">'+_escA(nc.nm)+'</div>';
       if(nc.sistema) h+='<div style="font-size:10px;color:#94a3b8;">Sistema: '+_escA(nc.sistema)+'</div>';
       if(nc.obs) h+='<div style="font-size:11px;color:#b91c1c;font-style:italic;margin-top:2px;">'+_escA(nc.obs)+'</div>';
-      h+='<div style="font-size:10px;color:#64748b;margin-top:3px;">👤 '+_escA(nc.fiscal||'—')+' · '+fdt(nc.data)+(nc.temNot?' · <span style="color:#16a34a;font-weight:700;">NOT-INA emitida</span>':'')+'</div>';
+      /* v86: timer de dias abertos */
+      var _ncDias = nc.data ? Math.round((new Date() - new Date(nc.data + 'T12:00:00')) / 86400000) : null;
+      var _ncCorDias = _ncDias === null ? '#94a3b8' : _ncDias > 30 ? '#dc2626' : _ncDias > 15 ? '#d97706' : '#64748b';
+      h+='<div style="font-size:10px;color:#64748b;margin-top:3px;">👤 '+_escA(nc.fiscal||'—')+' · '+fdt(nc.data)+(nc.temNot?' · <span style="color:#16a34a;font-weight:700;">NOT-INA emitida</span>':'')
+      +(_ncDias!==null?' · <span style="color:'+_ncCorDias+';font-weight:700;">'+_ncDias+'d aberta'+((_ncDias>30&&!nc.temNot)?' ⚠️ URGENTE':'')+'</span>':'')
+      +'</div>';
       h+='</div>';
       h+='</div>';
       if(!nc.temNot){
