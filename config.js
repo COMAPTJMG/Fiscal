@@ -9,7 +9,7 @@
 // VERSÃO CENTRALIZADA — v69
 // Manter em sincronia com sw.js (const V) e manifest.json (start_url ?v=)
 // ------------------------------------------------------------
-var APP_VERSION = 'v85';
+var APP_VERSION = 'v86';
 /* US é sempre populado por DB.ld() — não pré-definir aqui evita divergência
    entre duas fontes de verdade e elimina o risco de dados obsoletos serem
    enviados ao Supabase antes do pull inicial. */
@@ -23,11 +23,11 @@ var COORD={u:'coord',p:'2026'};
    Demais regiões: preencher quando contratos forem firmados. */
 var REG={
   NORTE:    {l:'Norte',       ct:'CT 017/2026',empresa:'RENOVA ENGENHARIA',     c:'#2563eb',bg:'#dbeafe'},
-  CENTRAL:  {l:'Central',     ct:'CT 025/2026',empresa:'A definir',             c:'#7c3aed',bg:'#ede9fe'},
-  LESTE:    {l:'Leste',       ct:'CT 019/2026',empresa:'A definir',             c:'#16a34a',bg:'#dcfce7'},
-  ZONA_MATA:{l:'Zona da Mata',ct:'CT 018/2026',empresa:'A definir',             c:'#b45309',bg:'#fef3c7'},
-  TRIANGULO:{l:'Triângulo',   ct:'CT 392/2022',empresa:'A definir',             c:'#0891b2',bg:'#cffafe'},
-  SUL:      {l:'Sul',         ct:'CT 138/2023',empresa:'A definir',             c:'#be185d',bg:'#fce7f3'},
+  CENTRAL:  {l:'Central',     ct:'CT 025/2026',empresa:'CONSTRUTORA MIQUERINOS LTDA',c:'#7c3aed',bg:'#ede9fe'},
+  LESTE:    {l:'Leste',       ct:'CT 019/2026',empresa:'M. BORGES ENGENHARIA LTDA', c:'#16a34a',bg:'#dcfce7'},
+  ZONA_MATA:{l:'Zona da Mata',ct:'CT 018/2026',empresa:'CONSTRUTORA MIQUERINOS LTDA',c:'#b45309',bg:'#fef3c7'},
+  TRIANGULO:{l:'Triângulo',   ct:'CT 392/2022',empresa:'ETERA CONSTRUÇÕES E ISOLAMENTOS LTDA',c:'#0891b2',bg:'#cffafe'},
+  SUL:      {l:'Sul',         ct:'CT 138/2023',empresa:'ETERA CONSTRUÇÕES E ISOLAMENTOS LTDA',c:'#be185d',bg:'#fce7f3'},
   SUDOESTE: {l:'Sudoeste',    ct:'CT 421/2022',empresa:'A definir',             c:'#65a30d',bg:'#ecfccb'}
 };
 var TIPOS={
