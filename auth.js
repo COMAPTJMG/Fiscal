@@ -102,9 +102,23 @@ function rCoord(){
   var _cbEl=el('coord-busca');var _cb=_cbEl?_cbEl.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''):'';
   S._coordSel=S._coordSel||[];
   var _cReg=S._coordReg||'todos';
+  /* v84: filtro por fiscal específico */
+  var _fiscFlt=S._coordFiscalFlt||'';
+  /* Renderizar chips de fiscais */
+  var _fiscFltEl=el('coord-fiscal-flt');
+  if(_fiscFltEl){
+    var _todosFiscais=[...new Set(S.insp.filter(function(i){return _cReg==='todos'||i.reg===_cReg;}).map(function(i){return i.fiscal||'';}).filter(Boolean))].sort();
+    var _fh='<button onclick="S._coordFiscalFlt=\'\';rCoord()" style="border:none;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;background:'+(_fiscFlt?'#f1f5f9':'#7c3aed')+';color:'+(_fiscFlt?'#64748b':'#fff')+';flex-shrink:0;">Todos</button>';
+    _todosFiscais.forEach(function(f){
+      var sel=_fiscFlt===f;
+      _fh+='<button onclick="S._coordFiscalFlt=\''+f+'\';rCoord()" style="border:none;padding:4px 11px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;background:'+(sel?'#7c3aed':'#f1f5f9')+';color:'+(sel?'#fff':'#64748b')+';flex-shrink:0;">'+f+'</button>';
+    });
+    _fiscFltEl.innerHTML=_fh;
+  }
   var base=S.insp.filter(function(i){
     if(_cReg!=='todos'&&i.reg!==_cReg)return false;
     if(S.rflt!=='todos'&&i.tipo!==S.rflt)return false;
+    if(_fiscFlt&&(i.fiscal||'')!==_fiscFlt)return false;
     if(_cb){var txt=((i.com||'')+' '+(i.edif||'')+' '+(i.fiscal||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(txt.indexOf(_cb)<0)return false;}
     return true;
   });
@@ -144,6 +158,7 @@ function rCoord(){
     var fin=i.st==='finalizada';
     var _synced=!!(i.synced_at);
     var _syncIcon=fin?(_synced?'<span style="font-size:10px;color:#16a34a;font-weight:700;">☁✓</span>':'<span style="font-size:10px;color:#d97706;font-weight:700;">☁⏳</span>'):'';
+    var temNota=!!(i._coordNota&&i._coordNota.trim());
     return'<div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;border:2px solid '+(sel?'#7c3aed':'transparent')+';cursor:pointer;" onclick="coordToggleSel(\''+i.id+'\')">'
       +'<div style="width:22px;height:22px;border-radius:6px;border:2px solid '+(sel?'#7c3aed':'#cbd5e1')+';background:'+(sel?'#7c3aed':'#fff')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:#fff;">'+(sel?'✓':'')+'</div>'
       +'<div style="width:34px;height:34px;border-radius:9px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">'+t.i+'</div>'
@@ -158,11 +173,7 @@ function rCoord(){
         +'</div>'
       +'</div>'
       +'<div style="display:flex;flex-direction:column;gap:4px;" onclick="event.stopPropagation();">'
-        +'<button class="btn bo" style="padding:5px 10px;width:auto;font-size:11px;" onclick="openDetCoord(\''+i.id+'\')">👁 Ver</button>'
-        +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#003580;color:#fff;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')
-        +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#1a2332;color:#fff;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')
-      +'</div>'
-    +'</div>';
+        +'<button class="btn bo" style="padding:5px 10px;width:auto;font-size:11px;" onclick="openDetCoord(\''+i.id+'\')">👁 Ver</button>'        +'<button style="padding:5px 10px;width:auto;font-size:11px;border:1.5px solid '+(temNota?'#7c3aed':'#e2e8f0')+';background:'+(temNota?'#ede9fe':'#fff')+';color:'+(temNota?'#7c3aed':'#94a3b8')+';border-radius:10px;font-weight:700;cursor:pointer;" onclick="abrirAnotacaoCoord(\''+i.id+'\')">📝'+(temNota?'✓':'')+'</button>'        +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#003580;color:#fff;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')        +(fin?'<button class="btn" style="padding:5px 10px;width:auto;font-size:11px;background:#1a2332;color:#fff;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')      +'</div>'    +'</div>';
   }
   if(r2.length){h+='<div class="sec" style="padding:10px 12px 4px;">Rascunhos ('+r2.length+')</div>';h+=r2.map(_crd).join('');}
   if(e2.length){h+='<div class="sec" style="padding:10px 12px 4px;margin-top:'+(r2.length?'8':'0')+'px">Enviados ('+e2.length+')</div>';h+=e2.map(_crd).join('');}
@@ -386,6 +397,15 @@ function openDetCoord(id){
     if(i.dtFinalExec)h+='<div style="flex:1;text-align:center;"><div style="font-size:9px;color:#64748b;">Final</div><div style="font-size:12px;font-weight:700;color:#15803d;">'+fdt(i.dtFinalExec)+'</div></div>';
     h+='</div></div>';
   }
+  /* ── Anotação do Coordenador ── */
+  h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Anotação do Coordenador</div>';
+  h+='<div style="background:'+(i._coordNota?'#f5f3ff':'#fafafa')+';border:1.5px solid '+(i._coordNota?'#7c3aed':'#e2e8f0')+';border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
+    +(i._coordNota
+      ?'<div style="font-size:12px;color:#1e293b;white-space:pre-wrap;line-height:1.6;">'+_escA(i._coordNota)+'</div>'
+       +(i._coordNotaDt?'<div style="font-size:9px;color:#94a3b8;margin-top:5px;">Atualizado em '+new Date(i._coordNotaDt).toLocaleString(\'pt-BR\')+'</div>':'')
+      :'<div style="font-size:11px;color:#94a3b8;text-align:center;padding:4px 0;">Nenhuma anotação — adicione observações, ações tomadas, prazos.</div>')
+    +'</div>';
+  h+='<button onclick="abrirAnotacaoCoord(\''+id+'\')" style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px;">'+(i._coordNota?'✏️ Editar Anotação':'📝 Adicionar Anotação')+'</button>';
   /* ── Exportar ── */
   h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Exportar</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
@@ -425,7 +445,10 @@ window.rCoord         = rCoord;
 window.coordToggleSel = coordToggleSel;
 window.coordSelAll    = coordSelAll;
 window.coordExpSel    = coordExpSel;
-window.openDetCoord   = openDetCoord;
+window.openDetCoord       = openDetCoord;
+window.rCoordFiscais      = rCoordFiscais;
+window.rCoordNCs          = rCoordNCs;
+window.abrirAnotacaoCoord = abrirAnotacaoCoord;
 window.cancelPin      = cancelPin;
 /* v79b-fix: coordExpSelPDF e admExpSelPDF definidas em admin.js (carregado depois)
    — usar wrapper para não quebrar se admin.js ainda não carregou */
@@ -440,16 +463,266 @@ window.admExpSelPDF   = function(){ if(typeof admExpSelPDF==='function') admExpS
 window.admExpSelZip   = function(){ if(typeof admExpSelZip==='function') admExpSelZip(); };
 window.rPainel        = rPainel;
 window.rPainel        = rPainel;
+
+/* ══════════════════════════════════════════════════════════════
+   COORDENADOR — Aba FISCAIS
+   Card por fiscal: IMR, conformidade, NCs, última atividade
+   Clique para filtrar a lista por esse fiscal
+   ══════════════════════════════════════════════════════════════ */
+function rCoordFiscais(){
+  var fb=el('coord-fiscais-body');if(!fb)return;
+  var reg=S._coordReg||'todos';
+  var base=S.insp.filter(function(i){
+    if(reg!=='todos'&&i.reg!==reg)return false;
+    return i.st==='finalizada';
+  });
+
+  /* Agrupar por fiscal */
+  var fiscais={};
+  base.forEach(function(i){
+    var f=i.fiscal||'Sem nome';
+    if(!fiscais[f]) fiscais[f]={nome:f,insps:[],ncs:0,fotos:0,somaImr:0,cntImr:0};
+    var its=Object.values(i.itens||{});
+    var aplic=its.filter(function(v){return v.s&&v.s!=='fora_periodo'&&v.s!=='nao_aplicavel'&&v.s!=='pendente';});
+    var conf=aplic.filter(function(v){return v.s==='conforme'||v.s==='executado';}).length;
+    var ncs=aplic.filter(function(v){return v.s==='nao_conforme';}).length;
+    var fotos=its.reduce(function(s,v){return s+(v.fotos||[]).length;},0);
+    var imr=typeof calcIMRInsp==='function'?calcIMRInsp(i):null;
+    fiscais[f].insps.push({id:i.id,data:i.dtVistoria||i.data,edif:i.edif,com:i.com,tipo:i.tipo,pct:aplic.length?Math.round(conf/aplic.length*100):null,ncs:ncs});
+    fiscais[f].ncs+=ncs;
+    fiscais[f].fotos+=fotos;
+    if(imr!==null){fiscais[f].somaImr+=imr;fiscais[f].cntImr++;}
+  });
+
+  var arr=Object.values(fiscais).map(function(f){
+    f.media=f.cntImr?Math.round(f.somaImr/f.cntImr*100):null;
+    f.total=f.insps.length;
+    /* Última atividade */
+    f.ultima=f.insps.sort(function(a,b){return (b.data||'')>(a.data||'')?1:-1;})[0];
+    return f;
+  }).sort(function(a,b){return (a.media||999)-(b.media||999);});
+
+  if(!arr.length){
+    fb.innerHTML='<div style="text-align:center;padding:40px;color:#94a3b8;"><div style="font-size:40px;">👤</div><div style="margin-top:10px;font-size:13px;font-weight:600;">Nenhum fiscal com inspeções finalizadas</div></div>';
+    return;
+  }
+
+  var h='<div style="padding:12px;">';
+
+  /* KPIs do time */
+  var totalInsps=arr.reduce(function(s,f){return s+f.total;},0);
+  var totalNCs=arr.reduce(function(s,f){return s+f.ncs;},0);
+  var mediaTime=arr.filter(function(f){return f.media!==null;}).length
+    ?Math.round(arr.filter(function(f){return f.media!==null;}).reduce(function(s,f){return s+f.media;},0)/arr.filter(function(f){return f.media!==null;}).length)
+    :null;
+  var corTime=mediaTime===null?'#94a3b8':mediaTime>=80?'#16a34a':mediaTime>=60?'#d97706':'#dc2626';
+
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">';
+  h+='<div style="background:#dbeafe;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;color:#1e40af;">'+arr.length+'</div><div style="font-size:9px;color:#1e40af;font-weight:700;text-transform:uppercase;">Fiscais</div></div>';
+  h+='<div style="background:#dcfce7;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;color:#166534;">'+totalInsps+'</div><div style="font-size:9px;color:#166534;font-weight:700;text-transform:uppercase;">Inspeções</div></div>';
+  h+='<div style="background:'+(totalNCs>0?'#fee2e2':'#f0fdf4')+';border-radius:10px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:900;color:'+(totalNCs>0?'#dc2626':'#16a34a')+';">'+totalNCs+'</div><div style="font-size:9px;color:'+(totalNCs>0?'#dc2626':'#16a34a')+';font-weight:700;text-transform:uppercase;">NCs Abertas</div></div>';
+  h+='</div>';
+
+  h+='<div style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Desempenho por Fiscal (pior → melhor)</div>';
+
+  arr.forEach(function(f){
+    var cor=f.media===null?'#94a3b8':f.media>=80?'#16a34a':f.media>=60?'#d97706':'#dc2626';
+    var bgCor=f.media===null?'#f8fafc':f.media>=80?'#f0fdf4':f.media>=60?'#fefce8':'#fff5f5';
+    var iniciais=f.nome.trim().split(' ').filter(Boolean).map(function(p){return p[0];}).join('').slice(0,2).toUpperCase();
+
+    h+='<div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;border-left:4px solid '+cor+';margin-bottom:10px;overflow:hidden;">';
+
+    /* Cabeçalho do fiscal */
+    h+='<div style="padding:12px 14px;display:flex;align-items:center;gap:12px;">';
+    h+='<div style="width:42px;height:42px;border-radius:50%;background:'+cor+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0;">'+iniciais+'</div>';
+    h+='<div style="flex:1;min-width:0;">';
+    h+='<div style="font-size:13px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_escA(f.nome)+'</div>';
+    h+='<div style="font-size:10px;color:#64748b;margin-top:2px;">'+f.total+' inspeção'+(f.total>1?'s':'')+' · última: '+(f.ultima?fdt(f.ultima.data):'—')+'</div>';
+    h+='</div>';
+    h+='<div style="text-align:right;flex-shrink:0;">';
+    h+='<div style="font-size:20px;font-weight:900;color:'+cor+';">'+(f.media!==null?f.media+'%':'—')+'</div>';
+    h+='<div style="font-size:9px;color:#94a3b8;text-transform:uppercase;">IMR médio</div>';
+    h+='</div>';
+    h+='</div>';
+
+    /* Barra de conformidade */
+    h+='<div style="background:#f1f5f9;margin:0 14px;border-radius:4px;height:6px;margin-bottom:10px;">';
+    h+='<div style="width:'+(f.media||0)+'%;height:100%;background:'+cor+';border-radius:4px;transition:width .4s;"></div>';
+    h+='</div>';
+
+    /* Stats + Ações */
+    h+='<div style="padding:0 14px 12px;display:flex;align-items:center;gap:8px;">';
+    h+='<div style="display:flex;gap:10px;flex:1;flex-wrap:wrap;">';
+    h+='<span style="font-size:10.5px;color:#64748b;">📋 '+f.total+' inspeções</span>';
+    if(f.ncs>0) h+='<span style="font-size:10.5px;color:#dc2626;font-weight:700;">⚠ '+f.ncs+' NCs</span>';
+    if(f.fotos>0) h+='<span style="font-size:10.5px;color:#7c3aed;">📸 '+f.fotos+' fotos</span>';
+    h+='</div>';
+    h+='<button onclick="S._coordFiscalFlt=''+_escA(f.nome)+'';coordTabSwitch('lista');rCoord();" '
+      +'style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">Ver inspeções ›</button>';
+    h+='</div>';
+    h+='</div>';
+  });
+
+  h+='</div>';
+  fb.innerHTML=h;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COORDENADOR — Aba NCs ABERTAS
+   Todas as não conformidades consolidadas
+   Com NOT-INA direto, WhatsApp, filtro sem/com notificação
+   ══════════════════════════════════════════════════════════════ */
+function rCoordNCs(){
+  var nb=el('coord-ncs-body');if(!nb)return;
+  var reg=S._coordReg||'todos';
+  var flt=S._coordNcFlt||'todos';
+
+  /* Atualizar pills de filtro */
+  ['todos','semNot','comNot'].forEach(function(k){
+    var btn=el('cnc-btn-'+k);
+    if(btn){btn.style.background=flt===k?'#7c3aed':'#f1f5f9';btn.style.color=flt===k?'#fff':'#64748b';}
+  });
+
+  /* Coletar todas as NCs */
+  var ncs=[];
+  S.insp.filter(function(i){
+    if(reg!=='todos'&&i.reg!==reg)return false;
+    return i.st==='finalizada';
+  }).forEach(function(i){
+    Object.entries(i.itens||{}).forEach(function(pair){
+      var k=pair[0],v=pair[1];
+      if(v.s!=='nao_conforme')return;
+      var temNot=!!(i.notinas&&i.notinas[k]);
+      if(flt==='semNot'&&temNot)return;
+      if(flt==='comNot'&&!temNot)return;
+      ncs.push({
+        inspId:i.id, itemKey:k,
+        edif:i.edif, com:i.com, fiscal:i.fiscal,
+        data:i.dtVistoria||i.data, tipo:i.tipo,
+        nm:v.nm||v.n||k, obs:v.obs||'',
+        sistema:v.sn||'',
+        temNot:temNot, seiProc:i.seiProc||''
+      });
+    });
+  });
+
+  /* Ordenar: sem notificação primeiro, depois por data desc */
+  ncs.sort(function(a,b){
+    if(a.temNot!==b.temNot) return a.temNot?1:-1;
+    return (b.data||'')>(a.data||'')?1:-1;
+  });
+
+  if(!ncs.length){
+    nb.innerHTML='<div style="text-align:center;padding:40px;color:#94a3b8;">'
+      +'<div style="font-size:40px;">✅</div>'
+      +'<div style="font-size:13px;font-weight:600;margin-top:10px;">Nenhuma não conformidade'+(flt!=='todos'?' com este filtro':'')+'</div>'
+      +'</div>';
+    return;
+  }
+
+  var h='<div style="padding:10px 12px;">';
+
+  /* Resumo */
+  var semNot=ncs.filter(function(n){return !n.temNot;}).length;
+  h+='<div style="background:#fee2e2;border-radius:10px;padding:12px;margin-bottom:14px;display:flex;gap:12px;align-items:center;">';
+  h+='<div style="font-size:32px;font-weight:900;color:#dc2626;">'+ncs.length+'</div>';
+  h+='<div><div style="font-size:13px;font-weight:800;color:#991b1b;">Não Conformidades</div>';
+  if(semNot>0) h+='<div style="font-size:11px;color:#b91c1c;margin-top:2px;">⚠ '+semNot+' sem NOT-INA emitida</div>';
+  h+='</div></div>';
+
+  /* Agrupar por edificação */
+  var porEdif={};var ordemEdif=[];
+  ncs.forEach(function(nc){
+    var chave=nc.edif+'::'+nc.com;
+    if(!porEdif[chave]){porEdif[chave]={edif:nc.edif,com:nc.com,ncs:[]};ordemEdif.push(chave);}
+    porEdif[chave].ncs.push(nc);
+  });
+
+  ordemEdif.forEach(function(chave){
+    var g=porEdif[chave];
+    var semNotG=g.ncs.filter(function(n){return !n.temNot;}).length;
+    h+='<div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:12px;overflow:hidden;">';
+
+    /* Header edificação */
+    h+='<div style="background:'+(semNotG>0?'#fef2f2':'#f0fdf4')+';padding:10px 14px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;">';
+    h+='<div style="flex:1;">';
+    h+='<div style="font-size:13px;font-weight:800;color:#0f172a;">'+_escA(g.edif)+'</div>';
+    h+='<div style="font-size:10px;color:#64748b;">'+_escA(g.com||'—')+' · '+g.ncs.length+' NC'+(g.ncs.length>1?'s':'')+(semNotG>0?' · <b style="color:#dc2626;">'+semNotG+' sem notificação</b>':'')+'</div>';
+    h+='</div>';
+    /* Botão NOT-INA rápido se houver NCs sem notificação */
+    if(semNotG>0){
+      h+='<button onclick="gerarNOTINA(''+g.ncs[0].inspId+'')" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;">⚠️ NOT-INA</button>';
+    }
+    h+='</div>';
+
+    /* Lista de NCs desta edificação */
+    g.ncs.forEach(function(nc,ncIdx){
+      var bg=ncIdx%2===0?'#fff':'#fafafa';
+      h+='<div style="padding:10px 14px;border-bottom:1px solid #f1f5f9;background:'+bg+'">';
+      h+='<div style="display:flex;align-items:flex-start;gap:8px;">';
+      h+='<span style="font-size:18px;flex-shrink:0;margin-top:1px;">'+(nc.temNot?'✅':'🔴')+'</span>';
+      h+='<div style="flex:1;min-width:0;">';
+      h+='<div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.4;">'+_escA(nc.nm)+'</div>';
+      if(nc.sistema) h+='<div style="font-size:10px;color:#94a3b8;">Sistema: '+_escA(nc.sistema)+'</div>';
+      if(nc.obs) h+='<div style="font-size:11px;color:#b91c1c;font-style:italic;margin-top:2px;">'+_escA(nc.obs)+'</div>';
+      h+='<div style="font-size:10px;color:#64748b;margin-top:3px;">👤 '+_escA(nc.fiscal||'—')+' · '+fdt(nc.data)+(nc.temNot?' · <span style="color:#16a34a;font-weight:700;">NOT-INA emitida</span>':'')+'</div>';
+      h+='</div>';
+      h+='</div>';
+      if(!nc.temNot){
+        h+='<div style="display:flex;gap:6px;margin-top:8px;">';
+        h+='<button onclick="gerarNOTINA(''+nc.inspId+'')" style="flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:7px;font-size:11px;font-weight:700;cursor:pointer;">⚠️ Emitir NOT-INA</button>';
+        h+='<button onclick="alertarNcCriticaWhatsApp(''+nc.inspId+'')" style="flex:1;background:#dcfce7;color:#15803d;border:none;border-radius:7px;padding:7px;font-size:11px;font-weight:700;cursor:pointer;">📱 WhatsApp</button>';
+        h+='</div>';
+      }
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+
+  h+='</div>';
+  nb.innerHTML=h;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COORDENADOR — Anotação em inspeção
+   O coordenador pode registrar observações/ações sobre uma
+   inspeção sem alterar o conteúdo original do fiscal.
+   Armazenado em: i._coordNota (persiste no DB local + sync)
+   ══════════════════════════════════════════════════════════════ */
+function abrirAnotacaoCoord(id){
+  var i=S.insp.find(function(x){return x.id===id;});if(!i)return;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;display:flex;align-items:flex-end;';
+  ov.innerHTML='<div style="background:#fff;width:100%;border-radius:16px 16px 0 0;padding:20px 16px 32px;">'
+    +'<div style="font-size:14px;font-weight:800;color:#7c3aed;margin-bottom:4px;">📝 Anotação do Coordenador</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px;">'+_escA(i.edif)+' · '+_escA(i.com||'')+'</div>'
+    +'<textarea id="_coord_nota_inp" placeholder="Registre aqui ações tomadas, pendências, comunicações com a RENOVA, prazos estabelecidos..." '
+      +'style="width:100%;min-height:120px;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;font-size:13px;resize:none;line-height:1.6;box-sizing:border-box;color:#0f172a;">'+(i._coordNota||'')+'</textarea>'
+    +'<div style="font-size:10px;color:#94a3b8;margin-top:4px;margin-bottom:12px;">Visível apenas para o Coordenador</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+    +'<button onclick="this.closest('div').parentNode.remove()" style="background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>'
+    +'<button onclick="(function(){var v=document.getElementById('_coord_nota_inp').value;var idx=S.insp.findIndex(function(x){return x.id===''+id+'';});if(idx>-1){S.insp[idx]._coordNota=v;S.insp[idx]._coordNotaDt=new Date().toISOString();DB.sv();Tt('✅ Anotação salva!');}document.getElementById('_coord_nota_inp').closest('div').parentNode.remove();})()" '
+    +'style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;">✓ Salvar</button>'
+    +'</div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){var t=document.getElementById('_coord_nota_inp');if(t)t.focus();},80);
+}
+
 window.coordTabSwitch = function(tab){
   var views = {
     lista:    'coord-view-lista',
     painel:   'coord-view-painel',
+    fiscais:  'coord-view-fiscais',
+    ncs:      'coord-view-ncs',
     mapa:     'coord-view-mapa',
     execucao: 'coord-view-execucao'
   };
   var tabs = {
     lista:    'ctab-lista',
     painel:   'ctab-painel',
+    fiscais:  'ctab-fiscais',
+    ncs:      'ctab-ncs',
     mapa:     'ctab-mapa',
     execucao: 'ctab-execucao'
   };
@@ -467,8 +740,10 @@ window.coordTabSwitch = function(tab){
     }
   });
 
-  if(tab === 'painel')  rPainel();
-  if(tab === 'mapa')    rCoordMapa();
+  if(tab === 'painel')   rPainel();
+  if(tab === 'fiscais')  rCoordFiscais();
+  if(tab === 'ncs')      rCoordNCs();
+  if(tab === 'mapa')     rCoordMapa();
   if(tab === 'execucao') rCoordExecucao();
 };
 
