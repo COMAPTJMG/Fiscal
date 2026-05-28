@@ -806,7 +806,16 @@ function _gerarHTMLStr(id) {
       + '<div class="ass-nome">________________________________</div>'
       + '<div class="ass-cargo">Gestor de Contrato — TJMG / COMAP-GEMAP-DENGEP</div>'
       + '</div>';
-    var assHtml = '<div class="ass-wrap">'
+    /* v86: assinatura digital capturada */
+    var _sigHtml = '';
+    if (i._assinatura) {
+      _sigHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Assinatura Digital do Fiscal</div>'
+        + '<img src="' + i._assinatura + '" style="max-width:260px;height:auto;border:1px solid #e2e8f0;border-radius:8px;" alt="Assinatura">'
+        + (i._assinaturaDt ? '<div style="font-size:9px;color:#94a3b8;margin-top:4px;">Assinado em: ' + new Date(i._assinaturaDt).toLocaleString('pt-BR') + '</div>' : '')
+        + '</div>';
+    }
+    var assHtml = _sigHtml + '<div class="ass-wrap">'
       + '<div class="ass-box"><div class="ass-title">Fiscal Responsável</div>'
       + '<div class="ass-linha"></div>'
       + '<div class="ass-nome">' + fiscalNome + '</div>'
