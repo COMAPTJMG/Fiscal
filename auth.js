@@ -404,7 +404,7 @@ function openDetCoord(id){
   h+='<div style="background:'+(i._coordNota?'#f5f3ff':'#fafafa')+';border:1.5px solid '+(i._coordNota?'#7c3aed':'#e2e8f0')+';border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
     +(i._coordNota
       ?'<div style="font-size:12px;color:#1e293b;white-space:pre-wrap;line-height:1.6;">'+_escA(i._coordNota)+'</div>'
-       +(i._coordNotaDt?'<div style="font-size:9px;color:#94a3b8;margin-top:5px;">Atualizado em '+new Date(i._coordNotaDt).toLocaleString(\'pt-BR\')+'</div>':'')
+       +(i._coordNotaDt?'<div style="font-size:9px;color:#94a3b8;margin-top:5px;">Atualizado em '+new Date(i._coordNotaDt).toLocaleString('pt-BR')+'</div>':'')
       :'<div style="font-size:11px;color:#94a3b8;text-align:center;padding:4px 0;">Nenhuma anotação — adicione observações, ações tomadas, prazos.</div>')
     +'</div>';
   h+='<button onclick="abrirAnotacaoCoord(\''+id+'\')" style="width:100%;border:none;background:#ede9fe;color:#6d28d9;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px;">'+(i._coordNota?'✏️ Editar Anotação':'📝 Adicionar Anotação')+'</button>';
@@ -565,7 +565,7 @@ function rCoordFiscais(){
     if(f.ncs>0) h+='<span style="font-size:10.5px;color:#dc2626;font-weight:700;">⚠ '+f.ncs+' NCs</span>';
     if(f.fotos>0) h+='<span style="font-size:10.5px;color:#7c3aed;">📸 '+f.fotos+' fotos</span>';
     h+='</div>';
-    h+='<button onclick="S._coordFiscalFlt=''+_escA(f.nome)+'';coordTabSwitch('lista');rCoord();" '
+    h+='<button onclick="S._coordFiscalFlt=\''+_escA(f.nome)+'\';coordTabSwitch(\'lista\');rCoord();" '
       +'style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap;">Ver inspeções ›</button>';
     h+='</div>';
     h+='</div>';
@@ -667,7 +667,7 @@ function rCoordNCs(){
     h+='</div>';
     /* Botão NOT-INA rápido se houver NCs sem notificação */
     if(semNotG>0){
-      h+='<button onclick="gerarNOTINA(''+g.ncs[0].inspId+'')" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;">⚠️ NOT-INA</button>';
+      h+='<button onclick="gerarNOTINA(\''+g.ncs[0].inspId+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;">⚠️ NOT-INA</button>';
     }
     h+='</div>';
 
@@ -686,8 +686,8 @@ function rCoordNCs(){
       h+='</div>';
       if(!nc.temNot){
         h+='<div style="display:flex;gap:6px;margin-top:8px;">';
-        h+='<button onclick="gerarNOTINA(''+nc.inspId+'')" style="flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:7px;font-size:11px;font-weight:700;cursor:pointer;">⚠️ Emitir NOT-INA</button>';
-        h+='<button onclick="alertarNcCriticaWhatsApp(''+nc.inspId+'')" style="flex:1;background:#dcfce7;color:#15803d;border:none;border-radius:7px;padding:7px;font-size:11px;font-weight:700;cursor:pointer;">📱 WhatsApp</button>';
+        h+='<button onclick="gerarNOTINA(\''+nc.inspId+'\')" style="flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:7px;font-size:11px;font-weight:700;cursor:pointer;">⚠️ Emitir NOT-INA</button>';
+        h+='<button onclick="alertarNcCriticaWhatsApp(\''+nc.inspId+'\')" style="flex:1;background:#dcfce7;color:#15803d;border:none;border-radius:7px;padding:7px;font-size:11px;font-weight:700;cursor:pointer;">📱 WhatsApp</button>';
         h+='</div>';
       }
       h+='</div>';
@@ -709,19 +709,38 @@ function abrirAnotacaoCoord(id){
   var i=S.insp.find(function(x){return x.id===id;});if(!i)return;
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;display:flex;align-items:flex-end;';
-  ov.innerHTML='<div style="background:#fff;width:100%;border-radius:16px 16px 0 0;padding:20px 16px 32px;">'
-    +'<div style="font-size:14px;font-weight:800;color:#7c3aed;margin-bottom:4px;">📝 Anotação do Coordenador</div>'
-    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px;">'+_escA(i.edif)+' · '+_escA(i.com||'')+'</div>'
-    +'<textarea id="_coord_nota_inp" placeholder="Registre aqui ações tomadas, pendências, comunicações com a empresa contratada, prazos estabelecidos, cobranças realizadas..."  '
-      +'style="width:100%;min-height:120px;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;font-size:13px;resize:none;line-height:1.6;box-sizing:border-box;color:#0f172a;">'+(i._coordNota||'')+'</textarea>'
-    +'<div style="font-size:10px;color:#94a3b8;margin-top:4px;margin-bottom:12px;">Visível apenas para o Coordenador</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-    +'<button onclick="this.closest('div').parentNode.remove()" style="background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>'
-    +'<button onclick="(function(){var v=document.getElementById('_coord_nota_inp').value;var idx=S.insp.findIndex(function(x){return x.id===''+id+'';});if(idx>-1){S.insp[idx]._coordNota=v;S.insp[idx]._coordNotaDt=new Date().toISOString();DB.sv();Tt('✅ Anotação salva!');}document.getElementById('_coord_nota_inp').closest('div').parentNode.remove();})()" '
-    +'style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;">✓ Salvar</button>'
-    +'</div>'
-    +'</div>';
+  window._salvarNotaCoord = function() {
+    var v = (document.getElementById('_coord_nota_inp') || {}).value || '';
+    var idx2 = S.insp.findIndex(function(x){ return x.id === id; });
+    if (idx2 > -1) {
+      S.insp[idx2]._coordNota   = v;
+      S.insp[idx2]._coordNotaDt = new Date().toISOString();
+      DB.sv();
+      Tt('✅ Anotação salva!');
+    }
+    var ovEl = document.getElementById('_coord_nota_ov');
+    if (ovEl) document.body.removeChild(ovEl);
+  };
+  ov.id = '_coord_nota_ov';
+  ov.innerHTML = [
+    '<div style="background:#fff;width:100%;border-radius:16px 16px 0 0;padding:20px 16px 32px;">',
+    '<div style="font-size:14px;font-weight:800;color:#7c3aed;margin-bottom:4px;">📝 Anotação do Coordenador</div>',
+    '<div style="font-size:11px;color:#64748b;margin-bottom:12px;">' + _escA(i.edif) + ' · ' + _escA(i.com||'') + '</div>',
+    '<textarea id="_coord_nota_inp" placeholder="Registre ações tomadas, comunicações com a empresa contratada, prazos, cobranças..." ',
+    'style="width:100%;min-height:120px;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;font-size:13px;resize:none;line-height:1.6;box-sizing:border-box;color:#0f172a;">' + _escA(i._coordNota||'') + '</textarea>',
+    '<div style="font-size:10px;color:#94a3b8;margin-top:4px;margin-bottom:12px;">Visível apenas para o Coordenador</div>',
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">',
+    '<button id="_coord_btn_canc" style="background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>',
+    '<button onclick="_salvarNotaCoord()" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;">✓ Salvar</button>',
+    '</div></div>'
+  ].join('');
   document.body.appendChild(ov);
+  /* Cancelar via addEventListener — evita aspas aninhadas no onclick */
+  var btnCanc = document.getElementById('_coord_btn_canc');
+  if (btnCanc) btnCanc.addEventListener('click', function() {
+    var ovEl2 = document.getElementById('_coord_nota_ov');
+    if (ovEl2) document.body.removeChild(ovEl2);
+  });
   setTimeout(function(){var t=document.getElementById('_coord_nota_inp');if(t)t.focus();},80);
 }
 
