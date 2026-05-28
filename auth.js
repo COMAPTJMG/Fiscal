@@ -537,6 +537,12 @@ function rCoordFiscais(){
     h+='<div style="width:42px;height:42px;border-radius:50%;background:'+cor+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0;">'+iniciais+'</div>';
     h+='<div style="flex:1;min-width:0;">';
     h+='<div style="font-size:13px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_escA(f.nome)+'</div>';
+    /* Empresa contratada desta região */
+    var _empFisc=(function(){
+      var _rffisc=f.insps[0]?(S.insp.find(function(x){return x.id===f.insps[0].id;})||{}).reg:'';
+      var _rdfisc=typeof REG!=='undefined'&&_rffisc&&REG[_rffisc]?REG[_rffisc]:{};
+      return _rdfisc.empresa&&_rdfisc.empresa!=='A definir'?_rdfisc.empresa:(_rdfisc.ct||'');
+    })();
     h+='<div style="font-size:10px;color:#64748b;margin-top:2px;">'+f.total+' inspeção'+(f.total>1?'s':'')+' · última: '+(f.ultima?fdt(f.ultima.data):'—')+'</div>';
     h+='</div>';
     h+='<div style="text-align:right;flex-shrink:0;">';
@@ -646,7 +652,15 @@ function rCoordNCs(){
     /* Header edificação */
     h+='<div style="background:'+(semNotG>0?'#fef2f2':'#f0fdf4')+';padding:10px 14px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;">';
     h+='<div style="flex:1;">';
+    /* Empresa contratada desta inspeção */
+    var _empNc=(function(){
+      var _ri=g.ncs[0]&&g.ncs[0].inspId?S.insp.find(function(x){return x.id===g.ncs[0].inspId;}):null;
+      var _rreg=_ri&&_ri.reg?_ri.reg:'';
+      var _rdata=typeof REG!=='undefined'&&_rreg&&REG[_rreg]?REG[_rreg]:{};
+      return _rdata.empresa&&_rdata.empresa!=='A definir'?_rdata.empresa:(_rdata.ct||'');
+    })();
     h+='<div style="font-size:13px;font-weight:800;color:#0f172a;">'+_escA(g.edif)+'</div>';
+    if(_empNc) h+='<div style="font-size:11px;font-weight:700;color:#7c3aed;margin-top:1px;">🏢 '+_escA(_empNc)+'</div>';
     h+='<div style="font-size:10px;color:#64748b;">'+_escA(g.com||'—')+' · '+g.ncs.length+' NC'+(g.ncs.length>1?'s':'')+(semNotG>0?' · <b style="color:#dc2626;">'+semNotG+' sem notificação</b>':'')+'</div>';
     h+='</div>';
     /* Botão NOT-INA rápido se houver NCs sem notificação */
@@ -696,7 +710,7 @@ function abrirAnotacaoCoord(id){
   ov.innerHTML='<div style="background:#fff;width:100%;border-radius:16px 16px 0 0;padding:20px 16px 32px;">'
     +'<div style="font-size:14px;font-weight:800;color:#7c3aed;margin-bottom:4px;">📝 Anotação do Coordenador</div>'
     +'<div style="font-size:11px;color:#64748b;margin-bottom:12px;">'+_escA(i.edif)+' · '+_escA(i.com||'')+'</div>'
-    +'<textarea id="_coord_nota_inp" placeholder="Registre aqui ações tomadas, pendências, comunicações com a RENOVA, prazos estabelecidos..." '
+    +'<textarea id="_coord_nota_inp" placeholder="Registre aqui ações tomadas, pendências, comunicações com a empresa contratada, prazos estabelecidos, cobranças realizadas..."  '
       +'style="width:100%;min-height:120px;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;font-size:13px;resize:none;line-height:1.6;box-sizing:border-box;color:#0f172a;">'+(i._coordNota||'')+'</textarea>'
     +'<div style="font-size:10px;color:#94a3b8;margin-top:4px;margin-bottom:12px;">Visível apenas para o Coordenador</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
