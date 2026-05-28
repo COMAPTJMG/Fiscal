@@ -904,6 +904,15 @@ function _gerarHTMLStr(id) {
       + '<div class="ficha-item"><div class="ficha-label">' + ((i.tipo==='periodica'||i.tipo==='ose'||i.tipo==='programada')?'Data de Início':'Data da Vistoria') + '</div><div class="ficha-val">' + fdt(_dataVist) + '</div></div>'
       + ((i.tipo==='periodica'||i.tipo==='ose'||i.tipo==='programada')&&i.dtVistoriaFim ? '<div class="ficha-item"><div class="ficha-label">Data Final</div><div class="ficha-val">' + fdt(i.dtVistoriaFim) + '</div></div>' : '')
       + '<div class="ficha-item"><div class="ficha-label">Fiscal Responsável</div><div class="ficha-val">' + fiscalNome + '</div></div>'
+      /* v84: contrato e empresa contratada — dinâmico por região */
+      + (function(){
+          var _regFicha = i.reg && typeof REG !== 'undefined' && REG[i.reg] ? REG[i.reg] : null;
+          if (!_regFicha) return '';
+          var _ctFicha  = _regFicha.ct || '—';
+          var _empFicha = _regFicha.empresa && _regFicha.empresa !== 'A definir' ? _regFicha.empresa : null;
+          return '<div class="ficha-item"><div class="ficha-label">Contrato</div><div class="ficha-val mono">' + _esc(_ctFicha) + '</div></div>'
+            + (_empFicha ? '<div class="ficha-item"><div class="ficha-label">Empresa Contratada</div><div class="ficha-val">' + _esc(_empFicha) + '</div></div>' : '');
+        })()
       + (_osp && i.os ? '<div class="ficha-item"><div class="ficha-label">' + (i.tipo==='ose'?'Nº da OSE':'Nº da OSP') + '</div><div class="ficha-val mono">' + _esc(i.os) + '</div></div>' : '')
       + (i.tipo==='osp'&&i.dtInicioExec ? '<div class="ficha-item"><div class="ficha-label">Início Execução</div><div class="ficha-val">' + fdt(i.dtInicioExec) + '</div></div>' : '')
       + (i.tipo==='osp'&&i.diasPrazo    ? '<div class="ficha-item"><div class="ficha-label">Prazo</div><div class="ficha-val">' + i.diasPrazo + ' dias</div></div>' : '')
