@@ -59,7 +59,7 @@ function doLogin(){
   if(typeof aplicarCorRegiao==='function') aplicarCorRegiao(u.reg);
   if(typeof iniciarRealtime==='function') iniciarRealtime();
   if(typeof resetLockTimer==='function') resetLockTimer();
-  DB.sv();cm('m-pin');rHome();G('s-home');BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('home');});
+  DB.sv();cm('m-pin');if(typeof aplicarCorRegiao==='function'&&S.sessao&&S.sessao.reg)aplicarCorRegiao(S.sessao.reg);rHome();G('s-home');BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('home');});
   setTimeout(function(){
     if(typeof carregarMural==='function') carregarMural();
     if(typeof iniciarTutorial==='function') iniciarTutorial(false);
