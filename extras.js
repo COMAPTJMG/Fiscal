@@ -314,14 +314,19 @@ function alertarNcCriticaWhatsApp(inspId){
   var ncs=Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';});
   if(!ncs.length)return;
 
+  var _RWa=typeof REG!=='undefined'&&i.reg&&REG[i.reg]?REG[i.reg]:{l:'',ct:'',empresa:''};
+  var _empWa=_RWa.empresa&&_RWa.empresa!=='A definir'?_RWa.empresa:'Empresa '+(_RWa.ct||'—');
   var msg='⚠️ *NC Crítica — TJMG Fiscal*\n\n'
     +'🏛️ *Edificação:* '+i.edif+'\n'
-    +'📍 *Comarca:* '+(i.com||'—')+'\n'
+    +'📍 *Comarca:* '+(i.com||'—')+' | *Região:* '+_RWa.l+'\n'
+    +'🏢 *Contratada:* '+_empWa+'\n'
+    +'📄 *Contrato:* '+(_RWa.ct||'—')+'\n'
     +'📅 *Data:* '+fdt(i.dtVistoria||i.data)+'\n'
     +'👤 *Fiscal:* '+(i.fiscal||'—')+'\n\n'
     +'❌ *Não-conformidades ('+ncs.length+'):*\n'
     +ncs.slice(0,5).map(function(nc){return '• '+nc.nm+(nc.obs?' — '+nc.obs:'');}).join('\n')
-    +(ncs.length>5?'\n...e mais '+(ncs.length-5)+' itens':'');
+    +(ncs.length>5?'\n...e mais '+(ncs.length-5)+' itens':'')
+    +'\n\n_Notificação automática — TJMG Fiscal PWA_';
 
   var num=WHATSAPP_COORD;
   if(!num){
@@ -776,7 +781,11 @@ function gerarTermoRecebimento(tipo,mes){
     +'<div class="lbl">Contrato</div>'
     +'<input id="tr-ct" value="'+_escA(R.ct)+'" placeholder="Ex: CT 017/2026" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
     +'<div class="lbl">Empresa Contratada</div>'
-    +'<input id="tr-emp" value="RENOVA ENGENHARIA" placeholder="Nome da empresa" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
+    +(function(){
+      var _regT=S.sessao&&S.sessao.reg?S.sessao.reg:'NORTE';
+      var _empT=typeof REG!=='undefined'&&REG[_regT]&&REG[_regT].empresa&&REG[_regT].empresa!=='A definir'?REG[_regT].empresa:'';
+      return '<input id="tr-emp" value="'+_empT+'" placeholder="Nome da empresa contratada" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">\';
+    })()
     +'<div class="lbl">Período de Medição (mês/ano)</div>'
     +'<input id="tr-mes" value="'+mesDefault+'" placeholder="YYYY-MM" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
     +'<div class="lbl">Valor da Medição (R$)</div>'
@@ -1752,13 +1761,14 @@ window.comprimirFotosAntigas=comprimirFotosAntigas;
    PAINEL DE VENCIMENTO DE CONTRATOS (v81)
    ══════════════════════════════════════════════════════════════ */
 var CONTRATOS_VIGENCIA={
-  NORTE:   {ct:'CT 017/2026',empresa:'RENOVA ENGENHARIA',inicio:'2026-01-01',fim:'2026-12-31'},
-  CENTRAL: {ct:'CT 025/2026',empresa:'—',              inicio:'2026-01-01',fim:'2026-12-31'},
-  LESTE:   {ct:'CT 019/2026',empresa:'—',              inicio:'2026-01-01',fim:'2026-12-31'},
-  ZONA_MATA:{ct:'CT 018/2026',empresa:'—',             inicio:'2026-01-01',fim:'2026-12-31'},
-  TRIANGULO:{ct:'CT 392/2022',empresa:'—',             inicio:'2022-07-01',fim:'2026-12-31'},
-  SUL:     {ct:'CT 138/2023',empresa:'—',              inicio:'2023-06-01',fim:'2026-12-31'},
-  SUDOESTE:{ct:'CT 421/2022',empresa:'—',              inicio:'2022-09-01',fim:'2026-12-31'}
+  /* v84: empresa alinhada com config.js — RENOVA apenas no CT 017/2026 (Região Norte) */
+  NORTE:    {ct:'CT 017/2026',empresa:'RENOVA ENGENHARIA',inicio:'2026-01-01',fim:'2026-12-31'},
+  CENTRAL:  {ct:'CT 025/2026',empresa:'A definir',        inicio:'2026-01-01',fim:'2026-12-31'},
+  LESTE:    {ct:'CT 019/2026',empresa:'A definir',        inicio:'2026-01-01',fim:'2026-12-31'},
+  ZONA_MATA:{ct:'CT 018/2026',empresa:'A definir',        inicio:'2026-01-01',fim:'2026-12-31'},
+  TRIANGULO:{ct:'CT 392/2022',empresa:'A definir',        inicio:'2022-07-01',fim:'2026-12-31'},
+  SUL:      {ct:'CT 138/2023',empresa:'A definir',        inicio:'2023-06-01',fim:'2026-12-31'},
+  SUDOESTE: {ct:'CT 421/2022',empresa:'A definir',        inicio:'2022-09-01',fim:'2026-12-31'}
 };
 function rVigenciaContratos(){
   var vb=el('vigencia-body');if(!vb)return;
