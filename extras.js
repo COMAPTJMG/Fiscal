@@ -784,7 +784,7 @@ function gerarTermoRecebimento(tipo,mes){
     +(function(){
       var _regT=S.sessao&&S.sessao.reg?S.sessao.reg:'NORTE';
       var _empT=typeof REG!=='undefined'&&REG[_regT]&&REG[_regT].empresa&&REG[_regT].empresa!=='A definir'?REG[_regT].empresa:'';
-      return '<input id="tr-emp" value="'+_empT+'" placeholder="Nome da empresa contratada" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">\';
+      return '<input id="tr-emp" value="'+_empT+'" placeholder="Nome da empresa contratada" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">';
     })()
     +'<div class="lbl">Período de Medição (mês/ano)</div>'
     +'<input id="tr-mes" value="'+mesDefault+'" placeholder="YYYY-MM" style="margin-bottom:10px;background:#f8fafc;color:#0f172a;">'
