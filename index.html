@@ -85,6 +85,16 @@ input:focus,textarea:focus{border-color:var(--a);}
 <link rel="stylesheet" href="./design.css">
 </head>
 <body>
+<!-- Splash Screen — v86 -->
+<div id="splash" style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a5f);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .4s;">
+  <div style="width:80px;height:80px;border-radius:24px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:42px;margin-bottom:16px;">⚖️</div>
+  <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:.5px;">TJMG Fiscal</div>
+  <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:6px;letter-spacing:.08em;text-transform:uppercase;">Sistema de Fiscalização Predial</div>
+  <div style="margin-top:24px;width:120px;height:3px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;">
+    <div id="splash-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#7c3aed);border-radius:4px;transition:width .8s ease-out;"></div>
+  </div>
+  <div style="font-size:9px;color:rgba(255,255,255,.25);margin-top:16px;">DENGEP · GEMAP · COMAP</div>
+</div>
 <div id="app">
 <div id="offbar">&#9888; Modo Offline - dados salvos localmente</div>
 <div id="toast"></div>
@@ -1668,7 +1678,15 @@ function _renderDet(id){
     }
 
     /* ── Grupo: Exportar ── */
-    h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Exportar</div>';
+    /* v86: Ações avançadas */
+  var _hasNcs=Object.values(i.itens||{}).some(function(v){return v.s==='nao_conforme';});
+  h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Ações</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">';
+  h+='<button onclick="duplicarInspecao(\''+i.id+'\')" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 Duplicar</button>';
+  if(_hasNcs)h+='<button onclick="abrirSeletorNcParaOsp(\''+i.id+'\')" style="background:#0f766e;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 OSP de NCs</button>';
+  h+='<button onclick="abrirAssinatura(\''+i.id+'\')" style="background:#003580;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">✍️ Assinar</button>';
+  h+='</div>';
+  h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Exportar</div>';
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">';
     h+='<button class="btn" style="background:#003580;color:#fff;font-size:12px;padding:12px;border-radius:12px;" onclick="exportHTML(\''+id+'\')">📄 HTML</button>';
     h+='<button class="btn" style="background:#1d4ed8;color:#fff;font-size:12px;padding:12px;border-radius:12px;" onclick="exportPDF(\''+id+'\')">📑 PDF</button>';
@@ -2294,6 +2312,73 @@ function rAgenda(){
   h+='</div>';
   ab.innerHTML=h;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ASSINATURA DIGITAL — v86 (canvas de captura)
+   ══════════════════════════════════════════════════════════════ */
+var _sigCtx=null,_sigDraw=false,_sigInspId='';
+
+function abrirAssinatura(inspId){
+  _sigInspId=inspId;
+  var i=S.insp.find(function(x){return x.id===inspId;});
+  var nome=i?i.fiscal||'Fiscal':'Fiscal';
+  var sigN=el('sig-nome');if(sigN)sigN.textContent='Assinatura de: '+nome;
+  el('m-sig').style.display='flex';
+  var cv=el('sig-canvas');if(!cv)return;
+  _sigCtx=cv.getContext('2d');
+  _sigLimpar();
+  /* Se já existe assinatura, desenhar */
+  if(i&&i._assinatura){
+    var img=new Image();
+    img.onload=function(){_sigCtx.drawImage(img,0,0);};
+    img.src=i._assinatura;
+  }
+  /* Eventos de desenho */
+  function pos(e){var r=cv.getBoundingClientRect();var t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)*(cv.width/r.width),y:(t.clientY-r.top)*(cv.height/r.height)};}
+  cv.onmousedown=cv.ontouchstart=function(e){e.preventDefault();_sigDraw=true;var p=pos(e);_sigCtx.beginPath();_sigCtx.moveTo(p.x,p.y);};
+  cv.onmousemove=cv.ontouchmove=function(e){if(!_sigDraw)return;e.preventDefault();var p=pos(e);_sigCtx.lineWidth=2.5;_sigCtx.lineCap='round';_sigCtx.strokeStyle='#0f172a';_sigCtx.lineTo(p.x,p.y);_sigCtx.stroke();};
+  cv.onmouseup=cv.ontouchend=cv.onmouseleave=function(){_sigDraw=false;};
+}
+function _sigLimpar(){if(!_sigCtx)return;var cv=el('sig-canvas');_sigCtx.clearRect(0,0,cv.width,cv.height);_sigCtx.fillStyle='#fff';_sigCtx.fillRect(0,0,cv.width,cv.height);/* Linha guia */_sigCtx.strokeStyle='#e2e8f0';_sigCtx.lineWidth=1;_sigCtx.beginPath();_sigCtx.moveTo(20,cv.height-30);_sigCtx.lineTo(cv.width-20,cv.height-30);_sigCtx.stroke();}
+function _sigSalvar(){
+  var cv=el('sig-canvas');if(!cv)return;
+  var b64=cv.toDataURL('image/png');
+  var i=S.insp.find(function(x){return x.id===_sigInspId;});
+  if(i){i._assinatura=b64;i._assinaturaDt=new Date().toISOString();DB.sv();Tt('✅ Assinatura salva!');}
+  cm('m-sig');
+  /* Atualizar detalhe se aberto */
+  if(typeof openDet==='function')openDet(_sigInspId);
+}
+window.abrirAssinatura=abrirAssinatura;
+window._sigLimpar=_sigLimpar;
+window._sigSalvar=_sigSalvar;
+
+/* ══════════════════════════════════════════════════════════════
+   BUSCA GLOBAL — v86 (campo no Home)
+   ══════════════════════════════════════════════════════════════ */
+function buscaGlobal(q){
+  if(!q||q.length<2)return;
+  q=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  var resultados=filterByReg(S.insp).filter(function(i){
+    var txt=((i.edif||'')+' '+(i.com||'')+' '+(i.fiscal||'')+' '+(i.tipo||'')+' '+(i.os||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return txt.indexOf(q)>=0;
+  }).slice(0,20);
+  var gb=el('busca-global-res');if(!gb)return;
+  if(!resultados.length){gb.innerHTML='<div style="text-align:center;padding:16px;color:#94a3b8;font-size:12px;">Nenhum resultado para "'+_escA(q)+'"</div>';return;}
+  var h='';
+  resultados.forEach(function(i){
+    var t=TIPOS[i.tipo]||TIPOS.periodica;
+    h+='<div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;" onclick="openDet(\''+i.id+'\')">';
+    h+='<div style="width:30px;height:30px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:14px;">'+t.i+'</div>';
+    h+='<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_escA(i.edif)+'</div>';
+    h+='<div style="font-size:10px;color:#64748b;">'+_escA(i.com||'')+' · '+fdt(i.dtVistoria||i.data)+'</div></div>';
+    h+='<span class="bdg" style="background:'+t.bg+';color:'+t.c+';font-size:9px;">'+t.l+'</span>';
+    h+='</div>';
+  });
+  gb.innerHTML=h;
+}
+window.buscaGlobal=buscaGlobal;
+
 window.rAgenda=rAgenda;
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2422,7 +2507,19 @@ setInterval(function(){
     if(btn){var sub=btn.querySelector('div div:last-child');if(sub)sub.textContent=_fmtLastSync();}
   }).catch(function(){S._syncBusy=false;});
 },1800000);
-bootApp();
+/* Splash animation */
+  var splBar=document.getElementById('splash-bar');
+  if(splBar){splBar.style.width='60%';}
+  bootApp().then(function(){
+    if(splBar)splBar.style.width='100%';
+    setTimeout(function(){
+      var spl=document.getElementById('splash');
+      if(spl){spl.style.opacity='0';setTimeout(function(){spl.remove();},400);}
+    },600);
+  }).catch(function(){
+    var spl=document.getElementById('splash');
+    if(spl)spl.remove();
+  });
 
 // ------------------------------------------------------------
 // DEBOUNCE nos inputs de busca — v64
@@ -2443,5 +2540,21 @@ bootApp();
 })();
 
 </script>
+
+<!-- Modal Assinatura Digital — v86 -->
+<div class="mdl ctr" id="m-sig" style="display:none;">
+  <div class="mdc" style="max-width:420px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:800;color:var(--a);">✍️ Assinatura Digital</div>
+      <button onclick="cm('m-sig')" style="border:none;background:#f1f5f9;border-radius:8px;padding:5px 10px;font-size:13px;color:#64748b;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:10px;" id="sig-nome">Fiscal</div>
+    <canvas id="sig-canvas" width="380" height="160" style="border:2px solid #e2e8f0;border-radius:10px;background:#fff;width:100%;touch-action:none;cursor:crosshair;"></canvas>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button onclick="_sigLimpar()" style="flex:1;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;">🗑 Limpar</button>
+      <button onclick="_sigSalvar()" style="flex:2;background:#003580;color:#fff;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;">✓ Salvar Assinatura</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
