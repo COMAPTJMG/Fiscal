@@ -1763,11 +1763,11 @@ window.comprimirFotosAntigas=comprimirFotosAntigas;
 var CONTRATOS_VIGENCIA={
   /* v84: empresa alinhada com config.js — RENOVA apenas no CT 017/2026 (Região Norte) */
   NORTE:    {ct:'CT 017/2026',empresa:'RENOVA ENGENHARIA',inicio:'2026-01-01',fim:'2026-12-31'},
-  CENTRAL:  {ct:'CT 025/2026',empresa:'A definir',        inicio:'2026-01-01',fim:'2026-12-31'},
-  LESTE:    {ct:'CT 019/2026',empresa:'A definir',        inicio:'2026-01-01',fim:'2026-12-31'},
-  ZONA_MATA:{ct:'CT 018/2026',empresa:'A definir',        inicio:'2026-01-01',fim:'2026-12-31'},
-  TRIANGULO:{ct:'CT 392/2022',empresa:'A definir',        inicio:'2022-07-01',fim:'2026-12-31'},
-  SUL:      {ct:'CT 138/2023',empresa:'A definir',        inicio:'2023-06-01',fim:'2026-12-31'},
+  CENTRAL:  {ct:'CT 025/2026',empresa:'CONSTRUTORA MIQUERINOS LTDA',        inicio:'2026-01-01',fim:'2026-12-31'},
+  LESTE:    {ct:'CT 019/2026',empresa:'M. BORGES ENGENHARIA LTDA',        inicio:'2026-01-01',fim:'2026-12-31'},
+  ZONA_MATA:{ct:'CT 018/2026',empresa:'CONSTRUTORA MIQUERINOS LTDA',        inicio:'2026-01-01',fim:'2026-12-31'},
+  TRIANGULO:{ct:'CT 392/2022',empresa:'ETERA CONSTRUÇÕES E ISOLAMENTOS LTDA',        inicio:'2022-07-01',fim:'2026-12-31'},
+  SUL:      {ct:'CT 138/2023',empresa:'ETERA CONSTRUÇÕES E ISOLAMENTOS LTDA',        inicio:'2023-06-01',fim:'2026-12-31'},
   SUDOESTE: {ct:'CT 421/2022',empresa:'A definir',        inicio:'2022-09-01',fim:'2026-12-31'}
 };
 function rVigenciaContratos(){
@@ -1939,6 +1939,182 @@ function rDashboard() {
 
   db.innerHTML = h;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   GERAR OSP A PARTIR DE NCs SELECIONADAS — v86
+   O fiscal seleciona NCs de uma inspeção e gera uma OSP
+   pré-preenchida com edificação, comarca, sistemas e descrições.
+   ══════════════════════════════════════════════════════════════ */
+function abrirSeletorNcParaOsp(inspId) {
+  var i = S.insp.find(function(x){ return x.id === inspId; });
+  if (!i) return;
+  var ncs = [];
+  Object.entries(i.itens || {}).forEach(function(pair) {
+    var k = pair[0], v = pair[1];
+    if (v.s === 'nao_conforme') ncs.push({ key: k, nm: v.nm || v.n || k, obs: v.obs || '', sn: v.sn || '' });
+  });
+  if (!ncs.length) { Tt('Nenhuma NC nesta inspeção.'); return; }
+
+  var ov = document.createElement('div');
+  ov.id = '_osp_nc_ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;flex-direction:column;';
+  var h = '<div style="background:#fff;flex:1;display:flex;flex-direction:column;border-radius:16px 16px 0 0;margin-top:40px;overflow:hidden;">';
+  h += '<div style="background:#0f766e;padding:14px 16px;color:#fff;flex-shrink:0;">';
+  h += '<div style="font-size:15px;font-weight:800;">📋 Gerar OSP a partir de NCs</div>';
+  h += '<div style="font-size:11px;opacity:.7;margin-top:2px;">' + _escA(i.edif) + ' · ' + _escA(i.com || '') + '</div>';
+  h += '</div>';
+  h += '<div style="padding:12px;flex:1;overflow-y:auto;">';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">';
+  h += '<button onclick="_ospNcSelAll()" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">☐ Selecionar todas</button>';
+  h += '<span id="_osp_nc_cnt" style="font-size:11px;color:#64748b;">0 selecionada(s)</span>';
+  h += '</div>';
+  ncs.forEach(function(nc, idx) {
+    h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:' + (idx % 2 === 0 ? '#fff' : '#fafafa') + ';border-radius:8px;margin-bottom:4px;cursor:pointer;" onclick="_ospNcToggle(' + idx + ')">';
+    h += '<div id="_osp_ck_' + idx + '" style="width:22px;height:22px;border-radius:6px;border:2px solid #cbd5e1;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;margin-top:1px;"></div>';
+    h += '<div style="flex:1;min-width:0;">';
+    h += '<div style="font-size:12px;font-weight:700;color:#1e293b;">' + _escA(nc.nm) + '</div>';
+    if (nc.sn) h += '<div style="font-size:10px;color:#7c3aed;margin-top:1px;">Sistema: ' + _escA(nc.sn) + '</div>';
+    if (nc.obs) h += '<div style="font-size:11px;color:#dc2626;font-style:italic;margin-top:2px;">' + _escA(nc.obs) + '</div>';
+    h += '</div></div>';
+  });
+  h += '</div>';
+  h += '<div style="padding:12px 16px 24px;background:#fff;border-top:1px solid #e2e8f0;flex-shrink:0;">';
+  h += '<button onclick="_gerarOspDeNcs(\'' + inspId + '\')" id="_osp_nc_btn" style="width:100%;background:#0f766e;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;opacity:.5;pointer-events:none;">📋 Gerar OSP (selecione NCs)</button>';
+  h += '<button onclick="document.body.removeChild(document.getElementById(\'_osp_nc_ov\'))" style="width:100%;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:11px;font-size:12px;cursor:pointer;margin-top:6px;">Cancelar</button>';
+  h += '</div></div>';
+  ov.innerHTML = h;
+  document.body.appendChild(ov);
+  window._ospNcSel = {};
+  window._ospNcList = ncs;
+}
+
+function _ospNcToggle(idx) {
+  if (window._ospNcSel[idx]) delete window._ospNcSel[idx];
+  else window._ospNcSel[idx] = true;
+  _ospNcRefresh();
+}
+
+function _ospNcSelAll() {
+  var ncs = window._ospNcList || [];
+  var allSel = ncs.length > 0 && Object.keys(window._ospNcSel || {}).length === ncs.length;
+  window._ospNcSel = {};
+  if (!allSel) ncs.forEach(function(_, idx) { window._ospNcSel[idx] = true; });
+  _ospNcRefresh();
+}
+
+function _ospNcRefresh() {
+  var ncs = window._ospNcList || [];
+  var n = Object.keys(window._ospNcSel || {}).length;
+  ncs.forEach(function(_, idx) {
+    var ck = el('_osp_ck_' + idx);
+    if (ck) {
+      var sel = !!window._ospNcSel[idx];
+      ck.style.background = sel ? '#0f766e' : '#fff';
+      ck.style.borderColor = sel ? '#0f766e' : '#cbd5e1';
+      ck.textContent = sel ? '✓' : '';
+    }
+  });
+  var cnt = el('_osp_nc_cnt');
+  if (cnt) cnt.textContent = n + ' selecionada(s)';
+  var btn = el('_osp_nc_btn');
+  if (btn) {
+    btn.style.opacity = n > 0 ? '1' : '.5';
+    btn.style.pointerEvents = n > 0 ? 'auto' : 'none';
+    btn.textContent = n > 0 ? '📋 Gerar OSP (' + n + ' NC' + (n > 1 ? 's' : '') + ')' : '📋 Gerar OSP (selecione NCs)';
+  }
+}
+
+function _gerarOspDeNcs(inspId) {
+  var i = S.insp.find(function(x) { return x.id === inspId; });
+  if (!i) return;
+  var ncs = window._ospNcList || [];
+  var selIdx = Object.keys(window._ospNcSel || {}).map(Number);
+  if (!selIdx.length) { Tt('Selecione pelo menos uma NC.'); return; }
+
+  var selNcs = selIdx.map(function(idx) { return ncs[idx]; }).filter(Boolean);
+  var sistemas = {};
+  selNcs.forEach(function(nc) { if (nc.sn) sistemas[nc.sn] = true; });
+
+  var descricao = selNcs.map(function(nc, idx) {
+    return (idx + 1) + '. ' + nc.nm + (nc.obs ? ' — ' + nc.obs : '');
+  }).join('\n');
+
+  /* Fechar modal */
+  var ov = document.getElementById('_osp_nc_ov');
+  if (ov) document.body.removeChild(ov);
+
+  /* Criar inspeção tipo OSP pré-preenchida */
+  var novaId = uid();
+  var novaOsp = {
+    id: novaId,
+    tipo: 'osp',
+    edif: i.edif,
+    com: i.com,
+    reg: i.reg,
+    fiscal: i.fiscal || (S.sessao ? S.sessao.nome : ''),
+    dtVistoria: new Date().toISOString().slice(0, 10),
+    data: new Date().toISOString().slice(0, 10),
+    st: 'em_andamento',
+    itens: {},
+    obs: 'OSP gerada a partir de ' + selNcs.length + ' NC(s) da inspeção ' + (i.edif || '') + ' (' + fdt(i.dtVistoria || i.data) + '):\n\n' + descricao,
+    _origemInspId: inspId,
+    _origemNcKeys: selIdx.map(function(idx) { return ncs[idx].key; })
+  };
+
+  S.insp.push(novaOsp);
+  DB.sv();
+  Tt('✅ OSP criada com ' + selNcs.length + ' NC(s)! Redirecionando...');
+
+  setTimeout(function() {
+    if (typeof retomarF === 'function') retomarF(novaId);
+  }, 500);
+}
+window.abrirSeletorNcParaOsp = abrirSeletorNcParaOsp;
+
+/* ══════════════════════════════════════════════════════════════
+   DUPLICAR INSPEÇÃO — v86
+   Copia edificação, comarca, itens (zerados) da última vistoria
+   ══════════════════════════════════════════════════════════════ */
+function duplicarInspecao(inspId) {
+  var orig = S.insp.find(function(x) { return x.id === inspId; });
+  if (!orig) { Tt('Inspeção não encontrada.'); return; }
+
+  var novoId = uid();
+  var novo = JSON.parse(JSON.stringify(orig));
+  novo.id = novoId;
+  novo.st = 'em_andamento';
+  novo.data = new Date().toISOString().slice(0, 10);
+  novo.dtVistoria = new Date().toISOString().slice(0, 10);
+  novo.dtVistoriaFim = '';
+  novo.fiscal = S.sessao ? S.sessao.nome : orig.fiscal;
+  novo.synced_at = null;
+  novo._coordNota = '';
+  novo._coordNotaDt = '';
+
+  /* Zerar status de todos os itens mas manter nomes e sistemas */
+  Object.keys(novo.itens || {}).forEach(function(k) {
+    novo.itens[k].s = 'pendente';
+    novo.itens[k].obs = '';
+    novo.itens[k].fotos = [];
+  });
+
+  /* Zerar fotos e materiais */
+  novo.fotos = [];
+  novo.materiais = [];
+  novo.obs = '';
+  novo.duracaoMin = null;
+  novo.duracaoFormatada = '';
+
+  S.insp.push(novo);
+  DB.sv();
+  Tt('✅ Inspeção duplicada! Todos os itens zerados.');
+
+  setTimeout(function() {
+    if (typeof retomarF === 'function') retomarF(novoId);
+  }, 400);
+}
+window.duplicarInspecao = duplicarInspecao;
+
 window.rDashboard = rDashboard;
 
 window.rVigenciaContratos=rVigenciaContratos;
