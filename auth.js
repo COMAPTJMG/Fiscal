@@ -77,7 +77,9 @@ function logout(){cf('X','Sair','Encerrar sua sessao?',function(){S.sessao=null;
 function openCoord(){el('cu').value='';el('cp').value='';el('ce').textContent='';el('m-coord').style.display='flex';}
 function loginCoord(){
   var u=el('cu').value.trim();var p=el('cp').value.trim();
-  if(u===COORD.u&&p===COORD.p){
+  /* v85: senha pode ter sido alterada pelo admin via localStorage */
+  var _senhaCoord = (typeof localStorage !== 'undefined' && localStorage.getItem('_coordSenha')) || (typeof COORD !== 'undefined' ? COORD.p : '2026');
+  if(u===COORD.u&&p===_senhaCoord){
     S.sessao={tipo:'coordenador',userId:'coord',nome:'Coordenador',reg:null,cargo:'Coordenador',polo:'',_t:Date.now()};
     DB.sv();cm('m-coord');rCoord();G('s-coord');
   } else el('ce').textContent='Usuário ou PIN incorretos.';
