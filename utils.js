@@ -457,11 +457,13 @@ function gerarNOTINA(inspId){
         '<td>'+_escA(nc.tv||'—')+'</td><td>'+_escA(nc.obs||'—')+'</td></tr>';
     }).join('')+
     '</table>'+
-    '<p>Em virtude das inadequações constatadas acima, notificamos a empresa <b>'+_escA(R.empresa||'RENOVA ENGENHARIA')+'</b> '+
-    'a regularizar as pendências no prazo de <b>30 (trinta) dias corridos</b>, conforme cláusulas contratuais.</p>'+
+    /* v84-fix: empresa correta por região — RENOVA é apenas o NORTE */
+    var _emp = R.empresa && R.empresa !== 'A definir' ? R.empresa : null;
+    '<p>Em virtude das inadequações constatadas acima, notificamos a empresa <b>'+(_emp?_escA(_emp):'contratada ('+_escA(R.ct||'—')+')')+'</b> '+
+    'a regularizar as pendências no prazo de <b>30 (trinta) dias corridos</b>, conforme '+_escA(R.ct||'o contrato')+'.</p>'+
     '<div class="footer">'+
-    '<div class="ass">'+_escA(i.fiscal||s.nome||'—')+'<br>Fiscal TJMG</div>'+
-    '<div class="ass">_______________________<br>Gestora RENOVA</div>'+
+    '<div class="ass">'+_escA(i.fiscal||s.nome||'—')+'<br>Fiscal de Contrato — TJMG/COMAP-GEMAP-DENGEP</div>'+
+    '<div class="ass">_______________________<br>Representante da Contratada<br>'+(_emp?_escA(_emp):_escA(R.ct||'—'))+'</div>'+
     '</div></body></html>';
   var blob=new Blob([html],{type:'text/html'});
   shareFile(blob,'NOT-INA_'+numDoc+'.html','NOT-INA '+numDoc);
