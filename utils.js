@@ -456,9 +456,10 @@ function gerarNOTINA(inspId){
       return '<tr><td>'+(ix+1)+'</td><td>'+_escA(nc.nm||nc.k||'—')+'</td>'+
         '<td>'+_escA(nc.tv||'—')+'</td><td>'+_escA(nc.obs||'—')+'</td></tr>';
     }).join('')+
-    '</table>'+
-    /* v84-fix: empresa correta por região — RENOVA é apenas o NORTE */
+    '</table>';
+    /* v85-fix: empresa correta por região — RENOVA é apenas o NORTE */
     var _emp = R.empresa && R.empresa !== 'A definir' ? R.empresa : null;
+    html +=
     '<p>Em virtude das inadequações constatadas acima, notificamos a empresa <b>'+(_emp?_escA(_emp):'contratada ('+_escA(R.ct||'—')+')')+'</b> '+
     'a regularizar as pendências no prazo de <b>30 (trinta) dias corridos</b>, conforme '+_escA(R.ct||'o contrato')+'.</p>'+
     '<div class="footer">'+
