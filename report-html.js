@@ -495,8 +495,7 @@ function _doExportZipFotos(id, i, totalFotos) {
     '',
     'Total de fotos: ' + totalFotos,
     'Gerado em: ' + new Date().toLocaleString('pt-BR'),
-  ].join('
-'));
+  ].join('\n'));
 
   zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } })
     .then(function(blob){
@@ -552,8 +551,8 @@ function _gerarHTMLComFotosExternas(id, i, fotoMap) {
 
   /* Ajustar CSS de img para funcionar com src relativo (não base64) */
   html = html.replace(
-    'img.src.startsWith('data:')',
-    'true /* fotos externas */'
+    "img.src.startsWith('data:')",
+    "true /* fotos externas */"
   );
   return html || '<html><body><p>Erro ao gerar relatório.</p></body></html>';
 }
