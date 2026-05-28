@@ -157,10 +157,12 @@ input:focus,textarea:focus{border-color:var(--a);}
   </div>
   <!-- Abas: Lista / Painel / Mapa / Execução -->
   <div style="display:flex;border-bottom:1px solid var(--bo);background:#fff;flex-shrink:0;overflow-x:auto;scrollbar-width:none;" id="coord-tabs">
-    <button id="ctab-lista"   onclick="coordTabSwitch('lista')"   style="flex:1;min-width:60px;border:none;background:none;padding:10px 8px;font-size:11px;font-weight:800;color:#7c3aed;border-bottom:3px solid #7c3aed;cursor:pointer;white-space:nowrap;">📋 Lista</button>
-    <button id="ctab-painel"  onclick="coordTabSwitch('painel')"  style="flex:1;min-width:60px;border:none;background:none;padding:10px 8px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">📊 Painel</button>
-    <button id="ctab-mapa"    onclick="coordTabSwitch('mapa')"    style="flex:1;min-width:60px;border:none;background:none;padding:10px 8px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">🗺️ Mapa</button>
-    <button id="ctab-execucao" onclick="coordTabSwitch('execucao')" style="flex:1;min-width:60px;border:none;background:none;padding:10px 8px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">⚙️ Execução</button>
+    <button id="ctab-lista"   onclick="coordTabSwitch('lista')"   style="flex:1;min-width:55px;border:none;background:none;padding:10px 6px;font-size:11px;font-weight:800;color:#7c3aed;border-bottom:3px solid #7c3aed;cursor:pointer;white-space:nowrap;">📋 Lista</button>
+    <button id="ctab-painel"  onclick="coordTabSwitch('painel')"  style="flex:1;min-width:55px;border:none;background:none;padding:10px 6px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">📊 Painel</button>
+    <button id="ctab-fiscais" onclick="coordTabSwitch('fiscais')" style="flex:1;min-width:55px;border:none;background:none;padding:10px 6px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">👤 Fiscais</button>
+    <button id="ctab-ncs"     onclick="coordTabSwitch('ncs')"     style="flex:1;min-width:55px;border:none;background:none;padding:10px 6px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;" id="ctab-ncs">⚠️ NCs</button>
+    <button id="ctab-mapa"    onclick="coordTabSwitch('mapa')"    style="flex:1;min-width:55px;border:none;background:none;padding:10px 6px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">🗺️ Mapa</button>
+    <button id="ctab-execucao" onclick="coordTabSwitch('execucao')" style="flex:1;min-width:55px;border:none;background:none;padding:10px 6px;font-size:11px;font-weight:700;color:#94a3b8;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;">⚙️ Exec</button>
   </div>
   <!-- Vista Lista -->
   <div id="coord-view-lista" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
@@ -173,6 +175,7 @@ input:focus,textarea:focus{border-color:var(--a);}
       <button style="width:100%;border:none;background:#dc2626;color:#fff;border-radius:10px;padding:11px 14px;font-size:12px;font-weight:700;cursor:pointer;border-bottom:3px solid #991b1b;display:flex;align-items:center;gap:10px;" onclick="window.open('https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbyZqfhmkI2HzZ_y8Y6UzIWvmPmKD_v3M-vC7za-N68M2fb1Wxx6qFUM-jKUedbU-LT3/exec','_blank')"><span style="font-size:18px;">🧯</span><div style="text-align:left;"><div>Controle PCI — Norte</div><div style="font-size:10px;opacity:.75;font-weight:600;">Extintores · Mangueiras · RTI</div></div></button>
       <button style="width:100%;border:none;background:#be185d;color:#fff;border-radius:10px;padding:11px 14px;font-size:12px;font-weight:700;cursor:pointer;border-bottom:3px solid #9d174d;display:flex;align-items:center;gap:10px;margin-top:6px;" onclick="window.open('https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbwmy_f43xtAiqAuglPSzMkdb72wFM7k-wZ7JGCyr_um5S-zrGsT-3kNcNLxGJPla7Cnqg/exec','_blank')"><span style="font-size:18px;">🧯</span><div style="text-align:left;"><div>Controle PCI — Sul</div><div style="font-size:10px;opacity:.75;font-weight:600;">Extintores · Mangueiras · RTI</div></div></button>
     </div>
+    <div style="background:#fff;display:flex;gap:6px;padding:6px 12px;overflow-x:auto;border-bottom:1px solid var(--bo);flex-shrink:0;scrollbar-width:none;" id="coord-fiscal-flt"></div>
     <div style="padding:8px 12px;background:#fff;border-bottom:1px solid var(--bo);flex-shrink:0;"><input id="coord-busca" placeholder="Buscar comarca, edifício ou fiscal..."></div>
     <div style="background:#fff;display:flex;gap:6px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--bo);flex-shrink:0;" id="coord-reg-flt"></div>
     <div style="background:#fff;display:flex;gap:6px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--bo);flex-shrink:0;" id="coord-flt"></div>
@@ -182,6 +185,19 @@ input:focus,textarea:focus{border-color:var(--a);}
   <!-- Vista Painel -->
   <div id="coord-view-painel" style="display:none;flex:1;overflow:hidden;">
     <div class="scrl" id="coord-ab"></div>
+  </div>
+  <!-- Vista Fiscais -->
+  <div id="coord-view-fiscais" style="display:none;flex:1;overflow:hidden;">
+    <div class="scrl" id="coord-fiscais-body"></div>
+  </div>
+  <!-- Vista NCs Abertas -->
+  <div id="coord-view-ncs" style="display:none;flex:1;overflow:hidden;">
+    <div style="padding:8px 12px;background:#fff;border-bottom:1px solid var(--bo);flex-shrink:0;display:flex;gap:6px;overflow-x:auto;">
+      <button id="cnc-btn-todos" onclick="S._coordNcFlt='todos';rCoordNCs()" style="border:none;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;background:#7c3aed;color:#fff;white-space:nowrap;">Todos</button>
+      <button id="cnc-btn-semNot" onclick="S._coordNcFlt='semNot';rCoordNCs()" style="border:none;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;background:#f1f5f9;color:#64748b;white-space:nowrap;">⚠ Sem NOT-INA</button>
+      <button id="cnc-btn-comNot" onclick="S._coordNcFlt='comNot';rCoordNCs()" style="border:none;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;background:#f1f5f9;color:#64748b;white-space:nowrap;">✓ Com NOT-INA</button>
+    </div>
+    <div class="scrl" id="coord-ncs-body"></div>
   </div>
   <!-- Vista Mapa -->
   <div id="coord-view-mapa" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
