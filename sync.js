@@ -110,8 +110,10 @@ var Sync={
       if(!fotos.length)return;
       var p=Promise.all(fotos.map(function(f){
         if(!f||!f.b64)return Promise.resolve(f);
+        /* v87: se tem storageUrl, enviar URL em vez de base64 comprimido */
+        if(f.storageUrl)return Promise.resolve({url:f.storageUrl,leg:f.leg||''});
         return self.comprimirFotoSync(f.b64,480,0.45).then(function(b64c){
-          return {b64:b64c,leg:f.leg||''};
+          return {b64:b64c,leg:f.leg||'',url:f.storageUrl||''};
         });
       })).then(function(comprimidas){
         payloadLimpo.itens[k].fotos=comprimidas;
@@ -397,7 +399,12 @@ var Sync={
     if(this.useEdge){
       if(!toSync.length&&!_idsParaDel.length)return;
       /* Comprime fotos antes de enviar (thumbs 480px/0.45q ~15-25 KB cada) */
-      Tt('\u2601\ufe0f Sync: comprimindo fotos...');
+      /* v87: upload fotos originais para Supabase Storage antes de comprimir */
+      Tt('📸 Sync: enviando fotos para Storage...');
+      for(var _si=0;_si<toSync.length;_si++){
+        try{await this.uploadFotosInsp(toSync[_si]);}catch(e){console.warn('[Storage] upload erro:',e.message);}
+      }
+      Tt('☁️ Sync: comprimindo thumbs...');
       var rows=await Promise.all(toSync.map(this.normalizarInspComFotos.bind(this)));
       var _hPush={'Content-Type':'application/json'};if(SYNC_SECRET)_hPush['x-sync-secret']=SYNC_SECRET;
       var resp=await fetch(EDGE_SYNC_URL+'/push',{
@@ -453,6 +460,74 @@ var Sync={
       }
     }
   },
+  /* ══════════════════════════════════════════════════════════════
+     UPLOAD DE FOTOS PARA SUPABASE STORAGE — v87
+     Fotos são enviadas como arquivos WebP para o bucket "fotos".
+     O payload passa a conter URLs em vez de base64.
+     Estrutura: /fotos/{inspId}/{itemKey}/{idx}.webp
+     ════════════════════════════════════════════════════════════ */
+  uploadFotoStorage:async function(inspId, itemKey, idx, b64){
+    try{
+      if(!b64||!b64.startsWith('data:'))return null;
+      var path=inspId+'/'+itemKey+'/'+idx+'.webp';
+      /* Converter base64 para Blob */
+      var parts=b64.split(',');
+      var mime=(parts[0].match(/:(.*?);/)||[])[1]||'image/webp';
+      var raw=atob(parts[1]);
+      var arr=new Uint8Array(raw.length);
+      for(var j=0;j<raw.length;j++)arr[j]=raw.charCodeAt(j);
+      var blob=new Blob([arr],{type:mime});
+
+      var url=SUPABASE_URL+'/storage/v1/object/fotos/'+path;
+      var resp=await fetch(url,{
+        method:'POST',
+        headers:{
+          'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY,
+          'Content-Type':mime,
+          'x-upsert':'true'
+        },
+        body:blob
+      });
+      if(resp.ok||resp.status===200){
+        var publicUrl=SUPABASE_URL+'/storage/v1/object/public/fotos/'+path;
+        return publicUrl;
+      }
+      console.warn('[Storage] upload falhou:',resp.status,path);
+      return null;
+    }catch(e){
+      console.warn('[Storage] upload erro:',e.message);
+      return null;
+    }
+  },
+
+  /* Upload de TODAS as fotos de uma inspeção para Storage */
+  uploadFotosInsp:async function(insp){
+    if(!insp||!insp.itens)return;
+    var self=this;
+    var total=0,ok=0,fail=0;
+    var entries=Object.entries(insp.itens||{});
+
+    for(var e=0;e<entries.length;e++){
+      var k=entries[e][0],it=entries[e][1];
+      var fotos=it.fotos||[];
+      if(!fotos.length)continue;
+
+      for(var fi=0;fi<fotos.length;fi++){
+        var f=fotos[fi];
+        if(!f||!f.b64)continue;
+        /* Já é URL do Storage? Não re-enviar */
+        if(f.b64.startsWith('http'))continue;
+        total++;
+        var storageUrl=await self.uploadFotoStorage(insp.id,k,fi,f.b64);
+        if(storageUrl){
+          f.storageUrl=storageUrl;/* guarda URL para o payload */
+          ok++;
+        }else{fail++;}
+      }
+    }
+    if(total>0)console.log('[Storage]',ok+'/'+total+' fotos enviadas'+(fail?' ('+fail+' falhas)':''));
+  },
+
   pushAll:async function(){
     if(!this.ready||!navigator.onLine||this.busy)return;
     this.busy=true;
