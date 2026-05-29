@@ -247,6 +247,21 @@ input:focus,textarea:focus{border-color:var(--a);}
   <div class="bnv" id="bn5"></div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════
+     TELA: TIMELINE DA EDIFICAÇÃO (v89)
+════════════════════════════════════════════════════════════ -->
+<div class="scr" id="s-timeline" style="padding-top:var(--st)">
+  <div class="hdr" style="background:#1e3a5f;">
+    <span class="bkb" onclick="history.back();var c=document.querySelector('.scr.act');if(c)c.classList.remove('act');el('s-home').classList.add('act');">&#8592;</span>
+    <div style="flex:1;">
+      <div class="ht">🏛️ Histórico da Edificação</div>
+      <div class="hs" id="timeline-sub">Prontuário completo</div>
+    </div>
+  </div>
+  <div class="scrl" id="timeline-body"></div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════
      TELA: COMPARATIVO (v79)
 ════════════════════════════════════════════════════════════ -->
@@ -1687,6 +1702,8 @@ function _renderDet(id){
   h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Ações</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">';
   h+='<button onclick="duplicarInspecao(\''+i.id+'\')" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 Duplicar</button>';
+  h+='<button onclick="abrirTimeline(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#1e3a5f;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">🏛️ Histórico</button>';
+  h+='<button onclick="gerarLaudoAntesDepois(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;grid-column:span 2;">📸 Laudo Antes × Depois</button>';
   if(_hasNcs){
     h+='<button onclick="abrirSeletorNcParaOsp(\''+i.id+'\')" style="background:#0f766e;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 OSP desta inspeção</button>';
     h+='<button onclick="abrirOspEdificacao(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#064e3b;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;grid-column:span 2;">📋 OSP de TODAS as NCs — '+_escA(i.edif)+'</button>';
@@ -2383,6 +2400,15 @@ window._sigLimpar=_sigLimpar;
 window._sigSalvar=_sigSalvar;
 
 
+
+/* v89: abrir timeline da edificação */
+function abrirTimeline(edif, reg) {
+  var sub = el('timeline-sub');
+  if (sub) sub.textContent = edif;
+  G('s-timeline');
+  if (typeof rTimeline === 'function') rTimeline(edif, reg);
+}
+window.abrirTimeline = abrirTimeline;
 
 window.rAgenda=rAgenda;
 
