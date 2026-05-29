@@ -1803,6 +1803,135 @@ function rVigenciaContratos(){
    Gráfico de barras: conformidade por comarca, pior→melhor
    Identificação rápida de comarcas problemáticas
    ══════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════
+   ANÁLISE AVANÇADA — v87
+   Funções de inteligência para fiscalização:
+   - Score de saúde por edificação
+   - Mapa de calor de NCs por sistema
+   - Score de desempenho da contratada
+   - NCs reincidentes (mesmo item, mesmo local)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Score de Saúde da Edificação (0-100) ──────────────────
+   Pondera: conformidade média, NCs reincidentes, tempo sem
+   vistoria, total de NCs acumuladas, fotos por NC.
+   Quanto mais baixo, mais atenção a edificação precisa.
+   ─────────────────────────────────────────────────────────── */
+function calcSaudeEdificacao(edif, reg) {
+  var insps = filterByReg(S.insp).filter(function(i) {
+    return i.edif === edif && i.reg === reg && i.st === 'finalizada';
+  }).sort(function(a, b) { return (b.dtVistoria || b.data || '') > (a.dtVistoria || a.data || '') ? 1 : -1; });
+  if (!insps.length) return { score: null, label: 'Sem dados', cor: '#94a3b8' };
+
+  var ultima = insps[0];
+  var its = Object.values(ultima.itens || {});
+  var aplic = its.filter(function(v) { return v.s && v.s !== 'fora_periodo' && v.s !== 'nao_aplicavel' && v.s !== 'pendente'; });
+  var ncs = aplic.filter(function(v) { return v.s === 'nao_conforme'; });
+  var conf = aplic.length ? Math.round(aplic.filter(function(v) { return v.s === 'conforme'; }).length / aplic.length * 100) : 100;
+
+  /* Fator 1: conformidade (peso 40%) */
+  var f1 = conf;
+
+  /* Fator 2: NCs reincidentes (peso 25%) — mesmo item NC em 2+ vistorias seguidas */
+  var reincidentes = 0;
+  if (insps.length >= 2) {
+    var ant = insps[1];
+    Object.keys(ultima.itens || {}).forEach(function(k) {
+      if ((ultima.itens[k].s === 'nao_conforme') && ant.itens && ant.itens[k] && ant.itens[k].s === 'nao_conforme') reincidentes++;
+    });
+  }
+  var f2 = ncs.length ? Math.max(0, 100 - (reincidentes / ncs.length * 100)) : 100;
+
+  /* Fator 3: tempo desde última vistoria (peso 20%) */
+  var diasDesdeUltima = Math.round((new Date() - new Date((ultima.dtVistoria || ultima.data) + 'T12:00:00')) / 86400000);
+  var f3 = diasDesdeUltima <= 90 ? 100 : diasDesdeUltima <= 180 ? 70 : diasDesdeUltima <= 365 ? 40 : 10;
+
+  /* Fator 4: cobertura fotográfica (peso 15%) — NCs com foto */
+  var ncsComFoto = ncs.filter(function(v) { return (v.fotos || []).length > 0; }).length;
+  var f4 = ncs.length ? Math.round(ncsComFoto / ncs.length * 100) : 100;
+
+  var score = Math.round(f1 * 0.40 + f2 * 0.25 + f3 * 0.20 + f4 * 0.15);
+  var label = score >= 80 ? 'Bom' : score >= 60 ? 'Atenção' : score >= 40 ? 'Crítico' : 'Urgente';
+  var cor = score >= 80 ? '#16a34a' : score >= 60 ? '#d97706' : score >= 40 ? '#dc2626' : '#7f1d1d';
+
+  return {
+    score: score, label: label, cor: cor,
+    conf: conf, ncs: ncs.length, reincidentes: reincidentes,
+    diasDesdeUltima: diasDesdeUltima, ncsComFoto: ncsComFoto,
+    totalInsps: insps.length, edif: edif
+  };
+}
+
+/* ── Mapa de Calor de NCs por Sistema ──────────────────────
+   Retorna ranking: qual sistema acumula mais NCs no total
+   ─────────────────────────────────────────────────────────── */
+function calcNcsPorSistema() {
+  var sistemas = {};
+  filterByReg(S.insp).filter(function(i) { return i.st === 'finalizada'; }).forEach(function(i) {
+    Object.values(i.itens || {}).forEach(function(v) {
+      if (v.s !== 'nao_conforme') return;
+      var sn = v.sn || v.sistema || 'Outros';
+      if (!sistemas[sn]) sistemas[sn] = { total: 0, reincidente: 0, comarcas: {} };
+      sistemas[sn].total++;
+      sistemas[sn].comarcas[i.com || '—'] = (sistemas[sn].comarcas[i.com || '—'] || 0) + 1;
+    });
+  });
+  return Object.entries(sistemas)
+    .map(function(e) { return { sistema: e[0], total: e[1].total, comarcas: Object.keys(e[1].comarcas).length }; })
+    .sort(function(a, b) { return b.total - a.total; });
+}
+
+/* ── Score de Desempenho da Contratada ─────────────────────
+   Por região: IMR médio + taxa de resolução de NCs + tempo
+   médio de resposta
+   ─────────────────────────────────────────────────────────── */
+function calcDesempenhoContratada(regiao) {
+  var R = (typeof REG !== 'undefined' && REG[regiao]) ? REG[regiao] : { l: regiao, empresa: '' };
+  var insps = S.insp.filter(function(i) { return i.reg === regiao && i.st === 'finalizada'; });
+  if (!insps.length) return null;
+
+  var totalNcs = 0, ncsResolvidas = 0, somaConf = 0;
+  insps.forEach(function(i) {
+    var its = Object.values(i.itens || {});
+    var aplic = its.filter(function(v) { return v.s && v.s !== 'fora_periodo' && v.s !== 'nao_aplicavel' && v.s !== 'pendente'; });
+    var conf = aplic.filter(function(v) { return v.s === 'conforme'; }).length;
+    somaConf += aplic.length ? Math.round(conf / aplic.length * 100) : 100;
+    totalNcs += its.filter(function(v) { return v.s === 'nao_conforme'; }).length;
+  });
+
+  /* NCs que eram NC na penúltima e viraram conforme na última (resolvidas) */
+  var edifs = {};
+  insps.forEach(function(i) { if (!edifs[i.edif]) edifs[i.edif] = []; edifs[i.edif].push(i); });
+  Object.values(edifs).forEach(function(arr) {
+    arr.sort(function(a, b) { return (b.dtVistoria || b.data || '') > (a.dtVistoria || a.data || '') ? 1 : -1; });
+    if (arr.length < 2) return;
+    var atu = arr[0], ant = arr[1];
+    Object.keys(ant.itens || {}).forEach(function(k) {
+      if (ant.itens[k].s === 'nao_conforme' && atu.itens && atu.itens[k] && atu.itens[k].s === 'conforme') ncsResolvidas++;
+    });
+  });
+
+  var mediaConf = Math.round(somaConf / insps.length);
+  var taxaResolucao = totalNcs > 0 ? Math.round(ncsResolvidas / totalNcs * 100) : 100;
+
+  return {
+    regiao: regiao,
+    empresa: R.empresa || '—',
+    contrato: R.ct || '—',
+    totalInsps: insps.length,
+    mediaConf: mediaConf,
+    totalNcs: totalNcs,
+    ncsResolvidas: ncsResolvidas,
+    taxaResolucao: taxaResolucao,
+    score: Math.round(mediaConf * 0.5 + taxaResolucao * 0.5)
+  };
+}
+
+window.calcSaudeEdificacao = calcSaudeEdificacao;
+window.calcNcsPorSistema = calcNcsPorSistema;
+window.calcDesempenhoContratada = calcDesempenhoContratada;
+
 function rDashboard() {
   var db = el('dashboard-body'); if (!db) return;
   var s  = S.sessao || {};
@@ -1935,6 +2064,67 @@ function rDashboard() {
     h += '</div>';
   });
   h += '</div>';
+  /* ═══ MAPA DE CALOR DE NCs POR SISTEMA ═══ */
+  var ncsSistema = typeof calcNcsPorSistema === 'function' ? calcNcsPorSistema() : [];
+  if (ncsSistema.length) {
+    var maxNcSis = ncsSistema[0].total;
+    h += '<div style="margin-top:20px;font-size:11px;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">🔥 Sistemas com Mais NCs</div>';
+    ncsSistema.slice(0, 8).forEach(function(s, idx) {
+      var pctBar = Math.round(s.total / maxNcSis * 100);
+      var cor = idx === 0 ? '#dc2626' : idx < 3 ? '#ea580c' : '#d97706';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+      h += '<div style="width:18px;font-size:10px;font-weight:800;color:' + cor + ';text-align:right;">' + (idx + 1) + '</div>';
+      h += '<div style="flex:1;min-width:0;">';
+      h += '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + s.sistema + '</div>';
+      h += '<div style="background:#fee2e2;border-radius:3px;height:6px;margin-top:3px;"><div style="width:' + pctBar + '%;height:100%;background:' + cor + ';border-radius:3px;"></div></div>';
+      h += '</div>';
+      h += '<div style="font-size:12px;font-weight:800;color:' + cor + ';">' + s.total + '</div>';
+      h += '</div>';
+    });
+  }
+
+  /* ═══ SAÚDE DAS EDIFICAÇÕES (top 10 piores) ═══ */
+  var edifSet = {};
+  filterByReg(S.insp).filter(function(i) { return i.st === 'finalizada'; }).forEach(function(i) {
+    edifSet[i.edif + '::' + i.reg] = { edif: i.edif, reg: i.reg, com: i.com };
+  });
+  var saudes = Object.values(edifSet).map(function(e) {
+    return calcSaudeEdificacao(e.edif, e.reg);
+  }).filter(function(s) { return s.score !== null; }).sort(function(a, b) { return a.score - b.score; });
+
+  if (saudes.length) {
+    h += '<div style="margin-top:20px;font-size:11px;font-weight:800;color:#7f1d1d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">🏥 Saúde das Edificações</div>';
+    saudes.slice(0, 10).forEach(function(s) {
+      h += '<div style="background:#fff;border-radius:8px;border:1px solid #e2e8f0;border-left:4px solid ' + s.cor + ';padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">';
+      h += '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _escA(s.edif) + '</div>';
+      h += '<div style="font-size:10px;color:#64748b;">' + s.ncs + ' NC · ' + s.reincidentes + ' reinc. · há ' + s.diasDesdeUltima + 'd</div></div>';
+      h += '<div style="text-align:center;flex-shrink:0;margin-left:8px;"><div style="font-size:18px;font-weight:900;color:' + s.cor + ';">' + s.score + '</div>';
+      h += '<div style="font-size:8px;color:' + s.cor + ';font-weight:700;">' + s.label + '</div></div></div>';
+    });
+  }
+
+  /* ═══ DESEMPENHO POR CONTRATADA ═══ */
+  var regioes = Object.keys(typeof REG !== 'undefined' ? REG : {});
+  var desempenhos = regioes.map(function(r) { return typeof calcDesempenhoContratada === 'function' ? calcDesempenhoContratada(r) : null; }).filter(Boolean).sort(function(a, b) { return a.score - b.score; });
+
+  if (desempenhos.length) {
+    h += '<div style="margin-top:20px;font-size:11px;font-weight:800;color:#1e3a5f;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">🏢 Desempenho por Contratada</div>';
+    desempenhos.forEach(function(d) {
+      var corD = d.score >= 80 ? '#16a34a' : d.score >= 60 ? '#d97706' : '#dc2626';
+      h += '<div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:12px 14px;margin-bottom:8px;">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">';
+      h += '<div><div style="font-size:13px;font-weight:800;color:#0f172a;">' + _escA(d.empresa) + '</div>';
+      h += '<div style="font-size:10px;color:#7c3aed;font-weight:600;">' + d.contrato + '</div></div>';
+      h += '<div style="font-size:22px;font-weight:900;color:' + corD + ';">' + d.score + '<span style="font-size:9px;color:#94a3b8;"> pts</span></div></div>';
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      h += '<div style="background:#f8fafc;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:' + (d.mediaConf >= 80 ? '#16a34a' : '#d97706') + ';">' + d.mediaConf + '%</div><div style="font-size:9px;color:#64748b;">Conformidade</div></div>';
+      h += '<div style="background:#f8fafc;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:' + (d.taxaResolucao >= 70 ? '#16a34a' : '#dc2626') + ';">' + d.taxaResolucao + '%</div><div style="font-size:9px;color:#64748b;">NCs Resolvidas</div></div>';
+      h += '</div>';
+      h += '<div style="font-size:10px;color:#64748b;margin-top:6px;">' + d.totalInsps + ' inspeções · ' + d.totalNcs + ' NCs · ' + d.ncsResolvidas + ' resolvidas</div>';
+      h += '</div>';
+    });
+  }
+
   h += '</div>'; /* padding wrapper */
 
   db.innerHTML = h;
