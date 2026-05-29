@@ -4,7 +4,7 @@
    v82-fix: paleta TJMG consistente, dark-mode removido
 */
 
-const V = 'tjmg-v87';
+const V = 'tjmg-v89';
 const BYPASS = [
   'supabase.co',
   'googleapis.com',
