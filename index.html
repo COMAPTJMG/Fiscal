@@ -457,7 +457,9 @@ input:focus,textarea:focus{border-color:var(--a);}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
       <div class="lbl" style="margin-bottom:0;">📷 Fotos <span id="ifcnt" style="background:#7c3aed;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none;">0</span></div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">
-        <button onclick="abrirCameraDir()" style="background:#003580;color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;" title="Câmera direta (sem salvar na galeria)">📷 Câmera</button>
+        <label style="background:#003580;color:#fff;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Câmera (salva na galeria)">
+          📷 Câmera<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="addItemPhoto(this)">
+        </label>
         <label style="background:#7c3aed;color:#fff;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Selecionar múltiplas fotos da galeria">
           🖼️ Galeria<input type="file" accept="image/*" multiple style="display:none;" onchange="addItemPhoto(this)">
         </label>
@@ -1994,7 +1996,7 @@ function _moverFoto(ix,d){
 /* ── Câmera direta (getUserMedia) — sem salvar na galeria ── */
 function abrirCameraDir(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-    /* Fallback: input file com câmera */
+    /* Fallback: câmera nativa (salva na galeria) */
     var inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';
     inp.onchange=function(){addItemPhoto(inp);};inp.click();return;
   }
@@ -2031,6 +2033,7 @@ function abrirCameraDir(){
       .catch(function(e){
         console.warn('Camera err:',e);
         _camFechar();
+        /* Fallback: câmera nativa */
         var inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';
         inp.onchange=function(){addItemPhoto(inp);};inp.click();
       });
