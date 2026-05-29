@@ -2366,6 +2366,298 @@ function _gerarOspDeNcsV2() {
   }, 500);
 }
 
+
+/* ══════════════════════════════════════════════════════════════
+   LAUDO FOTOGRÁFICO ANTES × DEPOIS — v89
+   Compara fotos de NC (vistoria anterior) com fotos de
+   correção (vistoria atual onde item virou conforme).
+   Gera HTML exportável com pares lado a lado.
+   ══════════════════════════════════════════════════════════════ */
+
+function gerarLaudoAntesDepois(edif, reg) {
+  var insps = filterByReg(S.insp).filter(function(i) {
+    return i.edif === edif && i.reg === reg && i.st === 'finalizada';
+  }).sort(function(a, b) {
+    return (a.dtVistoria || a.data || '') > (b.dtVistoria || b.data || '') ? 1 : -1;
+  });
+
+  if (insps.length < 2) { Tt('Necessário pelo menos 2 vistorias para comparar.'); return; }
+
+  /* Identificar pares antes/depois: item era NC → virou conforme */
+  var pares = [];
+  for (var vi = 1; vi < insps.length; vi++) {
+    var ant = insps[vi - 1], atu = insps[vi];
+    Object.keys(atu.itens || {}).forEach(function(k) {
+      var itAtu = atu.itens[k];
+      var itAnt = ant.itens && ant.itens[k];
+      if (!itAnt) return;
+      if (itAnt.s === 'nao_conforme' && itAtu.s === 'conforme') {
+        pares.push({
+          itemKey: k,
+          nome: itAtu.nm || itAnt.nm || k,
+          sistema: itAtu.sn || itAnt.sn || '',
+          /* Antes */
+          antData: ant.dtVistoria || ant.data,
+          antObs: itAnt.obs || '',
+          antFotos: (itAnt.fotos || []).filter(function(f) { return f && f.b64; }),
+          antFiscal: ant.fiscal || '',
+          /* Depois */
+          atuData: atu.dtVistoria || atu.data,
+          atuObs: itAtu.obs || '',
+          atuFotos: (itAtu.fotos || []).filter(function(f) { return f && f.b64; }),
+          atuFiscal: atu.fiscal || ''
+        });
+      }
+    });
+  }
+
+  if (!pares.length) {
+    Tt('Nenhum item corrigido encontrado (NC → Conforme) com fotos.');
+    return;
+  }
+
+  /* Gerar HTML do laudo */
+  var R = (typeof REG !== 'undefined' && REG[reg]) ? REG[reg] : { l: reg, ct: '', empresa: '' };
+  var emp = R.empresa && R.empresa !== 'A definir' ? R.empresa : '';
+  var com = insps[0].com || '';
+
+  var css = '<style>'
+    + '@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&display=swap");'
+    + '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{font-family:"IBM Plex Sans",sans-serif;font-size:12px;color:#1f2937;background:#fff;}'
+    + '.topo{background:#1e3a5f;color:#fff;padding:16px 24px;}'
+    + '.topo h1{font-size:16px;font-weight:800;}'
+    + '.topo p{font-size:11px;opacity:.6;margin-top:3px;}'
+    + '.corpo{padding:20px 24px;max-width:900px;margin:0 auto;}'
+    + '.sec{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#1e3a5f;border-bottom:2px solid #1e3a5f;padding-bottom:5px;margin:24px 0 14px;}'
+    + '.par{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:20px;overflow:hidden;break-inside:avoid;}'
+    + '.par-hdr{background:#f8fafc;padding:10px 14px;border-bottom:1px solid #e2e8f0;}'
+    + '.par-hdr h3{font-size:13px;font-weight:800;color:#0f172a;}'
+    + '.par-hdr p{font-size:10px;color:#64748b;margin-top:2px;}'
+    + '.par-body{display:grid;grid-template-columns:1fr 1fr;}'
+    + '.lado{padding:12px;}'
+    + '.lado-ant{background:#fff5f5;border-right:2px dashed #fca5a5;}'
+    + '.lado-dep{background:#f0fdf4;}'
+    + '.lado-tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:5px;}'
+    + '.lado-ant .lado-tag{color:#dc2626;}'
+    + '.lado-dep .lado-tag{color:#16a34a;}'
+    + '.lado img{width:100%;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:6px;}'
+    + '.lado .obs{font-size:11px;color:#374151;font-style:italic;margin-top:4px;line-height:1.5;}'
+    + '.lado .meta{font-size:10px;color:#94a3b8;margin-top:4px;}'
+    + '.sem-foto{background:#f1f5f9;border-radius:8px;padding:20px;text-align:center;color:#94a3b8;font-size:11px;}'
+    + '.resumo{background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:14px;margin-bottom:20px;}'
+    + '.resumo h2{font-size:14px;font-weight:800;color:#166534;margin-bottom:4px;}'
+    + '.resumo p{font-size:12px;color:#15803d;}'
+    + '.rodape{margin-top:32px;padding:12px;background:#f8fafc;border-top:2px solid #e2e8f0;font-size:9.5px;color:#9ca3af;text-align:center;}'
+    + '.btn-print{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e2e8f0;padding:8px 20px;text-align:right;}'
+    + '.btn-print button{background:#1e3a5f;color:#fff;border:none;border-radius:6px;padding:6px 18px;font-size:12px;font-weight:700;cursor:pointer;}'
+    + '@media print{.btn-print{display:none!important;}.par{break-inside:avoid;}.lado img{max-height:200px;object-fit:contain;}-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}'
+    + '</style>';
+
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Laudo Antes x Depois — ' + _escA(edif) + '</title>' + css + '</head><body>';
+
+  html += '<div class="btn-print"><button onclick="window.print()">⬇ Salvar / Imprimir PDF</button></div>';
+
+  html += '<div class="topo">';
+  html += '<h1>Laudo Fotográfico — Antes × Depois</h1>';
+  html += '<p>' + _escA(edif) + ' · ' + _escA(com) + ' · Região ' + _escA(R.l) + (emp ? ' · ' + _escA(emp) : '') + '</p>';
+  html += '</div>';
+
+  html += '<div class="corpo">';
+
+  /* Resumo */
+  html += '<div class="resumo">';
+  html += '<h2>✅ ' + pares.length + ' item(ns) corrigido(s)</h2>';
+  html += '<p>Itens que foram NC em uma vistoria e passaram a Conforme na vistoria seguinte.</p>';
+  html += '</div>';
+
+  html += '<div class="sec">Pares de Evidências</div>';
+
+  pares.forEach(function(p, idx) {
+    html += '<div class="par">';
+    html += '<div class="par-hdr"><h3>' + (idx + 1) + '. ' + _escA(p.nome) + '</h3>';
+    if (p.sistema) html += '<p>Sistema: ' + _escA(p.sistema) + '</p>';
+    html += '</div>';
+    html += '<div class="par-body">';
+
+    /* Lado ANTES */
+    html += '<div class="lado lado-ant">';
+    html += '<div class="lado-tag">❌ Antes (NC)</div>';
+    if (p.antFotos.length) {
+      p.antFotos.forEach(function(f) {
+        html += '<img src="' + f.b64 + '" alt="Antes">';
+        if (f.leg) html += '<div style="font-size:10px;color:#94a3b8;text-align:center;margin-bottom:6px;">' + _escA(f.leg) + '</div>';
+      });
+    } else {
+      html += '<div class="sem-foto">📷 Sem foto registrada</div>';
+    }
+    if (p.antObs) html += '<div class="obs">"' + _escA(p.antObs) + '"</div>';
+    html += '<div class="meta">' + fdt(p.antData) + ' · ' + _escA(p.antFiscal) + '</div>';
+    html += '</div>';
+
+    /* Lado DEPOIS */
+    html += '<div class="lado lado-dep">';
+    html += '<div class="lado-tag">✅ Depois (Corrigido)</div>';
+    if (p.atuFotos.length) {
+      p.atuFotos.forEach(function(f) {
+        html += '<img src="' + f.b64 + '" alt="Depois">';
+        if (f.leg) html += '<div style="font-size:10px;color:#94a3b8;text-align:center;margin-bottom:6px;">' + _escA(f.leg) + '</div>';
+      });
+    } else {
+      html += '<div class="sem-foto">📷 Sem foto registrada</div>';
+    }
+    if (p.atuObs) html += '<div class="obs">"' + _escA(p.atuObs) + '"</div>';
+    html += '<div class="meta">' + fdt(p.atuData) + ' · ' + _escA(p.atuFiscal) + '</div>';
+    html += '</div>';
+
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  html += '<div class="rodape">TJMG · GEMAP · Laudo gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + _escA(R.ct) + '</div>';
+  html += '</body></html>';
+
+  /* Download */
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'TJMG_LAUDO_ANTES_DEPOIS_' + normProt(edif) + '_' + new Date().toISOString().slice(0, 10) + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  Tt('✅ Laudo Antes × Depois exportado! ' + pares.length + ' par(es).');
+}
+window.gerarLaudoAntesDepois = gerarLaudoAntesDepois;
+
+/* ══════════════════════════════════════════════════════════════
+   HISTÓRICO DA EDIFICAÇÃO — TIMELINE — v89
+   Tela tipo "prontuário do prédio": tudo que já aconteceu
+   naquela edificação, em ordem cronológica.
+   ══════════════════════════════════════════════════════════════ */
+
+function rTimeline(edif, reg) {
+  var tb = el('timeline-body'); if (!tb) return;
+  var insps = filterByReg(S.insp).filter(function(i) {
+    return i.edif === edif;
+  }).sort(function(a, b) {
+    return (b.dtVistoria || b.data || '') > (a.dtVistoria || a.data || '') ? 1 : -1;
+  });
+
+  var R = (typeof REG !== 'undefined' && REG[reg]) ? REG[reg] : { l: reg || '', ct: '', empresa: '', c: '#003580', bg: '#dbeafe' };
+  var emp = R.empresa && R.empresa !== 'A definir' ? R.empresa : '';
+  var com = insps.length ? insps[0].com || '' : '';
+
+  /* Score de saúde */
+  var saude = typeof calcSaudeEdificacao === 'function' ? calcSaudeEdificacao(edif, reg) : { score: null };
+
+  var h = '';
+
+  /* ── Header da edificação ── */
+  h += '<div style="background:' + R.c + ';color:#fff;padding:14px 16px;border-radius:0 0 16px 16px;margin-bottom:16px;">';
+  h += '<div style="font-size:16px;font-weight:800;">' + _escA(edif) + '</div>';
+  h += '<div style="font-size:11px;opacity:.7;margin-top:3px;">' + _escA(com) + ' · Região ' + _escA(R.l) + '</div>';
+  if (emp) h += '<div style="font-size:10px;opacity:.5;margin-top:2px;">🏢 ' + _escA(emp) + ' · ' + _escA(R.ct) + '</div>';
+  h += '<div style="display:flex;gap:12px;margin-top:10px;">';
+  if (saude.score !== null) {
+    h += '<div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px 12px;text-align:center;">';
+    h += '<div style="font-size:22px;font-weight:900;">' + saude.score + '</div>';
+    h += '<div style="font-size:9px;opacity:.7;">Saúde</div></div>';
+  }
+  h += '<div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px 12px;text-align:center;">';
+  h += '<div style="font-size:22px;font-weight:900;">' + insps.length + '</div>';
+  h += '<div style="font-size:9px;opacity:.7;">Vistorias</div></div>';
+  var totalNcs = insps.reduce(function(s, i) {
+    return s + Object.values(i.itens || {}).filter(function(v) { return v.s === 'nao_conforme'; }).length;
+  }, 0);
+  h += '<div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px 12px;text-align:center;">';
+  h += '<div style="font-size:22px;font-weight:900;">' + totalNcs + '</div>';
+  h += '<div style="font-size:9px;opacity:.7;">NCs total</div></div>';
+  h += '</div>';
+
+  /* Botões de ação */
+  h += '<div style="display:flex;gap:8px;margin-top:10px;">';
+  h += '<button onclick="gerarLaudoAntesDepois(\'' + _escA(edif) + '\',\'' + _escA(reg) + '\')" style="flex:1;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;">📸 Laudo Antes×Depois</button>';
+  h += '<button onclick="abrirOspEdificacao(\'' + _escA(edif) + '\',\'' + _escA(reg) + '\')" style="flex:1;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;">📋 OSP de NCs</button>';
+  h += '</div>';
+  h += '</div>';
+
+  /* ── Timeline ── */
+  if (!insps.length) {
+    h += '<div style="text-align:center;padding:40px;color:#94a3b8;"><div style="font-size:40px;">🏛️</div><div style="margin-top:10px;font-size:13px;font-weight:600;">Nenhuma vistoria registrada</div></div>';
+    tb.innerHTML = h;
+    return;
+  }
+
+  h += '<div style="padding:0 12px;">';
+
+  insps.forEach(function(i, idx) {
+    var t = TIPOS[i.tipo] || TIPOS.periodica;
+    var its = Object.values(i.itens || {});
+    var aplic = its.filter(function(v) { return v.s && v.s !== 'fora_periodo' && v.s !== 'nao_aplicavel' && v.s !== 'pendente'; });
+    var conf = aplic.filter(function(v) { return v.s === 'conforme'; }).length;
+    var ncs = aplic.filter(function(v) { return v.s === 'nao_conforme'; }).length;
+    var pct = aplic.length ? Math.round(conf / aplic.length * 100) : null;
+    var fotos = its.reduce(function(s, v) { return s + (v.fotos || []).length; }, 0);
+    var corPct = pct === null ? '#94a3b8' : pct >= 80 ? '#16a34a' : pct >= 60 ? '#d97706' : '#dc2626';
+
+    /* Linha do tempo */
+    h += '<div style="display:flex;gap:12px;margin-bottom:4px;">';
+
+    /* Coluna da linha vertical */
+    h += '<div style="display:flex;flex-direction:column;align-items:center;width:20px;flex-shrink:0;">';
+    h += '<div style="width:12px;height:12px;border-radius:50%;background:' + t.c + ';border:3px solid ' + t.bg + ';flex-shrink:0;z-index:1;"></div>';
+    if (idx < insps.length - 1) h += '<div style="flex:1;width:2px;background:#e2e8f0;margin:2px 0;"></div>';
+    h += '</div>';
+
+    /* Card */
+    h += '<div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:12px;overflow:hidden;border-left:4px solid ' + t.c + ';">';
+
+    /* Header do card */
+    h += '<div style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openDet(\'' + i.id + '\')">';
+    h += '<div style="font-size:20px;">' + t.i + '</div>';
+    h += '<div style="flex:1;min-width:0;">';
+    h += '<div style="display:flex;align-items:center;gap:6px;">';
+    h += '<span style="font-size:12px;font-weight:800;color:#0f172a;">' + t.l + '</span>';
+    if (i.grupo) h += '<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;font-weight:700;">Grp ' + i.grupo + '</span>';
+    h += '</div>';
+    h += '<div style="font-size:10px;color:#64748b;margin-top:1px;">' + fdt(i.dtVistoria || i.data) + ' · ' + _escA(i.fiscal || '') + '</div>';
+    h += '</div>';
+    /* Conformidade */
+    if (pct !== null) {
+      h += '<div style="text-align:center;flex-shrink:0;">';
+      h += '<div style="font-size:18px;font-weight:900;color:' + corPct + ';">' + pct + '%</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+
+    /* Stats rápidos */
+    h += '<div style="padding:0 12px 8px;display:flex;gap:8px;flex-wrap:wrap;">';
+    if (conf > 0) h += '<span style="font-size:10px;background:#dcfce7;color:#16a34a;padding:2px 7px;border-radius:12px;font-weight:700;">✅ ' + conf + '</span>';
+    if (ncs > 0) h += '<span style="font-size:10px;background:#fee2e2;color:#dc2626;padding:2px 7px;border-radius:12px;font-weight:700;">❌ ' + ncs + ' NC</span>';
+    if (fotos > 0) h += '<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:2px 7px;border-radius:12px;font-weight:700;">📸 ' + fotos + '</span>';
+    h += '<span style="font-size:10px;background:' + (i.st === 'finalizada' ? '#dcfce7' : '#fef3c7') + ';color:' + (i.st === 'finalizada' ? '#16a34a' : '#d97706') + ';padding:2px 7px;border-radius:12px;font-weight:700;">' + (i.st === 'finalizada' ? '✓ Finalizada' : '⏳ Em andamento') + '</span>';
+    h += '</div>';
+
+    /* NCs desta vistoria (resumo) */
+    if (ncs > 0) {
+      var ncItens = its.filter(function(v) { return v.s === 'nao_conforme'; }).slice(0, 3);
+      h += '<div style="padding:0 12px 10px;">';
+      ncItens.forEach(function(v) {
+        h += '<div style="font-size:10px;color:#991b1b;padding:2px 0;border-top:1px solid #fef2f2;">⚠ ' + _escA(v.nm || v.n || '') + (v.obs ? ' — ' + _escA(v.obs).slice(0, 60) : '') + '</div>';
+      });
+      if (ncs > 3) h += '<div style="font-size:9px;color:#dc2626;padding:2px 0;">...e mais ' + (ncs - 3) + '</div>';
+      h += '</div>';
+    }
+
+    h += '</div>'; /* card */
+    h += '</div>'; /* flex row */
+  });
+
+  h += '</div>';
+  tb.innerHTML = h;
+}
+
+window.rTimeline = rTimeline;
+
 window.abrirSeletorNcParaOsp = abrirSeletorNcParaOsp;
 window.abrirOspEdificacao = abrirOspEdificacao;
 window._ospNcToggle = _ospNcToggle;
