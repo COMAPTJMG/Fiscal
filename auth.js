@@ -666,6 +666,8 @@ function rCoordNCs(){
     h+='<div style="font-size:10px;color:#64748b;">'+_escA(g.com||'—')+' · '+g.ncs.length+' NC'+(g.ncs.length>1?'s':'')+(semNotG>0?' · <b style="color:#dc2626;">'+semNotG+' sem notificação</b>':'')+'</div>';
     h+='</div>';
     /* Botão NOT-INA rápido se houver NCs sem notificação */
+    /* Botão OSP por edificação + NOT-INA */
+    h+='<button onclick="abrirOspEdificacao(\''+_escA(g.edif)+'\',\''+_escA(g.ncs[0]&&S.insp.find(function(x){return x.id===g.ncs[0].inspId;})?S.insp.find(function(x){return x.id===g.ncs[0].inspId;}).reg:'')+'\')" style="background:#0f766e;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;">📋 OSP</button>';
     if(semNotG>0){
       h+='<button onclick="gerarNOTINA(\''+g.ncs[0].inspId+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;">⚠️ NOT-INA</button>';
     }
