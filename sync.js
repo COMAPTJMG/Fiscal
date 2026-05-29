@@ -466,27 +466,66 @@ var Sync={
      O payload passa a conter URLs em vez de base64.
      Estrutura: /fotos/{inspId}/{itemKey}/{idx}.webp
      ════════════════════════════════════════════════════════════ */
+  /* Qualidade de upload para o Storage: 1024px / 0.65q
+     Suficiente para o coordenador ver detalhes sem ocupar
+     muito espaço. Fotos originais ficam no IDB local. */
+  STORAGE_MAX_DIM: 1024,
+  STORAGE_QUALITY: 0.65,
+
+  /* Comprime foto para envio ao Storage (retorna Blob) */
+  _comprimirParaStorage: function(b64) {
+    var self = this;
+    return new Promise(function(res) {
+      try {
+        var img = new Image();
+        img.onload = function() {
+          var w = img.width, h = img.height;
+          var max = self.STORAGE_MAX_DIM;
+          if (w > max || h > max) {
+            if (w >= h) { h = Math.round(h * (max / w)); w = max; }
+            else { w = Math.round(w * (max / h)); h = max; }
+          }
+          var cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          cv.toBlob(function(blob) {
+            res(blob || null);
+          }, 'image/webp', self.STORAGE_QUALITY);
+        };
+        img.onerror = function() { res(null); };
+        img.src = b64;
+      } catch(e) { res(null); }
+    });
+  },
+
   uploadFotoStorage:async function(inspId, itemKey, idx, b64){
     try{
       if(!b64||!b64.startsWith('data:'))return null;
       var path=inspId+'/'+itemKey+'/'+idx+'.webp';
-      /* Converter base64 para Blob */
-      var parts=b64.split(',');
-      var mime=(parts[0].match(/:(.*?);/)||[])[1]||'image/webp';
-      var raw=atob(parts[1]);
-      var arr=new Uint8Array(raw.length);
-      for(var j=0;j<raw.length;j++)arr[j]=raw.charCodeAt(j);
-      var blob=new Blob([arr],{type:mime});
+      /* Comprimir para 1024px/0.65q antes de enviar */
+      var blob = await this._comprimirParaStorage(b64);
+      if(!blob){
+        /* Fallback: converter base64 direto para Blob sem comprimir */
+        var parts=b64.split(',');
+        var mime=(parts[0].match(/:(.*?);/)||[])[1]||'image/webp';
+        var raw=atob(parts[1]);
+        var arr=new Uint8Array(raw.length);
+        for(var j=0;j<raw.length;j++)arr[j]=raw.charCodeAt(j);
+        blob=new Blob([arr],{type:mime});
+      }
 
       var url=SUPABASE_URL+'/storage/v1/object/fotos/'+path;
+      /* Se veio da compressão, blob já está pronto. Senão, é do fallback. */
+      var uploadBlob = blob;
+      var uploadMime = blob.type || 'image/webp';
       var resp=await fetch(url,{
         method:'POST',
         headers:{
           'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY,
-          'Content-Type':mime,
+          'Content-Type':uploadMime,
           'x-upsert':'true'
         },
-        body:blob
+        body:uploadBlob
       });
       if(resp.ok||resp.status===200){
         var publicUrl=SUPABASE_URL+'/storage/v1/object/public/fotos/'+path;
