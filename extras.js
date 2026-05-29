@@ -2135,47 +2135,146 @@ function rDashboard() {
    O fiscal seleciona NCs de uma inspeção e gera uma OSP
    pré-preenchida com edificação, comarca, sistemas e descrições.
    ══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   GERAR OSP A PARTIR DE NCs — v88
+   MODO 1: abrirSeletorNcParaOsp(inspId) → NCs de UMA inspeção
+   MODO 2: abrirOspEdificacao(edif, reg)  → TODAS as NCs abertas
+           dessa edificação, de TODAS as vistorias finalizadas.
+           O fiscal seleciona quais incluir na OSP.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Modo 1: NCs de uma inspeção específica */
 function abrirSeletorNcParaOsp(inspId) {
   var i = S.insp.find(function(x){ return x.id === inspId; });
   if (!i) return;
   var ncs = [];
   Object.entries(i.itens || {}).forEach(function(pair) {
     var k = pair[0], v = pair[1];
-    if (v.s === 'nao_conforme') ncs.push({ key: k, nm: v.nm || v.n || k, obs: v.obs || '', sn: v.sn || '' });
+    if (v.s === 'nao_conforme') ncs.push({
+      key: k, nm: v.nm || v.n || k, obs: v.obs || '', sn: v.sn || '',
+      inspId: inspId, data: i.dtVistoria || i.data, edif: i.edif, com: i.com
+    });
   });
   if (!ncs.length) { Tt('Nenhuma NC nesta inspeção.'); return; }
+  _abrirSeletorNcModal(ncs, i.edif, i.com || '', i.reg || '');
+}
+
+/* Modo 2: TODAS as NCs de uma edificação (todas as vistorias) */
+function abrirOspEdificacao(edif, reg) {
+  var insps = filterByReg(S.insp).filter(function(i) {
+    return i.edif === edif && i.st === 'finalizada';
+  }).sort(function(a, b) {
+    return (b.dtVistoria || b.data || '') > (a.dtVistoria || a.data || '') ? 1 : -1;
+  });
+
+  if (!insps.length) { Tt('Nenhuma inspeção finalizada para esta edificação.'); return; }
+
+  /* Coletar TODAS as NCs, evitando duplicatas (mesmo item em vistorias diferentes → pega a mais recente) */
+  var ncMap = {}; /* chave: itemKey → NC mais recente */
+  insps.forEach(function(i) {
+    Object.entries(i.itens || {}).forEach(function(pair) {
+      var k = pair[0], v = pair[1];
+      if (v.s !== 'nao_conforme') return;
+      /* Se esse item já foi corrigido (conforme) em uma vistoria MAIS RECENTE, ignorar */
+      if (ncMap[k] && ncMap[k].resolvido) return;
+      if (!ncMap[k]) {
+        ncMap[k] = {
+          key: k, nm: v.nm || v.n || k, obs: v.obs || '', sn: v.sn || '',
+          inspId: i.id, data: i.dtVistoria || i.data, edif: i.edif, com: i.com || '',
+          resolvido: false
+        };
+      }
+    });
+    /* Marcar itens que foram corrigidos nesta vistoria */
+    Object.entries(i.itens || {}).forEach(function(pair) {
+      var k = pair[0], v = pair[1];
+      if (v.s === 'conforme' && ncMap[k] && !ncMap[k].resolvido) {
+        ncMap[k].resolvido = true;
+      }
+    });
+  });
+
+  var ncs = Object.values(ncMap).filter(function(nc) { return !nc.resolvido; });
+
+  if (!ncs.length) {
+    Tt('✅ Todas as NCs desta edificação já foram resolvidas!');
+    return;
+  }
+
+  var com = insps[0].com || '';
+  _abrirSeletorNcModal(ncs, edif, com, reg);
+}
+
+/* ── Modal de seleção de NCs (usado por ambos os modos) ── */
+function _abrirSeletorNcModal(ncs, edif, com, reg) {
+  var R = (typeof REG !== 'undefined' && REG[reg]) ? REG[reg] : { l: reg, empresa: '', ct: '' };
+  var emp = R.empresa && R.empresa !== 'A definir' ? R.empresa : '';
 
   var ov = document.createElement('div');
   ov.id = '_osp_nc_ov';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;flex-direction:column;';
-  var h = '<div style="background:#fff;flex:1;display:flex;flex-direction:column;border-radius:16px 16px 0 0;margin-top:40px;overflow:hidden;">';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;flex-direction:column;';
+
+  var h = '<div style="background:#fff;flex:1;display:flex;flex-direction:column;border-radius:16px 16px 0 0;margin-top:32px;overflow:hidden;">';
+
+  /* Header */
   h += '<div style="background:#0f766e;padding:14px 16px;color:#fff;flex-shrink:0;">';
   h += '<div style="font-size:15px;font-weight:800;">📋 Gerar OSP a partir de NCs</div>';
-  h += '<div style="font-size:11px;opacity:.7;margin-top:2px;">' + _escA(i.edif) + ' · ' + _escA(i.com || '') + '</div>';
+  h += '<div style="font-size:11px;opacity:.7;margin-top:2px;">' + _escA(edif) + ' · ' + _escA(com) + '</div>';
+  if (emp) h += '<div style="font-size:10px;opacity:.5;margin-top:1px;">🏢 ' + _escA(emp) + ' · ' + _escA(R.ct) + '</div>';
   h += '</div>';
+
+  /* Corpo scrollável */
   h += '<div style="padding:12px;flex:1;overflow-y:auto;">';
-  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">';
-  h += '<button onclick="_ospNcSelAll()" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">☐ Selecionar todas</button>';
-  h += '<span id="_osp_nc_cnt" style="font-size:11px;color:#64748b;">0 selecionada(s)</span>';
+
+  /* Ações topo */
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
+  h += '<button onclick="_ospNcSelAll()" style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">☐ Todas</button>';
+  h += '<span id="_osp_nc_cnt" style="font-size:11px;color:#64748b;">0 / ' + ncs.length + '</span>';
+  h += '<span style="flex:1;"></span>';
+  h += '<span style="font-size:10px;color:#dc2626;font-weight:700;">' + ncs.length + ' NC' + (ncs.length > 1 ? 's' : '') + ' aberta' + (ncs.length > 1 ? 's' : '') + '</span>';
   h += '</div>';
+
+  /* Agrupar por sistema */
+  var porSistema = {};
+  var ordemSis = [];
   ncs.forEach(function(nc, idx) {
-    h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:' + (idx % 2 === 0 ? '#fff' : '#fafafa') + ';border-radius:8px;margin-bottom:4px;cursor:pointer;" onclick="_ospNcToggle(' + idx + ')">';
-    h += '<div id="_osp_ck_' + idx + '" style="width:22px;height:22px;border-radius:6px;border:2px solid #cbd5e1;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;margin-top:1px;"></div>';
-    h += '<div style="flex:1;min-width:0;">';
-    h += '<div style="font-size:12px;font-weight:700;color:#1e293b;">' + _escA(nc.nm) + '</div>';
-    if (nc.sn) h += '<div style="font-size:10px;color:#7c3aed;margin-top:1px;">Sistema: ' + _escA(nc.sn) + '</div>';
-    if (nc.obs) h += '<div style="font-size:11px;color:#dc2626;font-style:italic;margin-top:2px;">' + _escA(nc.obs) + '</div>';
-    h += '</div></div>';
+    var s = nc.sn || 'Outros';
+    if (!porSistema[s]) { porSistema[s] = []; ordemSis.push(s); }
+    nc._idx = idx;
+    porSistema[s].push(nc);
   });
+
+  ordemSis.forEach(function(sis) {
+    h += '<div style="font-size:10px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;border-left:3px solid #0f766e;padding-left:8px;margin:12px 0 6px;">' + _escA(sis) + ' (' + porSistema[sis].length + ')</div>';
+
+    porSistema[sis].forEach(function(nc) {
+      var idx = nc._idx;
+      h += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:' + (idx % 2 === 0 ? '#fff' : '#fafafa') + ';border-radius:8px;margin-bottom:3px;cursor:pointer;" onclick="_ospNcToggle(' + idx + ')">';
+      h += '<div id="_osp_ck_' + idx + '" style="width:22px;height:22px;border-radius:6px;border:2px solid #cbd5e1;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;margin-top:1px;"></div>';
+      h += '<div style="flex:1;min-width:0;">';
+      h += '<div style="font-size:12px;font-weight:700;color:#1e293b;">' + _escA(nc.nm) + '</div>';
+      if (nc.obs) h += '<div style="font-size:11px;color:#dc2626;font-style:italic;margin-top:2px;">' + _escA(nc.obs) + '</div>';
+      h += '<div style="font-size:9px;color:#94a3b8;margin-top:2px;">Vistoria: ' + fdt(nc.data) + '</div>';
+      h += '</div></div>';
+    });
+  });
+
   h += '</div>';
+
+  /* Footer com botão */
   h += '<div style="padding:12px 16px 24px;background:#fff;border-top:1px solid #e2e8f0;flex-shrink:0;">';
-  h += '<button onclick="_gerarOspDeNcs(\'' + inspId + '\')" id="_osp_nc_btn" style="width:100%;background:#0f766e;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;opacity:.5;pointer-events:none;">📋 Gerar OSP (selecione NCs)</button>';
+  h += '<button onclick="_gerarOspDeNcsV2()" id="_osp_nc_btn" style="width:100%;background:#0f766e;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;opacity:.5;pointer-events:none;">📋 Gerar OSP (selecione NCs)</button>';
   h += '<button onclick="document.body.removeChild(document.getElementById(\'_osp_nc_ov\'))" style="width:100%;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:11px;font-size:12px;cursor:pointer;margin-top:6px;">Cancelar</button>';
   h += '</div></div>';
+
   ov.innerHTML = h;
   document.body.appendChild(ov);
+
   window._ospNcSel = {};
   window._ospNcList = ncs;
+  window._ospEdif = edif;
+  window._ospCom = com;
+  window._ospReg = reg;
 }
 
 function _ospNcToggle(idx) {
@@ -2201,64 +2300,77 @@ function _ospNcRefresh() {
       var sel = !!window._ospNcSel[idx];
       ck.style.background = sel ? '#0f766e' : '#fff';
       ck.style.borderColor = sel ? '#0f766e' : '#cbd5e1';
-      ck.textContent = sel ? '✓' : '';
+      ck.textContent = sel ? '\u2713' : '';
     }
   });
   var cnt = el('_osp_nc_cnt');
-  if (cnt) cnt.textContent = n + ' selecionada(s)';
+  if (cnt) cnt.textContent = n + ' / ' + ncs.length;
   var btn = el('_osp_nc_btn');
   if (btn) {
     btn.style.opacity = n > 0 ? '1' : '.5';
     btn.style.pointerEvents = n > 0 ? 'auto' : 'none';
-    btn.textContent = n > 0 ? '📋 Gerar OSP (' + n + ' NC' + (n > 1 ? 's' : '') + ')' : '📋 Gerar OSP (selecione NCs)';
+    btn.textContent = n > 0 ? '\ud83d\udccb Gerar OSP (' + n + ' NC' + (n > 1 ? 's' : '') + ')' : '\ud83d\udccb Gerar OSP (selecione NCs)';
   }
 }
 
-function _gerarOspDeNcs(inspId) {
-  var i = S.insp.find(function(x) { return x.id === inspId; });
-  if (!i) return;
+function _gerarOspDeNcsV2() {
   var ncs = window._ospNcList || [];
   var selIdx = Object.keys(window._ospNcSel || {}).map(Number);
   if (!selIdx.length) { Tt('Selecione pelo menos uma NC.'); return; }
 
   var selNcs = selIdx.map(function(idx) { return ncs[idx]; }).filter(Boolean);
-  var sistemas = {};
-  selNcs.forEach(function(nc) { if (nc.sn) sistemas[nc.sn] = true; });
+  var edif = window._ospEdif || selNcs[0].edif;
+  var com = window._ospCom || selNcs[0].com;
+  var reg = window._ospReg || '';
 
-  var descricao = selNcs.map(function(nc, idx) {
-    return (idx + 1) + '. ' + nc.nm + (nc.obs ? ' — ' + nc.obs : '');
-  }).join('\n');
+  /* Descrição agrupada por sistema */
+  var porSis = {};
+  selNcs.forEach(function(nc) {
+    var s = nc.sn || 'Geral';
+    if (!porSis[s]) porSis[s] = [];
+    porSis[s].push(nc);
+  });
+  var descricao = Object.keys(porSis).map(function(sis) {
+    var itens = porSis[sis].map(function(nc, i) {
+      return '  ' + (i + 1) + '. ' + nc.nm + (nc.obs ? ' — ' + nc.obs : '') + ' (vistoria ' + fdt(nc.data) + ')';
+    }).join('\n');
+    return '[ ' + sis + ' ]\n' + itens;
+  }).join('\n\n');
 
   /* Fechar modal */
   var ov = document.getElementById('_osp_nc_ov');
   if (ov) document.body.removeChild(ov);
 
-  /* Criar inspeção tipo OSP pré-preenchida */
+  /* Criar OSP */
   var novaId = uid();
   var novaOsp = {
     id: novaId,
     tipo: 'osp',
-    edif: i.edif,
-    com: i.com,
-    reg: i.reg,
-    fiscal: i.fiscal || (S.sessao ? S.sessao.nome : ''),
+    edif: edif,
+    com: com,
+    reg: reg,
+    fiscal: S.sessao ? S.sessao.nome : '',
     dtVistoria: new Date().toISOString().slice(0, 10),
     data: new Date().toISOString().slice(0, 10),
     st: 'em_andamento',
     itens: {},
-    obs: 'OSP gerada a partir de ' + selNcs.length + ' NC(s) da inspeção ' + (i.edif || '') + ' (' + fdt(i.dtVistoria || i.data) + '):\n\n' + descricao,
-    _origemInspId: inspId,
-    _origemNcKeys: selIdx.map(function(idx) { return ncs[idx].key; })
+    obs: 'OSP gerada a partir de ' + selNcs.length + ' NC(s) da edificação ' + edif + ':\n\n' + descricao,
+    _origemNcs: selNcs.map(function(nc) { return { inspId: nc.inspId, key: nc.key }; })
   };
 
   S.insp.push(novaOsp);
   DB.sv();
-  Tt('✅ OSP criada com ' + selNcs.length + ' NC(s)! Redirecionando...');
-
+  Tt('\u2705 OSP criada com ' + selNcs.length + ' NC(s)! Redirecionando...');
   setTimeout(function() {
     if (typeof retomarF === 'function') retomarF(novaId);
   }, 500);
 }
+
+window.abrirSeletorNcParaOsp = abrirSeletorNcParaOsp;
+window.abrirOspEdificacao = abrirOspEdificacao;
+window._ospNcToggle = _ospNcToggle;
+window._ospNcSelAll = _ospNcSelAll;
+window._gerarOspDeNcsV2 = _gerarOspDeNcsV2;
 window.abrirSeletorNcParaOsp = abrirSeletorNcParaOsp;
 
 /* ══════════════════════════════════════════════════════════════
