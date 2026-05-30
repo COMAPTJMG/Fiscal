@@ -767,10 +767,10 @@ function rHome(){
   var rascs=_inspVis.filter(function(i){return i.st==='em_andamento';});
   var envs=_inspVis.filter(function(i){return i.st==='finalizada';});
   var coms=_inspVis.map(function(i){return i.com;}).filter(function(v,i,a){return v&&a.indexOf(v)===i;}).length;
-  var h='<div style="display:flex;gap:6px;">'
-    +'<div class="stat" style="border-color:#16a34a;"><div style="font-size:20px;font-weight:900;color:#16a34a;">'+envs.length+'</div><div style="font-size:9px;color:#64748b;">Enviados</div></div>'
-    +'<div class="stat" style="border-color:#d97706;"><div style="font-size:20px;font-weight:900;color:#d97706;">'+rascs.length+'</div><div style="font-size:9px;color:#64748b;">Rascunhos</div></div>'
-    +'<div class="stat" style="border-color:#2563eb;"><div style="font-size:20px;font-weight:900;color:#2563eb;">'+coms+'</div><div style="font-size:9px;color:#64748b;">Comarcas</div></div></div>';
+  var h='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">'
+    +'<div class="stat" style="border-color:#16a34a;"><div style="font-size:18px;font-weight:900;color:#16a34a;">'+envs.length+'</div><div style="font-size:9px;color:#64748b;">Enviados</div></div>'
+    +'<div class="stat" style="border-color:#d97706;"><div style="font-size:18px;font-weight:900;color:#d97706;">'+rascs.length+'</div><div style="font-size:9px;color:#64748b;">Rascunhos</div></div>'
+    +'<div class="stat" style="border-color:#2563eb;"><div style="font-size:18px;font-weight:900;color:#2563eb;">'+coms+'</div><div style="font-size:9px;color:#64748b;">Comarcas</div></div></div>';
 
   /* v79: Mini-dashboard mensal */
   var _dash=calcDashboardFiscal();
@@ -801,7 +801,7 @@ function rHome(){
 
   h+='<button id="btn-sync-manual" onclick="syncManual()" style="width:100%;border:none;background:'+(navigator.onLine?'#0f766e':'#94a3b8')+';color:#fff;border-radius:12px;padding:11px 14px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:4px;">'
     +'<span style="font-size:18px;">☁️</span>'
-    +'<div style="flex:1;text-align:left;"><div style="font-weight:800;">Sincronizar Equipe</div><div style="font-size:9px;opacity:.8;font-weight:500;">'+(navigator.onLine?_fmtLastSync():'Sem conexão')+'</div>'
+    +'<div style="flex:1;text-align:left;min-width:0;overflow:hidden;"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Sincronizar Equipe</div><div style="font-size:9px;opacity:.8;font-weight:500;">'+(navigator.onLine?_fmtLastSync():'Sem conexão')+'</div>'
     +(function(){var _sp=filterByReg(S.insp).filter(function(i){return i.st==='finalizada'&&!i.synced_at;}).length;var _sf=filterByReg(S.insp).reduce(function(s,i){if(i.synced_at)return s;return s+Object.values(i.itens||{}).reduce(function(s2,v){return s2+(v.fotos||[]).length;},0);},0);return _sp>0?'<div style="font-size:9px;color:#fbbf24;font-weight:700;margin-top:1px;">'+_sp+' pendente'+(_sp>1?'s':'')+(_sf>0?' · '+_sf+' fotos':'')+'</div>':'';})()
     +'</div>'
     +(function(){var _p=filterByReg(S.insp).filter(function(i){return i.st==="finalizada"&&!i.synced_at;}).length; return _p>0?'<div style="background:#ef4444;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">'+_p+'</div>':'';})()
@@ -812,16 +812,16 @@ function rHome(){
     +'<button class="btn" style="font-size:11px;padding:10px;background:#003580;color:#fff;" onclick="G(\'s-mapa\');rMapa()">🗺️ Mapa</button>'
     +'<button class="btn" style="font-size:11px;padding:10px;background:#0f766e;color:#fff;" onclick="G(\'s-imr\');rIMR()">📊 IMR</button>'
     +'</div>'
-    +'<div class="cta" onclick="navt(\'tipos\')">'
-    +'<span style="font-size:22px;">+</span>'
-    +'<div style="flex:1;"><div style="font-size:14px;font-weight:800;color:#fff;">Criar Relatório</div>'
-    +'<div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:2px;">Periódica, OSE, Programada e Laudos</div></div>'
+    +'<div class="cta" onclick="navt(\'tipos\')" style="overflow:hidden;">'
+    +'<span style="font-size:20px;flex-shrink:0;">+</span>'
+    +'<div style="flex:1;min-width:0;overflow:hidden;"><div style="font-size:13px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Criar Relatório</div>'
+    +'<div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Periódica, OSE, Programada e Laudos</div></div>'
     +'<span style="color:rgba(255,255,255,.5);font-size:22px;">></span></div>'
-    +'<div style="display:flex;gap:8px;">'
-    +'<button class="btn" style="flex:1;font-size:12px;padding:11px;background:#dc2626;color:#fff;border-radius:12px;" onclick="window.open(\'https://docs.google.com/forms/d/e/1FAIpQLSdFA3STupTnP3qFWX_3MXYhWXBl04VEBp4JbaPpfjIkT2QsDg/viewform\',\'_blank\')">⚡ OSE (abertura)</button>'
-    +'<button class="btn" style="flex:1;font-size:12px;padding:11px;background:#0f766e;color:#fff;border-radius:12px;" onclick="iniciarF(\'osp\')">📋 OSP (abertura)</button>'
-    +'<button class="btn" style="flex:1;font-size:12px;padding:11px;background:#0369a1;color:#fff;border-radius:12px;" onclick="window.open(\'https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbw6mdSZgqgx6QXzaJHicq-kOkfFiHgIuwyIpkJ5AceVNhPx3407DPA6S4aLImPD6iyz/exec\',\'_blank\')">📊 Dashboard Emergencial</button>'
-    +'<button class="btn boa" style="flex:1;font-size:12px;padding:11px;" onclick="navt(\'rel\')">Relatórios</button></div>'
+    +'<div class="home-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
+    +'<button class="btn" style="font-size:11px;padding:10px;background:#dc2626;color:#fff;border-radius:10px;" onclick="window.open(\'https://docs.google.com/forms/d/e/1FAIpQLSdFA3STupTnP3qFWX_3MXYhWXBl04VEBp4JbaPpfjIkT2QsDg/viewform\',\'_blank\')">⚡ OSE</button>'
+    +'<button class="btn" style="font-size:11px;padding:10px;background:#0f766e;color:#fff;border-radius:10px;" onclick="iniciarF(\'osp\')">📋 OSP</button>'
+    +'<button class="btn" style="font-size:11px;padding:10px;background:#0369a1;color:#fff;border-radius:10px;" onclick="window.open(\'https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbw6mdSZgqgx6QXzaJHicq-kOkfFiHgIuwyIpkJ5AceVNhPx3407DPA6S4aLImPD6iyz/exec\',\'_blank\')">📊 Emergencial</button>'
+    +'<button class="btn boa" style="font-size:11px;padding:10px;border-radius:10px;" onclick="navt(\'rel\')">📄 Relatórios</button></div>'
     +(isGlobal(s)
       ?'<button class="btn" style="width:100%;font-size:13px;padding:13px;background:#dc2626;color:#fff;border-radius:12px;border-bottom:3px solid #991b1b;display:flex;align-items:center;justify-content:center;gap:10px;" onclick="window.open(\'https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbyZqfhmkI2HzZ_y8Y6UzIWvmPmKD_v3M-vC7za-N68M2fb1Wxx6qFUM-jKUedbU-LT3/exec\',\'_blank\')"><span style="font-size:20px;">🧯</span><div style="text-align:left;"><div style="font-weight:800;">Controle PCI — Norte</div><div style="font-size:10px;opacity:.8;">Extintores · Mangueiras · RTI</div></div></button>'
        +'<button class="btn" style="width:100%;font-size:13px;padding:13px;background:#be185d;color:#fff;border-radius:12px;border-bottom:3px solid #9d174d;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;" onclick="window.open(\'https://script.google.com/a/macros/tjmg.jus.br/s/AKfycbwmy_f43xtAiqAuglPSzMkdb72wFM7k-wZ7JGCyr_um5S-zrGsT-3kNcNLxGJPla7Cnqg/exec\',\'_blank\')"><span style="font-size:20px;">🧯</span><div style="text-align:left;"><div style="font-weight:800;">Controle PCI — Sul</div><div style="font-size:10px;opacity:.8;">Extintores · Mangueiras · RTI</div></div></button>'
@@ -865,7 +865,14 @@ function rHome(){
     envs.slice(0,3).forEach(function(i){
       var t=TIPOS[i.tipo]||TIPOS.periodica;
       var _iArr=Object.values(i.itens||{});var _avArr=_iArr.filter(function(v){return v.s&&v.s!=='fora_periodo'&&v.s!=='nao_aplicavel'&&v.s!=='pendente';});var _cfArr=_avArr.filter(function(v){return v.s==='conforme'||v.s==='executado';});var _iPct=_avArr.length?Math.round(_cfArr.length/_avArr.length*100):null;var _iCor=_iPct===null?'#94a3b8':_iPct>=80?'#16a34a':_iPct>=60?'#d97706':'#dc2626';
-      h+='<div class="card" style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openDet(\''+i.id+'\')"><div style="width:34px;height:34px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;">'+t.i+'</div><div style="flex:1;"><div style="font-size:12px;font-weight:700;">'+i.edif+'</div><div style="font-size:10px;color:#64748b;">'+(i.com||'-')+' · '+fdt(i.dtVistoria||i.data)+'</div></div>'+(_iPct!==null?'<div style="display:flex;align-items:center;gap:3px;">'+miniDonut(_iPct,_iCor,11)+'<span style="font-size:10px;font-weight:800;color:'+_iCor+';">'+_iPct+'%</span></div>':'')+'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';">'+t.l+'</span>'+(i.tipo==='periodica'&&i.grupo?'<span class="bdg" style="background:#dbeafe;color:#1e40af;">Grp '+i.grupo+'</span>':'')+'<span class="bdg" style="background:#dcfce7;color:#16a34a;">Enviado</span></div>';
+      h+='<div class="card" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;" onclick="openDet(\''+i.id+'\')">'
+        +'<div style="width:32px;height:32px;border-radius:8px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">'+t.i+'</div>'
+        +'<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+i.edif+'</div>'
+        +'<div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(i.com||'-')+' · '+fdt(i.dtVistoria||i.data)+'</div></div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;">'
+        +(_iPct!==null?'<span style="font-size:11px;font-weight:800;color:'+_iCor+';">'+_iPct+'%</span>':'')
+        +'<span class="bdg" style="background:'+t.bg+';color:'+t.c+';font-size:9px;">'+t.l+'</span>'
+        +'</div></div>';
     });
   }
   if(!S.insp.length)h+='<div style="text-align:center;padding:32px;"><div style="font-size:48px;">&#128203;</div><div style="font-size:14px;color:#94a3b8;margin-top:10px;font-weight:600;">Nenhuma inspeção</div><div style="font-size:12px;color:#cbd5e1;margin-top:4px;">Toque em Criar Relatório</div></div>';
@@ -1055,8 +1062,8 @@ function _renderRelLista(lista){
           +'</div>'
           /* Botões de ação */
           +'<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;margin-left:4px;" onclick="event.stopPropagation();">'
-            +(fin?'<button style="border:none;background:#003580;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')
-            +(fin?'<button style="border:none;background:#1e40af;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')
+            +(fin?'<button style="border:none;background:#003580;color:#fff;border-radius:6px;padding:4px 9px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="exportHTML(\''+i.id+'\')">📄 HTML</button>':'')
+            +(fin?'<button style="border:none;background:#1e40af;color:#fff;border-radius:6px;padding:4px 9px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="exportPDF(\''+i.id+'\')">📄 PDF</button>':'')
             +(!fin?'<button style="border:none;background:#d97706;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" onclick="openDet(\''+i.id+'\')">✏️ Editar</button>':'')
           +'</div>'
         +'</div>'
