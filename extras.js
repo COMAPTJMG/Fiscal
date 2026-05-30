@@ -1021,31 +1021,11 @@ function pararGPS(){
   _gpsTrilha=[];_gpsMelhor=null;
 }
 
+/* v91-fix: GPS badge SEMPRE oculto — GPS funciona em background sem indicador visual */
 function _mostrarBadgeGPS(gps,status){
+  /* GPS continua capturando em background, mas sem exibir badge na tela */
   var badge=el('gps-badge-form');
-  if(!badge){
-    badge=document.createElement('div');badge.id='gps-badge-form';
-    badge.style.cssText='position:fixed;top:calc(var(--st)+8px);right:8px;z-index:500;'
-      +'border-radius:20px;padding:4px 10px;font-size:10px;font-weight:800;'
-      +'display:flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);';
-    badge.onclick=function(){_mostrarDetalhesGPS();};
-    document.getElementById('app').appendChild(badge);
-  }
-  if(status==='buscando'){
-    badge.style.background='#fef3c7';badge.style.color='#92400e';
-    badge.innerHTML='📡 Buscando GPS...';
-  }else if(status==='ok'&&gps){
-    var qualidade=gps.acc<=10?'🟢':gps.acc<=30?'🟡':gps.acc<=100?'🟠':'🔴';
-    var txtQ=gps.acc<=10?'Excelente':gps.acc<=30?'Bom':gps.acc<=100?'Regular':'Fraco';
-    badge.style.background='#f0fdf4';badge.style.color='#15803d';
-    badge.innerHTML=qualidade+' GPS ±'+gps.acc+'m ('+txtQ+')';
-  }else if(status==='negado'){
-    badge.style.background='#fee2e2';badge.style.color='#dc2626';
-    badge.innerHTML='❌ GPS negado';
-  }
-  /* Esconder se não estiver no formulário */
-  var onForm=document.querySelector('#s-form.act');
-  badge.style.display=onForm?'flex':'none';
+  if(badge) badge.style.display='none';
 }
 
 function _mostrarDetalhesGPS(){
