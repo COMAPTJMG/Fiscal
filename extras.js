@@ -2024,11 +2024,11 @@ function rDashboard() {
     var pct = d.media;
     var barW = Math.round(pct / 100 * 100);
 
-    h += '<div style="background:#f8fafc;border-radius:8px;padding:8px 10px;border-left:4px solid '+cor+';">';
+    h += '<div style="background:#fff;border-radius:10px;padding:10px 12px;border-left:4px solid '+cor+';border:1px solid #f1f5f9;border-left:4px solid '+cor+';">';
     /* Linha 1: comarca + % */
     h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">';
-    h += '<div style="font-size:12px;font-weight:700;color:#1e293b;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px;">'+d.comarca+'</div>';
-    h += '<div style="font-size:14px;font-weight:900;color:'+cor+';flex-shrink:0;">'+pct+'%</div>';
+    h += '<div style="font-size:12px;font-weight:700;color:#1e293b;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px;">'+d.comarca+'</div>';
+    h += '<div style="font-size:16px;font-weight:900;color:'+cor+';flex-shrink:0;">'+pct+'%</div>';
     h += '</div>';
     /* Barra */
     h += '<div style="background:#e2e8f0;border-radius:4px;height:8px;margin-bottom:5px;overflow:hidden;">';
@@ -2046,24 +2046,17 @@ function rDashboard() {
   h += '</div>';
 
   /* Tabela ranking completo */
+  /* Ranking: cards em vez de tabela grid (mobile-friendly) */
   h += '<div style="margin-top:16px;font-size:11px;font-weight:800;color:#003580;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Ranking Completo</div>';
-  h += '<div style="background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;">';
-  h += '<div style="display:grid;grid-template-columns:24px 1fr 50px 50px;background:#1e3a5f;padding:7px 10px;">';
-  ['#','Comarca','Conf.','NCs'].forEach(function(col){
-    h += '<div style="font-size:9px;font-weight:800;color:#fff;letter-spacing:.05em;">'+col+'</div>';
-  });
-  h += '</div>';
   dados.forEach(function(d, ix) {
     var cor = d.media >= 80 ? '#16a34a' : d.media >= 60 ? '#d97706' : '#dc2626';
-    var bg  = ix % 2 === 0 ? '#fff' : '#f8fafc';
-    h += '<div style="display:grid;grid-template-columns:24px 1fr 50px 50px;padding:7px 10px;background:'+bg+';border-top:1px solid #f1f5f9;">';
-    h += '<div style="font-size:10px;color:#94a3b8;font-weight:700;">'+(ix+1)+'</div>';
-    h += '<div style="font-size:11px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+d.comarca+'</div>';
-    h += '<div style="font-size:12px;font-weight:800;color:'+cor+';">'+d.media+'%</div>';
-    h += '<div style="font-size:11px;color:'+(d.ncs>0?'#dc2626':'#94a3b8')+';font-weight:'+(d.ncs>0?'700':'400')+';">'+d.ncs+'</div>';
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:'+(ix%2===0?'#fff':'#f8fafc')+';border-radius:8px;margin-bottom:3px;border:1px solid #f1f5f9;">';
+    h += '<div style="width:20px;font-size:11px;color:#94a3b8;font-weight:800;text-align:center;flex-shrink:0;">'+(ix+1)+'</div>';
+    h += '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+d.comarca+'</div>';
+    h += '<div style="font-size:10px;color:#64748b;">'+d.n+' inspeção'+(d.n>1?'s':'')+(d.ncs>0?' · <span style="color:#dc2626;font-weight:700;">'+d.ncs+' NC</span>':'')+'</div></div>';
+    h += '<div style="font-size:16px;font-weight:900;color:'+cor+';flex-shrink:0;">'+d.media+'%</div>';
     h += '</div>';
   });
-  h += '</div>';
   /* ═══ MAPA DE CALOR DE NCs POR SISTEMA ═══ */
   var ncsSistema = typeof calcNcsPorSistema === 'function' ? calcNcsPorSistema() : [];
   if (ncsSistema.length) {
