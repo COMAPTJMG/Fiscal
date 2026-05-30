@@ -352,14 +352,11 @@ input:focus,textarea:focus{border-color:var(--a);}
   <div class="hdr" id="fhdr"><span class="bkb" onclick="fback()">&#8592;</span>
   <div style="flex:1;"><div class="ht" id="ftit">Formulario</div><div class="hs" id="fsub">Etapa 1</div></div>
   <div style="display:flex;align-items:center;gap:4px;">
-    <button onclick="_cronoPausado?retomaCrono():pausarCrono()" title="Pausar/Retomar cronômetro"
-      style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:10px;padding:5px 10px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:monospace;">
-      <span style="font-size:11px;opacity:.7;">⏱</span>
-      <span id="crono-disp" style="font-size:15px;letter-spacing:1.5px;min-width:44px;">00:00</span>
-      <span id="crono-ico" style="font-size:9px;opacity:.6;">▶</span>
-    </button>
-    <button onclick="_mostrarDetalhesGPS()" id="gps-btn-header" title="Ver dados do GPS"
-      style="background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.8);border-radius:8px;padding:4px 7px;font-size:11px;cursor:pointer;">📍</button>
+    <!-- Cronômetro: oculto mas ativo em background -->
+    <span id="crono-disp" style="display:none;">00:00</span>
+    <span id="crono-ico" style="display:none;"></span>
+    <!-- GPS: oculto mas ativo em background -->
+    <span id="gps-btn-header" style="display:none;"></span>
     <button onclick="toggleNaoPerturbe()" id="btn-nao-perturbe" title="Modo Campo"
       style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:4px 7px;font-size:12px;cursor:pointer;">🔕</button>
     <button onclick="undoPop()" title="Desfazer"
