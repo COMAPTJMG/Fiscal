@@ -887,3 +887,52 @@ body.fonte-maior .ht { font-size: 19px !important; }
 /* Garantir que nada vaze horizontalmente */
 html, body { overflow-x:hidden; }
 .scr { overflow-x:hidden; }
+
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE POLISH — v90
+   ══════════════════════════════════════════════════════════════ */
+
+/* Avatar: nunca cortar */
+.av { flex-shrink:0; overflow:hidden; }
+
+/* Nav bar 6 abas: espaçamento uniforme */
+.bnv, .bnav {
+  display:flex !important;
+  justify-content:space-around !important;
+  padding:6px 0 !important;
+  padding-bottom:calc(env(safe-area-inset-bottom,4px) + 4px) !important;
+}
+.tab {
+  flex:1 !important;
+  min-width:0 !important;
+  padding:6px 2px !important;
+  text-align:center !important;
+}
+.tab .ti { font-size:20px !important; display:block; }
+.tab .tl { font-size:8.5px !important; letter-spacing:0 !important; }
+
+/* Cards: padding compacto em mobile */
+@media (max-width:400px) {
+  .card { padding:10px 12px !important; }
+  .scrl { padding:8px !important; gap:6px !important; }
+  .hdr { padding:calc(var(--st) + 8px) 12px 12px !important; }
+  .ht { font-size:14px !important; }
+}
+
+/* Stat cards no Home */
+.stat {
+  padding:10px 6px !important;
+  overflow:hidden;
+}
+
+/* Perfil: botões grid compactos */
+#pbody .btn {
+  font-size:11px !important;
+  padding:10px 8px !important;
+}
+
+/* CTA criar relatório */
+.cta {
+  overflow:hidden !important;
+}
