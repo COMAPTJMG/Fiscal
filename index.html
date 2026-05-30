@@ -775,7 +775,7 @@ function rHome(){
   /* v79: Mini-dashboard mensal */
   var _dash=calcDashboardFiscal();
   var _corConf=_dash.confMedia>=80?'#16a34a':_dash.confMedia>=50?'#d97706':'#dc2626';
-  if(_dash.mes>0||_dash.finalizados>0){
+  if(_dash.finMes>0||_dash.finalizados>0||envs.length>0){
     h+='<div class="card" style="border-left:4px solid #003580;">';
     h+='<div style="font-size:11px;font-weight:800;color:#003580;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px;">Resumo do Mês</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">';
@@ -1149,20 +1149,26 @@ function rPerf(){
   var _regBadge=_global
     ?'<span class="bdg" style="background:#fef3c7;color:#d97706;">'+(s.tipo==='admin'?'🔑 Admin':'📋 Coordenador')+'</span>'
     :'<span class="bdg" style="background:'+R.bg+';color:'+R.c+';">Região '+R.l+'</span>';
-  var _contrato=_global
-    ?'<div class="card"><b style="color:#003580;">Nº:</b> CT 017/2026 (Global)<br><b style="color:#003580;">Acesso:</b> Global</div>'
-    :'<div class="card"><b style="color:#003580;">Nº:</b> '+(R.ct||'CT 017/2026')+'<br><b style="color:#003580;">Região:</b> '+R.l+'</div>';
-  var h='<div class="card" style="text-align:center;padding:20px;">'
-    +'<div class="av" style="width:64px;height:64px;font-size:22px;background:'+R.c+';margin:0 auto 10px;">'+ini(s.nome)+'</div>'
-    +'<div style="font-size:16px;font-weight:800;">'+s.nome+'</div>'
-    +'<div style="font-size:12px;color:#64748b;margin-top:3px;">'+s.cargo+'</div>'
-    +'<div style="display:flex;gap:6px;justify-content:center;margin-top:8px;">'
+  /* _contrato removido em v90 — info já no card do perfil */
+  var _empPerf=(R.empresa&&R.empresa!=='A definir')?R.empresa:'';
+  var h='<div class="card" style="text-align:center;padding:16px 14px;">'
+    +'<div class="av" style="width:56px;height:56px;font-size:20px;background:'+R.c+';margin:0 auto 8px;">'+ini(s.nome)+'</div>'
+    +'<div style="font-size:15px;font-weight:800;">'+s.nome+'</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-top:2px;">'+s.cargo+(s.polo?' · '+s.polo:'')+'</div>'
+    +(s.mat?'<div style="font-size:10px;color:#94a3b8;margin-top:2px;">Mat. '+s.mat+'</div>':'')
+    +'<div style="display:flex;gap:5px;justify-content:center;margin-top:8px;flex-wrap:wrap;">'
     +_regBadge
     +'<span class="bdg" style="background:#dcfce7;color:#16a34a;">Ativo</span></div>'
-    +(s.mat?'<div style="font-size:11px;color:#94a3b8;margin-top:8px;">Mat. '+s.mat+'</div>':'')
-    +(s.polo?'<div style="font-size:11px;color:#64748b;margin-top:2px;">'+s.polo+'</div>':'')
     +'</div>'
-    +_contrato
+    +'<div class="card" style="padding:10px 14px;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+    +'<div><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:.05em;">Contrato</div>'
+    +'<div style="font-size:13px;font-weight:800;color:#003580;">'+(R.ct||'—')+'</div></div>'
+    +'<div style="text-align:right;"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:.05em;">Região</div>'
+    +'<div style="font-size:13px;font-weight:700;color:'+R.c+';">'+R.l+'</div></div>'
+    +'</div>'
+    +(_empPerf?'<div style="font-size:11px;color:#64748b;margin-top:6px;padding-top:6px;border-top:1px solid #f1f5f9;">🏢 '+_empPerf+'</div>':'')
+    +'</div>'
     /* Botão instalar Chrome — visível só se _installPrompt disponível e não instalado */
     +(isSA
       ?'<div style="background:#dcfce7;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="font-size:22px;">✅</span><div><div style="font-size:12px;font-weight:700;color:#16a34a;">App instalado</div><div style="font-size:11px;color:#16a34a;">Rodando em modo app</div></div></div>'
