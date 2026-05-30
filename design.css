@@ -825,114 +825,40 @@ body.fonte-maior .ht { font-size: 19px !important; }
    ============================================================ */
 
 
+
+
 /* ══════════════════════════════════════════════════════════════
-   MOBILE FIXES — v89: overflow prevention + tap targets
+   MOBILE — v91: layout responsivo sem cortar conteúdo
    ══════════════════════════════════════════════════════════════ */
-
-/* Prevenir overflow horizontal em TODAS as scroll areas */
+html, body, .scr { overflow-x:hidden; }
 .scrl { overflow-x:hidden; }
-.scrl > * { max-width:100%; }
 
-/* Stat cards: nunca ultrapassar o container */
-.stat { min-width:0; overflow:hidden; }
+/* Stat cards: espaço suficiente para números grandes */
+.stat { min-width:0; word-break:break-word; }
 
-/* Cards: prevenir conteúdo que empurra além da tela */
-.card { overflow:hidden; word-break:break-word; }
+/* Cards: word-break mas NÃO overflow:hidden (cortava avatares e números) */
+.card { word-break:break-word; }
 
-/* Botões inline: wrap em tela estreita */
+/* Botões: min-width:0 para não expandir além do container */
 .btn { min-width:0; }
 
-/* Grid de ações do Home: 2 colunas em mobile */
-@media (max-width:480px) {
-  /* Home: botões de ação em grid 2x2 */
-  .home-actions {
-    display:grid !important;
-    grid-template-columns:1fr 1fr !important;
-    gap:6px !important;
-  }
-  .home-actions .btn {
-    font-size:10px !important;
-    padding:10px 6px !important;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
+/* Avatar: flex-shrink:0 para não encolher */
+.av { flex-shrink:0; }
 
-  /* Badges: menores em mobile */
-  .bdg { font-size:9px !important; padding:2px 6px !important; }
+/* CTA: conteúdo não vaza */
+.cta { overflow:hidden; }
 
-  /* Relatórios: botões HTML/PDF compactos */
-  .rel-export-btns {
-    display:flex;flex-direction:column;gap:3px;flex-shrink:0;
-  }
-  .rel-export-btns .btn {
-    font-size:10px !important;
-    padding:5px 8px !important;
-    min-width:56px;
-  }
-
-  /* Nav bar: 6 abas cabem com font menor */
-  .tab { padding:8px 2px !important; }
-  .tab .ti { font-size:18px; }
-  .tab .tl { font-size:8px !important; letter-spacing:0; }
-
-  /* Header: texto não ultrapassa */
-  .ht { font-size:15px !important; }
-  .hs { font-size:10px !important; }
-
-  /* Sync botão: texto não quebra */
-  .sync-btn-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-}
-
-/* Garantir que nada vaze horizontalmente */
-html, body { overflow-x:hidden; }
-.scr { overflow-x:hidden; }
-
-
-/* ══════════════════════════════════════════════════════════════
-   MOBILE POLISH — v90
-   ══════════════════════════════════════════════════════════════ */
-
-/* Avatar: nunca cortar */
-.av { flex-shrink:0; overflow:hidden; }
-
-/* Nav bar 6 abas: espaçamento uniforme */
+/* Nav bar: 6 abas uniformes */
 .bnv, .bnav {
-  display:flex !important;
-  justify-content:space-around !important;
-  padding:6px 0 !important;
-  padding-bottom:calc(env(safe-area-inset-bottom,4px) + 4px) !important;
+  display:flex;
+  justify-content:space-around;
+  padding:6px 0;
+  padding-bottom:calc(env(safe-area-inset-bottom,4px) + 4px);
 }
 .tab {
-  flex:1 !important;
-  min-width:0 !important;
-  padding:6px 2px !important;
-  text-align:center !important;
+  flex:1;
+  min-width:0;
+  padding:6px 2px;
+  text-align:center;
 }
-.tab .ti { font-size:20px !important; display:block; }
-.tab .tl { font-size:8.5px !important; letter-spacing:0 !important; }
-
-/* Cards: padding compacto em mobile */
-@media (max-width:400px) {
-  .card { padding:10px 12px !important; }
-  .scrl { padding:8px !important; gap:6px !important; }
-  .hdr { padding:calc(var(--st) + 8px) 12px 12px !important; }
-  .ht { font-size:14px !important; }
-}
-
-/* Stat cards no Home */
-.stat {
-  padding:10px 6px !important;
-  overflow:hidden;
-}
-
-/* Perfil: botões grid compactos */
-#pbody .btn {
-  font-size:11px !important;
-  padding:10px 8px !important;
-}
-
-/* CTA criar relatório */
-.cta {
-  overflow:hidden !important;
-}
+.tab .tl { font-size:9px; letter-spacing:0; }
