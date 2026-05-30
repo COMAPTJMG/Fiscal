@@ -823,3 +823,67 @@ body.fonte-maior .ht { font-size: 19px !important; }
 /* ============================================================
    FIM — design.css v81
    ============================================================ */
+
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE FIXES — v89: overflow prevention + tap targets
+   ══════════════════════════════════════════════════════════════ */
+
+/* Prevenir overflow horizontal em TODAS as scroll areas */
+.scrl { overflow-x:hidden; }
+.scrl > * { max-width:100%; }
+
+/* Stat cards: nunca ultrapassar o container */
+.stat { min-width:0; overflow:hidden; }
+
+/* Cards: prevenir conteúdo que empurra além da tela */
+.card { overflow:hidden; word-break:break-word; }
+
+/* Botões inline: wrap em tela estreita */
+.btn { min-width:0; }
+
+/* Grid de ações do Home: 2 colunas em mobile */
+@media (max-width:480px) {
+  /* Home: botões de ação em grid 2x2 */
+  .home-actions {
+    display:grid !important;
+    grid-template-columns:1fr 1fr !important;
+    gap:6px !important;
+  }
+  .home-actions .btn {
+    font-size:10px !important;
+    padding:10px 6px !important;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  /* Badges: menores em mobile */
+  .bdg { font-size:9px !important; padding:2px 6px !important; }
+
+  /* Relatórios: botões HTML/PDF compactos */
+  .rel-export-btns {
+    display:flex;flex-direction:column;gap:3px;flex-shrink:0;
+  }
+  .rel-export-btns .btn {
+    font-size:10px !important;
+    padding:5px 8px !important;
+    min-width:56px;
+  }
+
+  /* Nav bar: 6 abas cabem com font menor */
+  .tab { padding:8px 2px !important; }
+  .tab .ti { font-size:18px; }
+  .tab .tl { font-size:8px !important; letter-spacing:0; }
+
+  /* Header: texto não ultrapassa */
+  .ht { font-size:15px !important; }
+  .hs { font-size:10px !important; }
+
+  /* Sync botão: texto não quebra */
+  .sync-btn-text { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+}
+
+/* Garantir que nada vaze horizontalmente */
+html, body { overflow-x:hidden; }
+.scr { overflow-x:hidden; }
