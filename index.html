@@ -767,10 +767,10 @@ function rHome(){
   var rascs=_inspVis.filter(function(i){return i.st==='em_andamento';});
   var envs=_inspVis.filter(function(i){return i.st==='finalizada';});
   var coms=_inspVis.map(function(i){return i.com;}).filter(function(v,i,a){return v&&a.indexOf(v)===i;}).length;
-  var h='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">'
-    +'<div class="stat" style="border-color:#16a34a;"><div style="font-size:18px;font-weight:900;color:#16a34a;">'+envs.length+'</div><div style="font-size:9px;color:#64748b;">Enviados</div></div>'
-    +'<div class="stat" style="border-color:#d97706;"><div style="font-size:18px;font-weight:900;color:#d97706;">'+rascs.length+'</div><div style="font-size:9px;color:#64748b;">Rascunhos</div></div>'
-    +'<div class="stat" style="border-color:#2563eb;"><div style="font-size:18px;font-weight:900;color:#2563eb;">'+coms+'</div><div style="font-size:9px;color:#64748b;">Comarcas</div></div></div>';
+  var h='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+    +'<div style="text-align:center;background:#dcfce7;border-radius:10px;padding:14px 6px;border:1.5px solid #86efac;"><div style="font-size:24px;font-weight:900;color:#16a34a;">'+envs.length+'</div><div style="font-size:9px;color:#16a34a;font-weight:700;">Enviados</div></div>'
+    +'<div style="text-align:center;background:#fef3c7;border-radius:10px;padding:14px 6px;border:1.5px solid #fde68a;"><div style="font-size:24px;font-weight:900;color:#d97706;">'+rascs.length+'</div><div style="font-size:9px;color:#d97706;font-weight:700;">Rascunhos</div></div>'
+    +'<div style="text-align:center;background:#dbeafe;border-radius:10px;padding:14px 6px;border:1.5px solid #bfdbfe;"><div style="font-size:24px;font-weight:900;color:#2563eb;">'+coms+'</div><div style="font-size:9px;color:#2563eb;font-weight:700;">Comarcas</div></div></div>';
 
   /* v79: Mini-dashboard mensal */
   var _dash=calcDashboardFiscal();
@@ -778,10 +778,10 @@ function rHome(){
   if(_dash.finMes>0||_dash.finalizados>0||envs.length>0){
     h+='<div class="card" style="border-left:4px solid #003580;">';
     h+='<div style="font-size:11px;font-weight:800;color:#003580;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px;">Resumo do Mês</div>';
-    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">';
-    h+='<div style="text-align:center;background:#f8fafc;border-radius:8px;padding:8px;"><div style="font-size:18px;font-weight:900;color:#003580;">'+_dash.finMes+'</div><div style="font-size:9px;color:#64748b;">Finalizados</div></div>';
-    h+='<div style="text-align:center;background:#f8fafc;border-radius:8px;padding:8px;"><div style="font-size:18px;font-weight:900;color:'+_corConf+';">'+_dash.confMedia+'%</div><div style="font-size:9px;color:#64748b;">Conformidade</div></div>';
-    h+='<div style="text-align:center;background:'+((_dash.ospCrit>0)?'#fee2e2':'#f8fafc')+';border-radius:8px;padding:8px;"><div style="font-size:18px;font-weight:900;color:'+(_dash.ospCrit>0?'#dc2626':'#64748b')+';">'+_dash.ospCrit+'</div><div style="font-size:9px;color:#64748b;">OSP Críticas</div></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
+    h+='<div style="text-align:center;background:#dbeafe;border-radius:10px;padding:12px 6px;border:1px solid #bfdbfe;"><div style="font-size:22px;font-weight:900;color:#1e40af;">'+_dash.finMes+'</div><div style="font-size:9px;color:#3b82f6;font-weight:700;">Finalizados</div></div>';
+    h+='<div style="text-align:center;background:'+((_dash.confMedia>=80)?'#dcfce7':'#fef3c7')+';border-radius:10px;padding:12px 6px;border:1px solid '+((_dash.confMedia>=80)?'#86efac':'#fde68a')+';"><div style="font-size:22px;font-weight:900;color:'+_corConf+';">'+_dash.confMedia+'%</div><div style="font-size:9px;color:'+_corConf+';font-weight:700;">Conformidade</div></div>';
+    h+='<div style="text-align:center;background:'+((_dash.ospCrit>0)?'#fee2e2':'#f1f5f9')+';border-radius:10px;padding:12px 6px;border:1px solid '+((_dash.ospCrit>0)?'#fca5a5':'#e2e8f0')+';"><div style="font-size:22px;font-weight:900;color:'+(_dash.ospCrit>0?'#dc2626':'#94a3b8')+';">'+_dash.ospCrit+'</div><div style="font-size:9px;color:#64748b;font-weight:700;">OSP Críticas</div></div>';
     h+='</div></div>';
   }
 
@@ -1163,9 +1163,9 @@ function rPerf(){
     +'<div class="card" style="padding:10px 14px;">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;">'
     +'<div><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:.05em;">Contrato</div>'
-    +'<div style="font-size:13px;font-weight:800;color:#003580;">'+(R.ct||'—')+'</div></div>'
+    +'<div style="font-size:15px;font-weight:900;color:#003580;margin-top:2px;">'+(R.ct||'—')+'</div></div>'
     +'<div style="text-align:right;"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:.05em;">Região</div>'
-    +'<div style="font-size:13px;font-weight:700;color:'+R.c+';">'+R.l+'</div></div>'
+    +'<div style="font-size:15px;font-weight:800;color:'+R.c+';margin-top:2px;">'+R.l+'</div></div>'
     +'</div>'
     +(_empPerf?'<div style="font-size:11px;color:#64748b;margin-top:6px;padding-top:6px;border-top:1px solid #f1f5f9;">🏢 '+_empPerf+'</div>':'')
     +'</div>'
