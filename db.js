@@ -101,6 +101,14 @@ var DB={
               clone.itens[k].fotos=[];
             }
           });
+          /* v91-fix: limpar fotos do snap.itens para não estourar localStorage */
+          if(clone.snap&&clone.snap.itens){
+            Object.keys(clone.snap.itens).forEach(function(k){
+              if(clone.snap.itens[k].fotos&&clone.snap.itens[k].fotos.length){
+                clone.snap.itens[k].fotos=[];
+              }
+            });
+          }
           return clone;
         });
         /* Também move fotos de Subestação para o IndexedDB */
