@@ -2087,6 +2087,7 @@ function abrirCameraDir(){
     cv2.getContext('2d').drawImage(cv,0,0,w,h);
     var b64=cv2.toDataURL('image/webp',q)||cv2.toDataURL('image/jpeg',q);
     _ifotos.push({id:uid(),b64:b64,leg:''});
+    _salvarFotoDispositivo(b64, 'cam');
     renderItemPhotos();
     /* Flash visual */
     var fl=document.createElement('div');
@@ -2111,6 +2112,37 @@ function _calcQualidade(n){
   if(n<=200) return 0.70;
   return 0.60;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   SALVAR FOTO NO DISPOSITIVO — v91
+   Faz download automático de cada foto capturada para a
+   pasta Downloads do celular (aparece na galeria no Android).
+   Backup de segurança: mesmo se o app travar, a foto existe.
+   ══════════════════════════════════════════════════════════════ */
+function _salvarFotoDispositivo(b64, nomeBase) {
+  try {
+    if (!b64 || !b64.startsWith('data:')) return;
+    var ts = new Date();
+    var nome = 'TJMG_' + (nomeBase || 'foto')
+      + '_' + ts.getFullYear()
+      + String(ts.getMonth()+1).padStart(2,'0')
+      + String(ts.getDate()).padStart(2,'0')
+      + '_' + String(ts.getHours()).padStart(2,'0')
+      + String(ts.getMinutes()).padStart(2,'0')
+      + String(ts.getSeconds()).padStart(2,'0')
+      + '.webp';
+    var a = document.createElement('a');
+    a.href = b64;
+    a.download = nome;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { document.body.removeChild(a); }, 200);
+  } catch(e) {
+    console.warn('[Foto] download falhou:', e.message);
+  }
+}
+window._salvarFotoDispositivo = _salvarFotoDispositivo;
 
 function addItemPhoto(inp){
   if(!inp.files||!inp.files.length)return;
@@ -2150,7 +2182,9 @@ function addItemPhoto(inp){
         var cv=document.createElement('canvas');cv.width=w;cv.height=h;
         cv.getContext('2d').drawImage(img,0,0,w,h);
         var b64=cv.toDataURL('image/webp',Q)||cv.toDataURL('image/jpeg',Q);
-        _ifotos.push({id:uid(),b64:b64,leg:''});
+        var _fid = uid();
+        _ifotos.push({id:_fid,b64:b64,leg:''});
+        _salvarFotoDispositivo(b64, _fid.slice(0,6));
         _tick();
       };
       img.onerror=function(){_tick();};
