@@ -1552,8 +1552,8 @@ function retomarF(id){
   if(F.tipo==='periodica' && (!F.et||F.et<1))F.et=1;
   else if((F.tipo==='ose'||F.tipo==='programada'||F.tipo==='osp') && (typeof F.et!=='number' || F.et<1))F.et=(F.sistemas&&F.sistemas.length)?2:1;
   else if(typeof F.et!=='number')F.et=0;
-  rFe();
-  G('s-form');
+  /* v91-fix: recuperar fotos do IDB (snap pode ter sido limpo) */
+  _recuperarFotosDoIDB(F.id).then(function(){rFe();G('s-form');}).catch(function(){rFe();G('s-form');});
 }
 
 function openDet(id){
@@ -2270,9 +2270,48 @@ function _openItemModal(it,k){
   el('m-item').style.display='flex';
 }
 
+/* v91-fix: recupera fotos do IndexedDB para todos os itens do rascunho */
+function _recuperarFotosDoIDB(inspId){
+  if(!F||!F.itens||typeof PhotoStore==='undefined') return Promise.resolve();
+  var keys=Object.keys(F.itens);
+  if(!keys.length) return Promise.resolve();
+  return Promise.all(keys.map(function(k){
+    if(F.itens[k].fotos&&F.itens[k].fotos.length>0) return Promise.resolve();
+    return PhotoStore.get('form::'+k).then(function(fotos){
+      if(fotos&&fotos.length){F.itens[k].fotos=fotos;return;}
+      return PhotoStore.get(inspId+'::'+k).then(function(fotos2){
+        if(fotos2&&fotos2.length) F.itens[k].fotos=fotos2;
+      });
+    }).catch(function(){});
+  })).then(function(){
+    var total=Object.values(F.itens).reduce(function(s,it){return s+(it.fotos||[]).length;},0);
+    if(total>0) Tt('📸 '+total+' fotos recuperadas');
+  });
+}
+window._recuperarFotosDoIDB=_recuperarFotosDoIDB;
+
 function openFormItem(k){
   if(!F.itens[k])return;
-  _eMode='form';_openItemModal(F.itens[k],k);
+  _eMode='form';
+  /* v91-fix: carregar fotos do IndexedDB caso snap tenha sido limpo */
+  var _formKey = 'form::'+k;
+  var _inspKey = F.id+'::'+k;
+  if(!F.itens[k].fotos || !F.itens[k].fotos.length){
+    PhotoStore.get(_formKey).then(function(fotos){
+      if(fotos && fotos.length){ F.itens[k].fotos = fotos; }
+      else {
+        return PhotoStore.get(_inspKey).then(function(fotos2){
+          if(fotos2 && fotos2.length) F.itens[k].fotos = fotos2;
+        });
+      }
+    }).then(function(){
+      _openItemModal(F.itens[k],k);
+    }).catch(function(){
+      _openItemModal(F.itens[k],k);
+    });
+  } else {
+    _openItemModal(F.itens[k],k);
+  }
 }
 
 function openItem(iid,k){
