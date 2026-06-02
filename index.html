@@ -1437,6 +1437,7 @@ function syncDraftFromF(saveNow){
   if(saveNow)DB.sv();
   return ex||r;
 }
+window.syncDraftFromF=syncDraftFromF;
 function normalizeFormState(base){
   var x=base||F;if(!x)return;
   if(!x.d)x.d={};
@@ -2304,16 +2305,37 @@ function saveItem(){
   var obs=el('iob').value;
   var fotosClone=JSON.parse(JSON.stringify(_ifotos));
   var matsClone=JSON.parse(JSON.stringify(_imats));
+
+  /* v91-fix: ler status ATUAL dos botões (belt-and-suspenders) */
+  var _statusAtual = F.itens && F.itens[_ekey] ? F.itens[_ekey].s : null;
+  if(_eMode==='insp'){
+    var _tmpI = S.insp.find(function(x){return x.id===_eid;});
+    if(_tmpI && _tmpI.itens[_ekey]) _statusAtual = _tmpI.itens[_ekey].s;
+  }
+
   if(_eMode==='form'){
+    /* Salva TUDO: status + obs + fotos + materiais */
+    if(_statusAtual) F.itens[_ekey].s = _statusAtual;
     F.itens[_ekey].obs=obs;
     F.itens[_ekey].fotos=fotosClone;
     F.itens[_ekey].mats=matsClone;
+
     /* Persiste fotos do form draft no IndexedDB */
     PhotoStore.put('form::'+_ekey,fotosClone);
-    syncDraftFromF(true);
-    cm('m-item');Tt('Item salvo ✓');rFe();
+
+    /* Atualiza snap para manter consistência */
+    var _draft = syncDraftFromF(true);
+    if(_draft && _draft.snap && _draft.snap.itens && _draft.snap.itens[_ekey]){
+      _draft.snap.itens[_ekey].s = F.itens[_ekey].s;
+      _draft.snap.itens[_ekey].obs = obs;
+    }
+
+    cm('m-item');
+    Tt('Item salvo ✓ — ' + (ST[F.itens[_ekey].s]||ST.pendente).l);
+    rFe();
   } else {
     var i=S.insp.find(function(x){return x.id===_eid;});if(!i)return;
+    if(_statusAtual) i.itens[_ekey].s = _statusAtual;
     i.itens[_ekey].obs=obs;
     i.itens[_ekey].fotos=fotosClone;
     i.itens[_ekey].mats=matsClone;
@@ -2329,7 +2351,7 @@ function saveItem(){
     }
     /* Restaura fotos na memória para uso imediato (badge de contagem) */
     i.itens[_ekey].fotos=fotosClone;
-    DB.sv();cm('m-item');Tt('Item salvo ✓');openDet(_eid);
+    DB.sv();cm('m-item');Tt('Item salvo ✓ — ' + (ST[i.itens[_ekey].s]||ST.pendente).l);openDet(_eid);
   }
 }
 function finalizarI(id){cf('OK','Finalizar','Marcar como finalizada?',function(){
