@@ -2132,13 +2132,21 @@ function _salvarFotoDispositivo(b64, nomeBase) {
       + String(ts.getMinutes()).padStart(2,'0')
       + String(ts.getSeconds()).padStart(2,'0')
       + '.webp';
+    /* v91: usar Blob URL em vez de data URL — não trava em mobile */
+    var parts = b64.split(',');
+    var mime = (parts[0].match(/:(.*?);/) || [])[1] || 'image/webp';
+    var raw = atob(parts[1]);
+    var arr = new Uint8Array(raw.length);
+    for (var j = 0; j < raw.length; j++) arr[j] = raw.charCodeAt(j);
+    var blob = new Blob([arr], { type: mime });
+    var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.href = b64;
+    a.href = url;
     a.download = nome;
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    setTimeout(function() { document.body.removeChild(a); }, 200);
+    setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
   } catch(e) {
     console.warn('[Foto] download falhou:', e.message);
   }
@@ -2363,12 +2371,8 @@ function saveItem(){
     /* Persiste fotos do form draft no IndexedDB */
     PhotoStore.put('form::'+_ekey,fotosClone);
 
-    /* Atualiza snap para manter consistência */
-    var _draft = syncDraftFromF(true);
-    if(_draft && _draft.snap && _draft.snap.itens && _draft.snap.itens[_ekey]){
-      _draft.snap.itens[_ekey].s = F.itens[_ekey].s;
-      _draft.snap.itens[_ekey].obs = obs;
-    }
+    /* Persiste tudo (status + obs + fotos + mats) */
+    syncDraftFromF(true);
 
     cm('m-item');
     _lastSetStatus=null;
