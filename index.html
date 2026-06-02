@@ -1866,7 +1866,7 @@ function delDet(){
 }
 
 // ── Fotos e Materiais por item ──────────────────────────────────
-var _eid='',_ekey='',_ifotos=[],_imats=[],_eMode='insp';
+var _eid='',_ekey='',_ifotos=[],_imats=[],_eMode='insp',_lastSetStatus=null;
 
 function renderItemPhotos(){
   /* v84: grade 3 colunas, modo seleção múltipla, badges de reordenação */
@@ -2239,7 +2239,7 @@ function addItemMat(c){
 }
 
 function _openItemModal(it,k){
-  _ekey=k;_ifotos=(it.fotos||[]).slice();_imats=(it.mats||[]).slice();
+  _ekey=k;_ifotos=(it.fotos||[]).slice();_imats=(it.mats||[]).slice();_lastSetStatus=it.s||null;
   el('in_t').textContent=it.nm||'';
   el('id_t').textContent=(it.d||'')+(it.n?' ('+it.n+')':'');
   el('iob').value=it.obs||'';
@@ -2326,9 +2326,11 @@ function openItem(iid,k){
 }
 
 function setISt(k){
+  /* v91-fix: guardar status numa variável global — à prova de race conditions */
+  _lastSetStatus=k;
   if(_eMode==='form'){
     F.itens[_ekey].s=k;
-    syncDraftFromF(true);
+    /* NÃO chamar syncDraftFromF aqui — saveItem faz isso */
   } else {
     var i=S.insp.find(function(x){return x.id===_eid;});if(!i)return;
     i.itens[_ekey].s=k;DB.sv();
@@ -2336,7 +2338,10 @@ function setISt(k){
   var ops=_getStatusOps(_getTipoAtual());
   el('ist').innerHTML=ops.map(function(op){
     var stv=ST[op];var sel=op===k;
-    return'<button onclick="setISt(\''+op+'\')" style="border:2px solid '+(sel?stv.c:'#e2e8f0')+';border-radius:10px;padding:9px 6px;font-size:10px;font-weight:700;color:'+(sel?stv.c:'#94a3b8')+';background:'+(sel?stv.bg:'#fff')+';cursor:pointer;text-align:center;line-height:1.4;">'+stv.e+'<br>'+stv.l+'</button>';
+    return'<button onclick="setISt(\''+op+'\')" style="border:2px solid '+(sel?stv.c:'#e2e8f0')+';border-radius:12px;padding:12px 6px;font-size:13px;font-weight:700;color:'+(sel?stv.c:'#94a3b8')+';background:'+(sel?stv.bg:'#fff')+';cursor:pointer;text-align:center;line-height:1.5;min-height:64px;">'
+        +'<div style="font-size:26px;line-height:1;">'+stv.e+'</div>'
+        +'<div style="font-size:11px;margin-top:4px;font-weight:800;">'+stv.l+'</div>'
+        +'</button>';
   }).join('');
 }
 
@@ -2345,16 +2350,12 @@ function saveItem(){
   var fotosClone=JSON.parse(JSON.stringify(_ifotos));
   var matsClone=JSON.parse(JSON.stringify(_imats));
 
-  /* v91-fix: ler status ATUAL dos botões (belt-and-suspenders) */
-  var _statusAtual = F.itens && F.itens[_ekey] ? F.itens[_ekey].s : null;
-  if(_eMode==='insp'){
-    var _tmpI = S.insp.find(function(x){return x.id===_eid;});
-    if(_tmpI && _tmpI.itens[_ekey]) _statusAtual = _tmpI.itens[_ekey].s;
-  }
+  /* v91-fix2: _lastSetStatus é a fonte PRIMÁRIA do status (set por setISt) */
+  var _statusFinal = _lastSetStatus || (F.itens&&F.itens[_ekey]?F.itens[_ekey].s:null) || 'pendente';
 
   if(_eMode==='form'){
     /* Salva TUDO: status + obs + fotos + materiais */
-    if(_statusAtual) F.itens[_ekey].s = _statusAtual;
+    F.itens[_ekey].s = _statusFinal;
     F.itens[_ekey].obs=obs;
     F.itens[_ekey].fotos=fotosClone;
     F.itens[_ekey].mats=matsClone;
@@ -2370,11 +2371,12 @@ function saveItem(){
     }
 
     cm('m-item');
-    Tt('Item salvo ✓ — ' + (ST[F.itens[_ekey].s]||ST.pendente).l);
+    _lastSetStatus=null;
+    Tt('Item salvo ✓ — ' + (ST[_statusFinal]||ST.pendente).l);
     rFe();
   } else {
     var i=S.insp.find(function(x){return x.id===_eid;});if(!i)return;
-    if(_statusAtual) i.itens[_ekey].s = _statusAtual;
+    i.itens[_ekey].s = _statusFinal;
     i.itens[_ekey].obs=obs;
     i.itens[_ekey].fotos=fotosClone;
     i.itens[_ekey].mats=matsClone;
@@ -2390,7 +2392,7 @@ function saveItem(){
     }
     /* Restaura fotos na memória para uso imediato (badge de contagem) */
     i.itens[_ekey].fotos=fotosClone;
-    DB.sv();cm('m-item');Tt('Item salvo ✓ — ' + (ST[i.itens[_ekey].s]||ST.pendente).l);openDet(_eid);
+    _lastSetStatus=null;DB.sv();cm('m-item');Tt('Item salvo ✓ — ' + (ST[_statusFinal]||ST.pendente).l);openDet(_eid);
   }
 }
 function finalizarI(id){cf('OK','Finalizar','Marcar como finalizada?',function(){
