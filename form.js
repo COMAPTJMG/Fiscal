@@ -2195,6 +2195,7 @@ function editarRelatorio(id){
   var sess=S.sessao||{};
   if(i.snap){
     try{F=JSON.parse(JSON.stringify(i.snap));}catch(e){F=i.snap;}
+    /* v91-fix: snap pode ter fotos vazias — recuperar do IDB */
   }else{
     ensureDraftItems(i);
     F={tipo:i.tipo,et:0,id:i.id,ets:t.e,
@@ -2240,14 +2241,17 @@ function editarRelatorio(id){
   F._editando=true;
   F.et=0;
   normalizeFormState(F);
-  autoSaveLastHash='';
-  startAutoSave();
-  syncDraftFromF(true);
-  autoSaveLastHash=computeDraftHash();
-  var cor=TCOR[F.tipo]||'#003580';
-  el('fhdr').style.background=cor;el('fnxt').style.background=cor;
-  rFe();
-  G('s-form');
+  /* v91-fix: recuperar fotos do IndexedDB para todos os itens do F */
+  _recuperarFotosDoIDB(F.id).then(function(){
+    autoSaveLastHash='';
+    startAutoSave();
+    syncDraftFromF(true);
+    autoSaveLastHash=computeDraftHash();
+    var cor=TCOR[F.tipo]||'#003580';
+    el('fhdr').style.background=cor;el('fnxt').style.background=cor;
+    rFe();
+    G('s-form');
+  });
 }
 function salvarEdicao(){
   salvarR();
