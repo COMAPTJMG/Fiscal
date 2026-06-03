@@ -1710,6 +1710,16 @@ function _renderDet(id){
     /* ── Grupo: Exportar ── */
     /* v86: Ações avançadas */
   var _hasNcs=Object.values(i.itens||{}).some(function(v){return v.s==='nao_conforme';});
+  /* v92: label contra-vistoria + NC→OSP Programada */
+  if(i._contraVistoria){
+    var _ncPersistem = Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;
+    var _corrigidos = Object.values(i.itens||{}).filter(function(v){return v.s==='conforme';}).length;
+    h+='<div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
+    h+='<div style="font-size:12px;font-weight:800;color:#6d28d9;">🔁 Contra-vistoria</div>';
+    h+='<div style="font-size:11px;color:#7c3aed;margin-top:4px;">'+_corrigidos+' corrigido(s) ✅ · '+_ncPersistem+' persistente(s) ❌</div>';
+    if(_ncPersistem>0) h+='<div style="font-size:10px;color:#dc2626;margin-top:4px;font-weight:700;">NCs que persistem podem virar OSP Programada ↓</div>';
+    h+='</div>';
+  }
   h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Ações</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">';
   h+='<button onclick="duplicarInspecao(\''+i.id+'\')" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 Duplicar</button>';
@@ -1718,7 +1728,8 @@ function _renderDet(id){
   h+='<button onclick="gerarLaudoAntesDepois(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;grid-column:span 2;">📸 Laudo Antes × Depois</button>';
   if(_hasNcs){
     h+='<button onclick="abrirSeletorNcParaOsp(\''+i.id+'\')" style="background:#0f766e;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 OSP desta inspeção</button>';
-    h+='<button onclick="abrirOspEdificacao(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#064e3b;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;grid-column:span 2;">📋 OSP de TODAS as NCs — '+_escA(i.edif)+'</button>';
+    h+='<button onclick="abrirOspEdificacao(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#064e3b;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 Todas NCs — '+_escA(i.edif)+'</button>';
+    h+='<button onclick="iniciarProgramadaDeNCs(\''+i.id+'\')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;grid-column:span 2;">🔧 OSP Programada (NCs→ITP)</button>';
   }
   h+='<button onclick="abrirAssinatura(\''+i.id+'\')" style="background:#003580;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">✍️ Assinar</button>';
   h+='</div>';
@@ -2518,6 +2529,48 @@ function abrirTimeline(edif, reg) {
   G('s-timeline');
   if (typeof rTimeline === 'function') rTimeline(edif, reg);
 }
+
+/* v92: Criar OSP Programada (tipo ITP) a partir de NCs de uma inspeção */
+function iniciarProgramadaDeNCs(inspId) {
+  var i = S.insp.find(function(x){ return x.id === inspId; });
+  if (!i) return;
+  var ncs = [];
+  Object.entries(i.itens || {}).forEach(function(pair) {
+    var k = pair[0], v = pair[1];
+    if (v.s === 'nao_conforme') ncs.push({ key: k, nm: v.nm || v.n || k, obs: v.obs || '', sn: v.sn || '' });
+  });
+  if (!ncs.length) { Tt('Nenhuma NC para gerar OSP Programada.'); return; }
+
+  var desc = ncs.map(function(nc, idx) {
+    return (idx + 1) + '. [' + (nc.sn || 'Geral') + '] ' + nc.nm + (nc.obs ? ' — ' + nc.obs : '');
+  }).join('\n');
+
+  var novaId = uid();
+  var nova = {
+    id: novaId,
+    tipo: 'programada',
+    edif: i.edif,
+    com: i.com,
+    reg: i.reg,
+    fiscal: S.sessao ? S.sessao.nome : '',
+    dtVistoria: new Date().toISOString().slice(0, 10),
+    data: new Date().toISOString().slice(0, 10),
+    st: 'em_andamento',
+    itens: {},
+    obs: 'ITP gerada a partir de ' + ncs.length + ' NC(s) da inspeção ' + (i.edif || '') + ' (' + fdt(i.dtVistoria || i.data) + '):\n\n' + desc,
+    _origemInspId: inspId,
+    _tipo_itp: 'corretiva'
+  };
+
+  S.insp.push(nova);
+  DB.sv();
+  Tt('🔧 OSP Programada criada com ' + ncs.length + ' NC(s)!');
+  setTimeout(function() {
+    if (typeof retomarF === 'function') retomarF(novaId);
+  }, 500);
+}
+window.iniciarProgramadaDeNCs = iniciarProgramadaDeNCs;
+
 window.abrirTimeline = abrirTimeline;
 
 window.rAgenda=rAgenda;
