@@ -2629,6 +2629,242 @@ function rTimeline(edif, reg) {
   tb.innerHTML = h;
 }
 
+
+/* ══════════════════════════════════════════════════════════════
+   CONTRA-VISTORIA — v92
+   Carrega SÓ os itens NC da última vistoria para o fiscal
+   confirmar: Corrigido ✅ ou Persiste ❌.
+   NCs que persistem podem virar OSP diretamente.
+   ══════════════════════════════════════════════════════════════ */
+function iniciarContraVistoria(edif, reg) {
+  var insps = filterByReg(S.insp).filter(function(i) {
+    return i.edif === edif && i.reg === reg && i.st === 'finalizada';
+  }).sort(function(a, b) {
+    return (b.dtVistoria || b.data || '') > (a.dtVistoria || a.data || '') ? 1 : -1;
+  });
+
+  if (!insps.length) { Tt('Nenhuma vistoria finalizada para esta edificação.'); return; }
+
+  var ultima = insps[0];
+  var ncs = [];
+  Object.entries(ultima.itens || {}).forEach(function(pair) {
+    var k = pair[0], v = pair[1];
+    if (v.s === 'nao_conforme') {
+      ncs.push({
+        key: k, nm: v.nm || v.n || k, sn: v.sn || '', obs: v.obs || '',
+        fotos: v.fotos || [], inspId: ultima.id
+      });
+    }
+  });
+
+  if (!ncs.length) { Tt('✅ Sem NCs na última vistoria! Nada a revisar.'); return; }
+
+  /* Criar inspeção tipo "contra-vistoria" */
+  var novaId = uid();
+  var nova = {
+    id: novaId,
+    tipo: ultima.tipo || 'periodica',
+    _contraVistoria: true,
+    _origemInspId: ultima.id,
+    edif: edif,
+    com: ultima.com || '',
+    reg: reg,
+    fiscal: S.sessao ? S.sessao.nome : '',
+    dtVistoria: new Date().toISOString().slice(0, 10),
+    data: new Date().toISOString().slice(0, 10),
+    st: 'em_andamento',
+    itens: {},
+    obs: 'Contra-vistoria de ' + ncs.length + ' NC(s) da inspeção de ' + fdt(ultima.dtVistoria || ultima.data)
+  };
+
+  /* Copiar APENAS os itens NC — status volta a pendente para reavaliação */
+  ncs.forEach(function(nc) {
+    nova.itens[nc.key] = {
+      s: 'pendente',
+      nm: nc.nm,
+      n: nc.nm,
+      sn: nc.sn,
+      obs: 'NC anterior: ' + (nc.obs || 'sem observação'),
+      fotos: [],
+      mats: [],
+      _ncAnterior: true,
+      _obsNcOriginal: nc.obs
+    };
+  });
+
+  S.insp.push(nova);
+  DB.sv();
+  Tt('🔁 Contra-vistoria criada com ' + ncs.length + ' NC(s)!');
+
+  setTimeout(function() {
+    if (typeof retomarF === 'function') retomarF(novaId);
+  }, 400);
+}
+window.iniciarContraVistoria = iniciarContraVistoria;
+
+/* ══════════════════════════════════════════════════════════════
+   PRAZO DE REGULARIZAÇÃO NC — v92
+   Ao emitir NOT-INA, define prazo (30/60/90 dias).
+   Coordenador vê contagem regressiva na aba NCs.
+   NCs vencidas ficam vermelhas pulsando.
+   ══════════════════════════════════════════════════════════════ */
+function definirPrazoNC(inspId, itemKey, dias) {
+  var i = S.insp.find(function(x) { return x.id === inspId; });
+  if (!i || !i.itens[itemKey]) return;
+
+  var dataEmissao = new Date().toISOString().slice(0, 10);
+  var dataLimite = new Date();
+  dataLimite.setDate(dataLimite.getDate() + (dias || 30));
+  var dataLimiteStr = dataLimite.toISOString().slice(0, 10);
+
+  i.itens[itemKey]._prazoEmissao = dataEmissao;
+  i.itens[itemKey]._prazoLimite = dataLimiteStr;
+  i.itens[itemKey]._prazoDias = dias || 30;
+  DB.sv();
+  Tt('⏰ Prazo de ' + dias + ' dias definido — vence em ' + fdt(dataLimiteStr));
+}
+window.definirPrazoNC = definirPrazoNC;
+
+function calcPrazoNC(item) {
+  if (!item._prazoLimite) return null;
+  var hoje = new Date();
+  var limite = new Date(item._prazoLimite + 'T23:59:59');
+  var diasRestantes = Math.round((limite - hoje) / 86400000);
+  return {
+    diasRestantes: diasRestantes,
+    vencida: diasRestantes < 0,
+    proxima: diasRestantes >= 0 && diasRestantes <= 7,
+    limite: item._prazoLimite,
+    emissao: item._prazoEmissao
+  };
+}
+window.calcPrazoNC = calcPrazoNC;
+
+/* ── Modal para definir prazo ao gerar NOT-INA ── */
+function abrirModalPrazoNC(inspId, itemKey) {
+  var ov = document.createElement('div');
+  ov.id = '_prazo_nc_ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;';
+
+  var h = '<div style="background:#fff;border-radius:16px;padding:20px;max-width:340px;width:90%;">';
+  h += '<div style="font-size:15px;font-weight:800;color:#dc2626;margin-bottom:12px;">⏰ Prazo para Regularização</div>';
+  h += '<div style="font-size:12px;color:#64748b;margin-bottom:14px;">Defina o prazo que a contratada tem para corrigir esta NC:</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">';
+
+  [30, 60, 90, 15].forEach(function(d) {
+    h += '<button onclick="definirPrazoNC(\'' + inspId + '\',\'' + itemKey + '\',' + d + ');document.body.removeChild(document.getElementById(\'_prazo_nc_ov\'))" ';
+    h += 'style="background:#fee2e2;color:#dc2626;border:2px solid #fca5a5;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;">';
+    h += d + ' dias</button>';
+  });
+
+  h += '</div>';
+  h += '<button onclick="document.body.removeChild(document.getElementById(\'_prazo_nc_ov\'))" style="width:100%;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;">Cancelar</button>';
+  h += '</div>';
+
+  ov.innerHTML = h;
+  document.body.appendChild(ov);
+}
+window.abrirModalPrazoNC = abrirModalPrazoNC;
+
+/* ══════════════════════════════════════════════════════════════
+   CHECKLIST SUBESTAÇÃO ANEXO B.1 — v92
+   Dados mestres dos 9 serviços obrigatórios com itens detalhados
+   + campos de medição elétrica por equipamento
+   ══════════════════════════════════════════════════════════════ */
+var SUB_CHECKLIST = [
+  {id:'sub_a', sec:'A', nm:'Segurança — NR-10', itens:[
+    {id:'a1', nm:'Procedimentos de segurança conforme NR-10', obrigatorio:true}
+  ]},
+  {id:'sub_b', sec:'B', nm:'Transformadores', itens:[
+    {id:'b1', nm:'Desconectar entrada e saída de energia'},
+    {id:'b2', nm:'Limpeza de isoladores, suportes, abas, parafusos, aletas'},
+    {id:'b3', nm:'Coleta óleo isolante para análise físico-química'},
+    {id:'b4', nm:'Inspeção exterior do transformador e adjacências'},
+    {id:'b5', nm:'Verificar vazamentos'},
+    {id:'b6', nm:'Verificar trincas e fissuras nas buchas'},
+    {id:'b7', nm:'Inspecionar instrumentos e acessórios'},
+    {id:'b8', nm:'Reaperto de todas as conexões elétricas'},
+    {id:'b9', nm:'Ensaio resistência de isolamento em CC', medicao:true, unidade:'MΩ', campo:'res_iso'},
+    {id:'b10',nm:'Ensaio resistência ôhmica dos enrolamentos', medicao:true, unidade:'mΩ', campo:'res_ohm'},
+    {id:'b11',nm:'Ensaio relação de transformação', medicao:true, unidade:'', campo:'rel_transf'},
+    {id:'b12',nm:'Verificar conexões de aterramento'},
+    {id:'b13',nm:'Reconectar entradas e saídas de energia'},
+    {id:'b14',nm:'Pratear contatos com desgaste da camada'},
+  ], fotoObrigatoria:['Plaqueta','Termografia','Geral']},
+  {id:'sub_c', sec:'C', nm:'Disjuntores PVO', itens:[
+    {id:'c1', nm:'Ensaio grandezas elétricas características'},
+    {id:'c2', nm:'Substituir óleo mineral (ABNT IEC 60296)'},
+    {id:'c3', nm:'Inspecionar mecanismo de comando, limpar, lubrificar'},
+    {id:'c4', nm:'Inspeção exterior e limpeza geral'},
+    {id:'c5', nm:'Reaperto com torque adequado'},
+    {id:'c6', nm:'Ensaio resistência de contato', medicao:true, unidade:'mΩ', campo:'res_cont'},
+    {id:'c7', nm:'Ensaio resistência de isolamento em CC', medicao:true, unidade:'MΩ', campo:'res_iso'},
+    {id:'c8', nm:'Testar operação e ajustar relés primários'},
+  ], fotoObrigatoria:['Plaqueta','Termografia']},
+  {id:'sub_d', sec:'D', nm:'Disjuntores a Vácuo', itens:[
+    {id:'d1', nm:'Ajustar grandezas elétricas'},
+    {id:'d2', nm:'Inspecionar mecanismo de comando, limpar, lubrificar'},
+    {id:'d3', nm:'Inspeção exterior e limpeza geral'},
+    {id:'d4', nm:'Reaperto com torque adequado'},
+    {id:'d5', nm:'Ensaio resistência de contato', medicao:true, unidade:'mΩ', campo:'res_cont'},
+    {id:'d6', nm:'Ensaio resistência de isolamento em CC', medicao:true, unidade:'MΩ', campo:'res_iso'},
+    {id:'d7', nm:'Testar operação do disjuntor'},
+    {id:'d8', nm:'Ajustar relés primários'},
+  ], fotoObrigatoria:['Termografia']},
+  {id:'sub_e', sec:'E', nm:'Chaves Seccionadoras', itens:[
+    {id:'e1', nm:'Inspecionar e efetuar limpeza'},
+    {id:'e2', nm:'Desoxidar e polir contatos'},
+    {id:'e3', nm:'Lubrificar partes articuladas'},
+    {id:'e4', nm:'Ensaio resistência de contato', medicao:true, unidade:'mΩ', campo:'res_cont'},
+    {id:'e5', nm:'Reaperto de conexões elétricas'},
+    {id:'e6', nm:'Testar'},
+    {id:'e7', nm:'Ajustar pressão das molas'},
+  ]},
+  {id:'sub_f', sec:'F', nm:'Óleo Isolante de Transformadores', itens:[
+    {id:'f1', nm:'Coletar óleo antes da manutenção'},
+    {id:'f2', nm:'Análise em laboratório credenciado'},
+    {id:'f3', nm:'Complementar óleo até nível necessário'},
+    {id:'f4', nm:'Rigidez dielétrica', medicao:true, unidade:'kV', campo:'rigidez'},
+    {id:'f5', nm:'Teor de água', medicao:true, unidade:'ppm', campo:'teor_agua'},
+    {id:'f6', nm:'Fator de potência', medicao:true, unidade:'%', campo:'fator_pot'},
+    {id:'f7', nm:'Tensão interfacial', medicao:true, unidade:'mN/m', campo:'tensao_int'},
+  ], fotoObrigatoria:['Laudo laboratório']},
+  {id:'sub_g', sec:'G', nm:'Muflas', itens:[
+    {id:'g1', nm:'Inspeção visual de todas as muflas'},
+    {id:'g2', nm:'Medição com termômetro digital', medicao:true, unidade:'°C', campo:'temp'},
+    {id:'g3', nm:'Obtenção de imagens térmicas'},
+    {id:'g4', nm:'Limpeza'},
+    {id:'g5', nm:'Testes de isolamento quando necessário', medicao:true, unidade:'MΩ', campo:'res_iso'},
+  ], fotoObrigatoria:['Termografia']},
+  {id:'sub_h', sec:'H', nm:'Relés Secundários Microprocessados', itens:[
+    {id:'h1', nm:'Verificar condições operacionais'},
+    {id:'h2', nm:'Verificar nobreak do relé — testar baterias'},
+    {id:'h3', nm:'Reconfigurar relés com perda de configuração'},
+  ]},
+  {id:'sub_i', sec:'I', nm:'Barramentos Blindados', itens:[
+    {id:'i1', nm:'Inspeção visual — cofres, pluglins, conexões'},
+    {id:'i2', nm:'Reaperto com torquímetro em emendas e derivações'},
+    {id:'i3', nm:'Limpeza com soprador'},
+    {id:'i4', nm:'Medição com termômetro digital', medicao:true, unidade:'°C', campo:'temp'},
+    {id:'i5', nm:'Obtenção de imagens térmicas'},
+  ], fotoObrigatoria:['Termografia','Geral']},
+];
+
+/* Campos de medição elétrica (usados nos formulários de subestação) */
+var SUB_MEDICOES = [
+  {id:'tensao_rn', nm:'Tensão R-N', unidade:'V', tipo:'number'},
+  {id:'tensao_sn', nm:'Tensão S-N', unidade:'V', tipo:'number'},
+  {id:'tensao_tn', nm:'Tensão T-N', unidade:'V', tipo:'number'},
+  {id:'corrente_r', nm:'Corrente R', unidade:'A', tipo:'number'},
+  {id:'corrente_s', nm:'Corrente S', unidade:'A', tipo:'number'},
+  {id:'corrente_t', nm:'Corrente T', unidade:'A', tipo:'number'},
+  {id:'temp_amb',   nm:'Temp. Ambiente', unidade:'°C', tipo:'number'},
+  {id:'temp_quente',nm:'Temp. Ponto Quente', unidade:'°C', tipo:'number'},
+];
+
+window.SUB_CHECKLIST = SUB_CHECKLIST;
+window.SUB_MEDICOES = SUB_MEDICOES;
+
 window.rTimeline = rTimeline;
 
 window.abrirSeletorNcParaOsp = abrirSeletorNcParaOsp;
