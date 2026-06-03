@@ -1849,9 +1849,15 @@ function rFSubChecklist(c){
     var sOk=sm===s.itens.length;
     h+='<div style="background:#fff;border-radius:12px;border:1.5px solid '+(sOk?'#16a34a':'#e2e8f0')+';margin-bottom:14px;flex-shrink:0;">';
     // Header seção
+    /* v92: badge de foto obrigatória por seção */
+    var _fotoReq = typeof SUB_CHECKLIST !== 'undefined' ? SUB_CHECKLIST.find(function(sc){return sc.sec===s.id;}) : null;
+    var _temFotoReq = _fotoReq && _fotoReq.fotoObrigatoria && _fotoReq.fotoObrigatoria.length;
+    var _fotosCont = s.itens.reduce(function(t,it){var ck=chk[it.id]||{};return t+((ck.fotos||[]).length);},0);
     h+='<div style="background:'+(sOk?'#f0fdf4':'#f8fafc')+';padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid '+(sOk?'#bbf7d0':'#e2e8f0')+'">';
     h+='<div style="background:#b45309;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:800;">'+s.id+'</div>';
-    h+='<div style="flex:1;font-size:13px;font-weight:800;color:#1e293b;">'+s.n+'</div>';
+    h+='<div style="flex:1;"><div style="font-size:13px;font-weight:800;color:#1e293b;">'+s.n+'</div>';
+    if(_temFotoReq) h+='<div style="font-size:9px;color:#dc2626;font-weight:700;margin-top:2px;">📸 Foto obrigatória: '+_fotoReq.fotoObrigatoria.join(', ')+(_fotosCont>0?' — '+_fotosCont+' foto(s)':'')+'</div>';
+    h+='</div>';
     h+='<span style="font-size:11px;font-weight:700;color:'+(sOk?'#16a34a':'#94a3b8')+';">'+sm+'/'+s.itens.length+'</span>';
     if(sOk)h+='<span style="font-size:14px;">✅</span>';
     h+='</div>';
