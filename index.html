@@ -1714,6 +1714,7 @@ function _renderDet(id){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">';
   h+='<button onclick="duplicarInspecao(\''+i.id+'\')" style="background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 Duplicar</button>';
   h+='<button onclick="abrirTimeline(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#1e3a5f;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">🏛️ Histórico</button>';
+  if(_hasNcs)h+='<button onclick="iniciarContraVistoria(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">🔁 Contra-vistoria</button>';
   h+='<button onclick="gerarLaudoAntesDepois(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;grid-column:span 2;">📸 Laudo Antes × Depois</button>';
   if(_hasNcs){
     h+='<button onclick="abrirSeletorNcParaOsp(\''+i.id+'\')" style="background:#0f766e;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 OSP desta inspeção</button>';
