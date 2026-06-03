@@ -2191,9 +2191,7 @@ function addItemPhoto(inp){
         var cv=document.createElement('canvas');cv.width=w;cv.height=h;
         cv.getContext('2d').drawImage(img,0,0,w,h);
         var b64=cv.toDataURL('image/webp',Q)||cv.toDataURL('image/jpeg',Q);
-        var _fid = uid();
-        _ifotos.push({id:_fid,b64:b64,leg:''});
-        _salvarFotoDispositivo(b64, _fid.slice(0,6));
+        _ifotos.push({id:uid(),b64:b64,leg:''});
         _tick();
       };
       img.onerror=function(){_tick();};
