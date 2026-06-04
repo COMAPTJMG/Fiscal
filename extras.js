@@ -3066,6 +3066,269 @@ function gerarComparativoMedicoes(edif, reg) {
   URL.revokeObjectURL(a.href);
   Tt('⚡ Comparativo de medições exportado! ' + colunas.length + ' medição(ões), ' + alertas.length + ' alerta(s).');
 }
+
+/* ══════════════════════════════════════════════════════════════
+   1. CALCULADORA ELÉTRICA — v93
+   ══════════════════════════════════════════════════════════════ */
+function abrirCalculadoraEletrica(){
+  var ov=document.createElement('div');ov.id='_calc_ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:10000;display:flex;flex-direction:column;overflow-y:auto;';
+  var h='<div style="background:#fff;flex:1;border-radius:16px 16px 0 0;margin-top:32px;padding:16px;overflow-y:auto;">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
+  h+='<div style="font-size:16px;font-weight:800;color:#0369a1;">⚡ Calculadora Elétrica</div>';
+  h+='<button onclick="document.body.removeChild(document.getElementById(\'_calc_ov\'))" style="border:none;background:#f1f5f9;border-radius:8px;padding:5px 12px;font-size:14px;cursor:pointer;">✕</button></div>';
+
+  /* Desequilíbrio de Corrente */
+  h+='<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;margin-bottom:10px;">';
+  h+='<div style="font-size:12px;font-weight:800;color:#0369a1;margin-bottom:8px;">📊 Desequilíbrio de Corrente</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">';
+  h+='<div><div style="font-size:9px;color:#64748b;">Fase R (A)</div><input id="_ce_ir" type="number" step="0.1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcDeseq()"></div>';
+  h+='<div><div style="font-size:9px;color:#64748b;">Fase S (A)</div><input id="_ce_is" type="number" step="0.1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcDeseq()"></div>';
+  h+='<div><div style="font-size:9px;color:#64748b;">Fase T (A)</div><input id="_ce_it" type="number" step="0.1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcDeseq()"></div>';
+  h+='</div><div id="_ce_deseq_res" style="margin-top:8px;font-size:13px;font-weight:700;color:#94a3b8;">—</div></div>';
+
+  /* Potência Trifásica */
+  h+='<div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:10px;">';
+  h+='<div style="font-size:12px;font-weight:800;color:#a16207;margin-bottom:8px;">⚡ Potência Trifásica</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">';
+  h+='<div><div style="font-size:9px;color:#64748b;">Tensão (V)</div><input id="_ce_v" type="number" value="380" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcPot()"></div>';
+  h+='<div><div style="font-size:9px;color:#64748b;">Corrente (A)</div><input id="_ce_i" type="number" step="0.1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcPot()"></div>';
+  h+='<div><div style="font-size:9px;color:#64748b;">FP</div><input id="_ce_fp" type="number" value="0.92" step="0.01" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcPot()"></div>';
+  h+='</div><div id="_ce_pot_res" style="margin-top:8px;font-size:13px;font-weight:700;color:#94a3b8;">—</div></div>';
+
+  /* Queda de Tensão */
+  h+='<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;margin-bottom:10px;">';
+  h+='<div style="font-size:12px;font-weight:800;color:#16a34a;margin-bottom:8px;">📉 Queda de Tensão</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">';
+  h+='<div><div style="font-size:9px;color:#64748b;">Comp. (m)</div><input id="_ce_l" type="number" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcQueda()"></div>';
+  h+='<div><div style="font-size:9px;color:#64748b;">Seção (mm²)</div><input id="_ce_s" type="number" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcQueda()"></div>';
+  h+='<div><div style="font-size:9px;color:#64748b;">Corrente (A)</div><input id="_ce_qi" type="number" step="0.1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcQueda()"></div>';
+  h+='<div><div style="font-size:9px;color:#64748b;">Tensão (V)</div><input id="_ce_qv" type="number" value="220" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcQueda()"></div>';
+  h+='</div><div id="_ce_queda_res" style="margin-top:8px;font-size:13px;font-weight:700;color:#94a3b8;">—</div></div>';
+
+  /* Fator de Potência */
+  h+='<div style="background:#faf5ff;border:1px solid #d8b4fe;border-radius:10px;padding:12px;margin-bottom:10px;">';
+  h+='<div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:8px;">🔄 Fator de Potência</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
+  h+='<div><div style="font-size:9px;color:#64748b;">Pot. Ativa kW</div><input id="_ce_kw" type="number" step="0.1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcFP()"></div>';
+  h+='<div><div style="font-size:9px;color:#64748b;">Pot. Aparente kVA</div><input id="_ce_kva" type="number" step="0.1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px;font-size:13px;" oninput="_calcFP()"></div>';
+  h+='</div><div id="_ce_fp_res" style="margin-top:8px;font-size:13px;font-weight:700;color:#94a3b8;">—</div></div>';
+
+  h+='</div>';ov.innerHTML=h;document.body.appendChild(ov);
+}
+function _calcDeseq(){
+  var r=parseFloat(el('_ce_ir').value)||0,s=parseFloat(el('_ce_is').value)||0,t=parseFloat(el('_ce_it').value)||0;
+  if(!r&&!s&&!t){el('_ce_deseq_res').innerHTML='—';return;}
+  var med=(r+s+t)/3;var maxDev=Math.max(Math.abs(r-med),Math.abs(s-med),Math.abs(t-med));
+  var pct=med?((maxDev/med)*100).toFixed(1):0;
+  var cor=pct<=2?'#16a34a':pct<=5?'#d97706':'#dc2626';
+  var status=pct<=2?'✅ Normal':pct<=5?'⚠️ Atenção':'❌ Crítico (>5%)';
+  el('_ce_deseq_res').innerHTML='<span style="color:'+cor+';">Desequilíbrio: '+pct+'% — '+status+'</span><br><span style="font-size:10px;color:#64748b;">Média: '+med.toFixed(1)+' A</span>';
+}
+function _calcPot(){
+  var v=parseFloat(el('_ce_v').value)||0,i=parseFloat(el('_ce_i').value)||0,fp=parseFloat(el('_ce_fp').value)||0.92;
+  if(!v||!i){el('_ce_pot_res').innerHTML='—';return;}
+  var kw=(v*i*Math.sqrt(3)*fp/1000).toFixed(2);var kva=(v*i*Math.sqrt(3)/1000).toFixed(2);
+  el('_ce_pot_res').innerHTML='<b>'+kw+' kW</b> ('+kva+' kVA) · FP: '+fp;
+}
+function _calcQueda(){
+  var l=parseFloat(el('_ce_l').value)||0,s=parseFloat(el('_ce_s').value)||0,i=parseFloat(el('_ce_qi').value)||0,v=parseFloat(el('_ce_qv').value)||220;
+  if(!l||!s||!i){el('_ce_queda_res').innerHTML='—';return;}
+  var rho=0.0172;var dv=(2*rho*l*i/s);var pct=(dv/v*100).toFixed(2);
+  var cor=pct<=3?'#16a34a':pct<=5?'#d97706':'#dc2626';
+  var st=pct<=3?'✅ OK (≤3%)':pct<=5?'⚠️ Atenção':'❌ Acima (>5%)';
+  el('_ce_queda_res').innerHTML='<span style="color:'+cor+';">ΔV: '+dv.toFixed(2)+' V ('+pct+'%) — '+st+'</span>';
+}
+function _calcFP(){
+  var kw=parseFloat(el('_ce_kw').value)||0,kva=parseFloat(el('_ce_kva').value)||0;
+  if(!kw||!kva){el('_ce_fp_res').innerHTML='—';return;}
+  var fp=(kw/kva).toFixed(3);var cor=fp>=0.92?'#16a34a':fp>=0.85?'#d97706':'#dc2626';
+  el('_ce_fp_res').innerHTML='<span style="color:'+cor+';">FP = '+fp+(fp>=0.92?' ✅ OK':fp>=0.85?' ⚠️ Baixo':' ❌ Penalidade concessionária')+'</span>';
+}
+window.abrirCalculadoraEletrica=abrirCalculadoraEletrica;
+
+/* ══════════════════════════════════════════════════════════════
+   2. ANOTAÇÃO POR VOZ — v93
+   Usa Web Speech API para transcrever voz → texto.
+   ══════════════════════════════════════════════════════════════ */
+function iniciarVoz(inputId){
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){Tt('Reconhecimento de voz não disponível neste navegador.');return;}
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var rec=new SR();rec.lang='pt-BR';rec.continuous=true;rec.interimResults=true;
+  var inp=el(inputId);if(!inp){Tt('Campo não encontrado.');return;}
+  var textoAnterior=inp.value;
+  rec.onresult=function(e){
+    var txt='';for(var i=e.resultIndex;i<e.results.length;i++){txt+=e.results[i][0].transcript;}
+    inp.value=textoAnterior+(textoAnterior?' ':'')+txt;
+    inp.dispatchEvent(new Event('input',{bubbles:true}));
+  };
+  rec.onerror=function(e){Tt('Erro de voz: '+e.error);};
+  rec.onend=function(){Tt('🎤 Gravação encerrada');};
+  rec.start();
+  Tt('🎤 Fale agora...');
+  /* Parar após 30 segundos */
+  setTimeout(function(){try{rec.stop();}catch(e){}},30000);
+}
+window.iniciarVoz=iniciarVoz;
+
+/* ══════════════════════════════════════════════════════════════
+   3. TABELA DE REFERÊNCIA RÁPIDA — v93
+   ══════════════════════════════════════════════════════════════ */
+function abrirReferencia(){
+  var ov=document.createElement('div');ov.id='_ref_ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:10000;display:flex;flex-direction:column;';
+  var h='<div style="background:#fff;flex:1;border-radius:16px 16px 0 0;margin-top:32px;overflow-y:auto;padding:16px;">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
+  h+='<div style="font-size:16px;font-weight:800;color:#1e3a5f;">📖 Referência Rápida</div>';
+  h+='<button onclick="document.body.removeChild(document.getElementById(\'_ref_ov\'))" style="border:none;background:#f1f5f9;border-radius:8px;padding:5px 12px;font-size:14px;cursor:pointer;">✕</button></div>';
+
+  /* Isolamento por tensão */
+  h+='<div style="font-size:11px;font-weight:800;color:#0369a1;margin:10px 0 6px;border-bottom:2px solid #0369a1;padding-bottom:4px;">🔌 Resistência Mínima de Isolamento (NBR 5356)</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;">';
+  h+='<tr style="background:#1e3a5f;color:#fff;"><th style="padding:5px 8px;">Tensão Nominal</th><th>Mín. Isolamento</th><th>Instrumento</th></tr>';
+  [['≤ 1 kV (BT)','≥ 10 MΩ','Megômetro 500V'],['1-15 kV (MT)','≥ 100 MΩ','Megômetro 2500V'],['15-35 kV','≥ 500 MΩ','Megômetro 5000V'],['Disjuntor MT','≥ 1000 MΩ','IEC 62271'],['Contato disjuntor','≤ 200 µΩ','Microhmímetro'],['Contato seccionadora','≤ 200 µΩ','Microhmímetro']].forEach(function(r,i){
+    h+='<tr style="background:'+(i%2?'#f8fafc':'#fff')+'"><td style="padding:4px 8px;font-weight:700;">'+r[0]+'</td><td style="color:#16a34a;font-weight:700;">'+r[1]+'</td><td style="color:#64748b;">'+r[2]+'</td></tr>';
+  });
+  h+='</table>';
+
+  /* Extintores */
+  h+='<div style="font-size:11px;font-weight:800;color:#dc2626;margin:10px 0 6px;border-bottom:2px solid #dc2626;padding-bottom:4px;">🧯 Extintores — Classes e Cores</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;">';
+  h+='<tr style="background:#dc2626;color:#fff;"><th style="padding:5px 8px;">Agente</th><th>Classe</th><th>Cor Faixa</th><th>Validade</th></tr>';
+  [['Pó ABC','A, B, C','Amarela','5 anos (recarga 1 ano)'],['CO₂','B, C','Vermelha','5 anos (pesagem 6 meses)'],['Água pressurizada','A','Verde','5 anos (recarga 1 ano)'],['Espuma mecânica','A, B','Creme','5 anos'],['Pó BC','B, C','Amarela','5 anos']].forEach(function(r,i){
+    h+='<tr style="background:'+(i%2?'#fef2f2':'#fff')+'"><td style="padding:4px 8px;font-weight:700;">'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td style="color:#64748b;">'+r[3]+'</td></tr>';
+  });
+  h+='</table>';
+
+  /* NR-10 Distâncias */
+  h+='<div style="font-size:11px;font-weight:800;color:#d97706;margin:10px 0 6px;border-bottom:2px solid #d97706;padding-bottom:4px;">⚡ NR-10 — Distâncias de Segurança</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;">';
+  h+='<tr style="background:#d97706;color:#fff;"><th style="padding:5px 8px;">Tensão</th><th>Zona Controlada</th><th>Zona de Risco</th></tr>';
+  [['≤ 1 kV','0.70 m','0.20 m'],['1 - 3 kV','1.22 m','0.35 m'],['3 - 6 kV','1.22 m','0.38 m'],['6 - 10 kV','1.22 m','0.40 m'],['10 - 15 kV','1.33 m','0.58 m'],['15 - 20 kV','1.35 m','0.60 m'],['20 - 35 kV','1.53 m','0.73 m']].forEach(function(r,i){
+    h+='<tr style="background:'+(i%2?'#fffbeb':'#fff')+'"><td style="padding:4px 8px;font-weight:700;">'+r[0]+'</td><td>'+r[1]+'</td><td style="color:#dc2626;font-weight:700;">'+r[2]+'</td></tr>';
+  });
+  h+='</table>';
+
+  /* Torque parafusos */
+  h+='<div style="font-size:11px;font-weight:800;color:#7c3aed;margin:10px 0 6px;border-bottom:2px solid #7c3aed;padding-bottom:4px;">🔩 Torque de Aperto por Bitola</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;">';
+  h+='<tr style="background:#7c3aed;color:#fff;"><th style="padding:5px 8px;">Bitola</th><th>Torque (N·m)</th><th>Aplicação</th></tr>';
+  [['M6','5-8','Terminais pequenos'],['M8','15-25','Bornes QD'],['M10','30-45','Barramentos BT'],['M12','50-80','Barramentos MT'],['M16','100-160','Conexões pesadas']].forEach(function(r,i){
+    h+='<tr style="background:'+(i%2?'#faf5ff':'#fff')+'"><td style="padding:4px 8px;font-weight:700;">'+r[0]+'</td><td style="font-weight:700;">'+r[1]+'</td><td style="color:#64748b;">'+r[2]+'</td></tr>';
+  });
+  h+='</table>';
+
+  /* Prazos contratuais */
+  h+='<div style="font-size:11px;font-weight:800;color:#0f766e;margin:10px 0 6px;border-bottom:2px solid #0f766e;padding-bottom:4px;">📋 Prazos Contratuais (CT 017/2026)</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;">';
+  [['Emergência (OSE)','2 horas','Início atendimento'],['Urgência','24 horas','Início atendimento'],['Periódica Grp A/B','Trimestral','Execução completa'],['Periódica Grp C','Semestral','Execução completa'],['Subestação B.1','Anual','Manutenção preventiva'],['SPDA laudo','Anual','NBR 5419'],['NOT-INA resposta','30 dias','Prazo padrão'],['Relatório mensal','Até dia 5','Mês subsequente']].forEach(function(r,i){
+    h+='<tr style="background:'+(i%2?'#f0fdfa':'#fff')+'"><td style="padding:4px 8px;font-weight:700;">'+r[0]+'</td><td style="color:#0f766e;font-weight:700;">'+r[1]+'</td><td style="color:#64748b;">'+r[2]+'</td></tr>';
+  });
+  h+='</table>';
+
+  h+='</div>';ov.innerHTML=h;document.body.appendChild(ov);
+}
+window.abrirReferencia=abrirReferencia;
+
+/* ══════════════════════════════════════════════════════════════
+   5. NÍVEL DIGITAL (giroscópio) — v93
+   ══════════════════════════════════════════════════════════════ */
+function abrirNivel(){
+  var ov=document.createElement('div');ov.id='_nivel_ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+  var h='<div style="text-align:center;color:#fff;">';
+  h+='<div style="font-size:14px;font-weight:800;margin-bottom:16px;">📐 Nível Digital</div>';
+  h+='<div style="position:relative;width:200px;height:200px;border:3px solid rgba(255,255,255,.3);border-radius:50%;margin:0 auto;">';
+  h+='<div style="position:absolute;top:50%;left:50%;width:4px;height:4px;background:#fff;border-radius:50%;transform:translate(-50%,-50%);"></div>';
+  h+='<div id="_nivel_bola" style="position:absolute;top:50%;left:50%;width:24px;height:24px;background:#3b82f6;border-radius:50%;transform:translate(-50%,-50%);transition:transform .1s;box-shadow:0 0 10px rgba(59,130,246,.5);"></div>';
+  h+='<div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,.15);"></div>';
+  h+='<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.15);"></div>';
+  h+='</div>';
+  h+='<div id="_nivel_val" style="font-size:28px;font-weight:900;margin-top:16px;font-family:monospace;">0.0°</div>';
+  h+='<div id="_nivel_status" style="font-size:12px;color:#94a3b8;margin-top:4px;">Posicione o celular na superfície</div>';
+  h+='<button onclick="_nivelParar();document.body.removeChild(document.getElementById(\'_nivel_ov\'))" style="margin-top:20px;background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 28px;font-size:13px;font-weight:700;cursor:pointer;">Fechar</button>';
+  h+='</div>';ov.innerHTML=h;document.body.appendChild(ov);
+
+  window._nivelHandler=function(e){
+    var b=e.beta||0,g=e.gamma||0;
+    var angulo=Math.sqrt(b*b+g*g).toFixed(1);
+    var bola=el('_nivel_bola');
+    if(bola){
+      var dx=Math.min(80,Math.max(-80,g));var dy=Math.min(80,Math.max(-80,b));
+      bola.style.transform='translate(calc(-50% + '+dx+'px), calc(-50% + '+dy+'px))';
+      bola.style.background=angulo<=0.5?'#16a34a':angulo<=2?'#3b82f6':angulo<=5?'#d97706':'#dc2626';
+    }
+    var v=el('_nivel_val');if(v)v.textContent=angulo+'°';
+    var st=el('_nivel_status');
+    if(st)st.textContent=angulo<=0.5?'✅ Nivelado!':angulo<=2?'Quase nivelado':angulo<=5?'⚠️ Inclinado':'❌ Muito inclinado';
+  };
+  if(window.DeviceOrientationEvent){
+    if(typeof DeviceOrientationEvent.requestPermission==='function'){
+      DeviceOrientationEvent.requestPermission().then(function(r){if(r==='granted')window.addEventListener('deviceorientation',window._nivelHandler);});
+    }else{window.addEventListener('deviceorientation',window._nivelHandler);}
+  }else{Tt('Giroscópio não disponível neste dispositivo.');}
+}
+function _nivelParar(){if(window._nivelHandler)window.removeEventListener('deviceorientation',window._nivelHandler);}
+window.abrirNivel=abrirNivel;
+
+/* ══════════════════════════════════════════════════════════════
+   MENSAGEM NC PARA EMPRESA — v93
+   Gera mensagem WhatsApp/e-mail para a contratada informando
+   NCs encontradas na manutenção periódica.
+   ══════════════════════════════════════════════════════════════ */
+function gerarMsgNcEmpresa(inspId) {
+  var i = S.insp.find(function(x) { return x.id === inspId; });
+  if (!i) return;
+  var R = (typeof REG !== 'undefined' && REG[i.reg]) ? REG[i.reg] : { l: i.reg || '', ct: '', empresa: '' };
+  var ncs = [];
+  Object.values(i.itens || {}).forEach(function(v) {
+    if (v.s === 'nao_conforme') ncs.push(v);
+  });
+  if (!ncs.length) { Tt('Nenhuma NC nesta inspeção.'); return; }
+
+  var msg = '*TJMG — NOTIFICAÇÃO DE NÃO CONFORMIDADE*\n'
+    + '\n'
+    + 'Prezada ' + (R.empresa || 'Empresa Contratada') + ',\n'
+    + '\n'
+    + 'Informamos que em vistoria de manutenção periódica realizada em *' + fdt(i.dtVistoria || i.data) + '* na edificação *' + (i.edif || '') + '* — Comarca de *' + (i.com || '') + '* (Região ' + R.l + '), foram identificadas as seguintes não conformidades:\n'
+    + '\n';
+
+  var porSistema = {};
+  ncs.forEach(function(nc) {
+    var s = nc.sn || 'Geral';
+    if (!porSistema[s]) porSistema[s] = [];
+    porSistema[s].push(nc);
+  });
+
+  Object.keys(porSistema).forEach(function(sis) {
+    msg += '*' + sis + ':*\n';
+    porSistema[sis].forEach(function(nc, idx) {
+      msg += (idx + 1) + '. ' + (nc.nm || nc.n || '') + (nc.obs ? ' — _' + nc.obs + '_' : '') + '\n';
+    });
+    msg += '\n';
+  });
+
+  msg += 'Total: *' + ncs.length + ' não conformidade(s)*\n'
+    + '\n'
+    + 'Solicitamos a regularização no prazo contratual, sob pena de aplicação das sanções previstas no ' + (R.ct || 'contrato') + '.\n'
+    + '\n'
+    + 'Atenciosamente,\n'
+    + (S.sessao ? S.sessao.nome : 'Fiscal') + '\n'
+    + 'Fiscal de Contrato — TJMG/GEMAP\n'
+    + fdt(new Date().toISOString().slice(0, 10));
+
+  /* Copiar e abrir WhatsApp */
+  var msgClean = msg.replace(/\n/g, '\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(msgClean).then(function() {
+      Tt('📋 Mensagem copiada! Cole no WhatsApp ou e-mail.');
+    });
+  }
+  var waUrl = 'https://wa.me/?text=' + encodeURIComponent(msgClean);
+  window.open(waUrl, '_blank');
+}
+window.gerarMsgNcEmpresa = gerarMsgNcEmpresa;
+
 window.gerarComparativoMedicoes = gerarComparativoMedicoes;
 
 window.SUB_CHECKLIST = SUB_CHECKLIST;
