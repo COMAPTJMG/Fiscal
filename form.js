@@ -1955,7 +1955,35 @@ function rFSubMedicoes(c){
 }
 
 // ── Helpers de inputs numéricos ───────────────────────────────────────────────
-/* v70: _spf, _iCor, _iLbl, _iCorMax, _iLblMax movidos para utils.js — Bug 4 fix */
+/* v92-fix: _iCor, _iLbl, _iCorMax, _iLblMax — DEFINIDOS AQUI (nunca chegaram ao utils.js) */
+function _iCor(val,min){
+  if(!val&&val!==0)return '#e2e8f0';
+  var n=parseFloat(val);
+  if(isNaN(n))return '#e2e8f0';
+  return n>=min?'#16a34a':'#dc2626';
+}
+function _iLbl(val,min){
+  if(!val&&val!==0)return 'medir';
+  var n=parseFloat(val);
+  if(isNaN(n))return 'medir';
+  return n>=min?'✓ OK (≥'+min+')':'✗ ABAIXO (mín. '+min+')';
+}
+function _iCorMax(val,warn,crit){
+  if(!val&&val!==0)return '#e2e8f0';
+  var n=parseFloat(val);
+  if(isNaN(n))return '#e2e8f0';
+  if(n>crit)return '#dc2626';
+  if(n>warn)return '#d97706';
+  return '#16a34a';
+}
+function _iLblMax(val,warn,crit){
+  if(!val&&val!==0)return 'medir';
+  var n=parseFloat(val);
+  if(isNaN(n))return 'medir';
+  if(n>crit)return '✗ CRÍTICO (>'+crit+')';
+  if(n>warn)return '⚠ ATENÇÃO (>'+warn+')';
+  return '✓ OK (≤'+warn+')';
+}
 function _inp(label,val,path,unit){
   return '<div><div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:3px;">'+label+'</div><div style="display:flex;align-items:center;gap:4px;"><input value="'+(val||'')+'" oninput="'+path+'=this.value;rFe()" type="text" inputmode="decimal" style="flex:1;border-radius:6px;border:1px solid #e2e8f0;padding:7px 6px;font-size:13px;font-weight:700;min-width:0;"><span style="font-size:10px;color:#64748b;font-weight:700;flex-shrink:0;">'+unit+'</span></div></div>';
 }
