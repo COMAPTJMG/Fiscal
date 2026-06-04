@@ -1592,9 +1592,9 @@ function subInit(){
   if(!F.sub.trafos||!F.sub.trafos.length)F.sub.trafos=[subNovoTrafo()];
   if(!F.sub.disjs||!F.sub.disjs.length)F.sub.disjs=[subNovoDisj()];
   if(!F.sub.secc||!F.sub.secc.length)F.sub.secc=[subNovoSecc()];
-  F.sub.trafos.forEach(function(t){if(!t.fotos_ttr)t.fotos_ttr=[];if(!t.fotos_iso)t.fotos_iso=[];if(!t.fotos_ohm)t.fotos_ohm=[];});
-  F.sub.disjs.forEach(function(d){if(!d.fotos_iso)d.fotos_iso=[];if(!d.fotos_cr)d.fotos_cr=[];});
-  F.sub.secc.forEach(function(s){if(!s.fotos_iso)s.fotos_iso=[];if(!s.fotos_cr)s.fotos_cr=[];});
+  F.sub.trafos.forEach(function(t){if(!t.fotos_geral)t.fotos_geral=[];if(!t.fotos_ttr)t.fotos_ttr=[];if(!t.fotos_iso)t.fotos_iso=[];if(!t.fotos_ohm)t.fotos_ohm=[];});
+  F.sub.disjs.forEach(function(d){if(!d.fotos_geral)d.fotos_geral=[];if(!d.fotos_iso)d.fotos_iso=[];if(!d.fotos_cr)d.fotos_cr=[];});
+  F.sub.secc.forEach(function(s){if(!s.fotos_geral)s.fotos_geral=[];if(!s.fotos_iso)s.fotos_iso=[];if(!s.fotos_cr)s.fotos_cr=[];});
   // F.d tem prioridade se usuário já configurou
   if(F.d.tipo_sub&&F.d.tipo_sub!==F.sub.tipo_sub)F.sub.tipo_sub=F.d.tipo_sub;
   else F.d.tipo_sub=F.sub.tipo_sub;
@@ -2009,6 +2009,9 @@ function subRenderTrafo(tr,idx){
   h+='TRANSFORMADOR #'+(idx+1);
   if(idx>0)h+='<button type="button" onclick="F.sub.trafos.splice('+idx+',1);rFe()" style="background:#fee2e2;border:none;border-radius:6px;padding:3px 8px;font-size:10px;color:#dc2626;cursor:pointer;">Remover</button>';
   h+='</div>';
+  /* v92: foto geral do equipamento (plaqueta, vista geral) */
+  if(!tr.fotos_geral)tr.fotos_geral=[];
+  h+=subFotosBarra(tr.fotos_geral,'trafos',idx,'fotos_geral','📸 Foto do Transformador #'+(idx+1)+' (plaqueta, vista geral)');
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;">';
   h+='<div><div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:3px;">REF</div><input value="'+(tr.ref||'')+'" oninput="'+p+'.ref=this.value" style="border:1px solid #e2e8f0;border-radius:6px;padding:7px 8px;font-size:13px;font-weight:700;width:100%;"></div>';
   h+='<div><div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:3px;">POTÊNCIA (kVA)</div><input value="'+(tr.kva||'')+'" oninput="'+p+'.kva=this.value" type="text" inputmode="decimal" style="border:1px solid #e2e8f0;border-radius:6px;padding:7px 8px;font-size:13px;font-weight:700;width:100%;"></div>';
@@ -2094,6 +2097,9 @@ function subRenderDisj(dj,idx){
   for(var ti=0;ti<tps.length;ti++){var t=tps[ti];var sel=(dj.tipo||'VACUO')===t;h+='<button type="button" onclick="'+p+'.tipo=\''+t+'\';rFe()" style="flex:1;border:2px solid '+(sel?'#1e3a5f':'#e2e8f0')+';background:'+(sel?'#1e3a5f':'#fff')+';color:'+(sel?'#fff':'#64748b')+';border-radius:8px;padding:6px;font-weight:700;font-size:11px;cursor:pointer;">'+t+'</button>';}
   h+='</div>';
   h+='<input value="'+(dj.obs||'')+'" oninput="'+p+'.obs=this.value" placeholder="Observações..." style="margin-bottom:12px;border:1px solid #e2e8f0;border-radius:8px;padding:8px;width:100%;font-size:13px;">';
+  /* v92: foto geral do disjuntor */
+  if(!dj.fotos_geral)dj.fotos_geral=[];
+  h+=subFotosBarra(dj.fotos_geral,'disjs',idx,'fotos_geral','📸 Foto do Disjuntor #'+(idx+1)+' (plaqueta, vista geral)');
   h+=_secHdr('ISOLAÇÃO — ABERTO (mín. 1000 MΩ) e FECHADO fase-terra (mín. 1000 MΩ) — IEC 62271-100','#1e3a5f');
   h+='<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px;">ABERTO</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">';
@@ -2120,6 +2126,9 @@ function subRenderSecc(sc,idx){
   if(idx>0)h+='<button type="button" onclick="F.sub.secc.splice('+idx+',1);rFe()" style="background:#fee2e2;border:none;border-radius:6px;padding:3px 8px;font-size:10px;color:#dc2626;cursor:pointer;">Remover</button>';
   h+='</div>';
   h+='<input value="'+(sc.obs||'')+'" oninput="'+p+'.obs=this.value" placeholder="Observações..." style="margin-bottom:12px;border:1px solid #e2e8f0;border-radius:8px;padding:8px;width:100%;font-size:13px;">';
+  /* v92: foto geral da seccionadora */
+  if(!sc.fotos_geral)sc.fotos_geral=[];
+  h+=subFotosBarra(sc.fotos_geral,'secc',idx,'fotos_geral','📸 Foto da Seccionadora #'+(idx+1)+' (plaqueta, vista geral)');
   h+=_secHdr('ISOLAÇÃO — ABERTA (mín. 1000 MΩ) e FECHADA fase-terra (mín. 1000 MΩ) — IEC 62271-102','#1a4731');
   h+='<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px;">ABERTA</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">';
