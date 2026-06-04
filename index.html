@@ -463,7 +463,10 @@ input:focus,textarea:focus{border-color:var(--a);}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;" id="ist"></div>
     <!-- Observações -->
     <div class="lbl">Observações</div>
-    <textarea id="iob" style="margin-bottom:4px;min-height:80px;background:#f8fafc;color:#0f172a;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;font-size:14px;resize:none;width:100%;box-sizing:border-box;" placeholder="Descreva o que foi encontrado..."></textarea>
+    <div style="display:flex;gap:6px;align-items:flex-start;">
+      <textarea id="iob" style="flex:1;margin-bottom:4px;min-height:80px;background:#f8fafc;color:#0f172a;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;font-size:14px;resize:none;box-sizing:border-box;" placeholder="Descreva o que foi encontrado..."></textarea>
+      <button type="button" onclick="iniciarVoz('iob')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:12px;font-size:18px;cursor:pointer;flex-shrink:0;" title="Falar observação">🎤</button>
+    </div>
     <button onclick="addVoiceBtn('iob');initVoice(el('iob'),this)" style="border:none;border-radius:8px;padding:6px 10px;font-size:12px;background:#003580;color:#fff;cursor:pointer;margin-bottom:10px;width:100%;font-weight:700;">🎙️ Ditar por Voz</button>
     <!-- Fotos — v84: câmera direta, compressão adaptativa, multi-select, reordenar -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
@@ -1194,6 +1197,10 @@ function rPerf(){
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
     +'<button class="btn" style="background:#475569;color:#fff;font-size:12px;padding:11px;" onclick="toggleAltoContraste()">♿ Contraste</button>'
     +'<button class="btn" style="background:#475569;color:#fff;font-size:12px;padding:11px;" onclick="toggleFonteMaior()">Aa Fonte Maior</button>'
+    +'</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">'
+    +'<button class="btn" style="background:#0369a1;color:#fff;font-size:11px;padding:12px;" onclick="abrirCalculadoraEletrica()">⚡ Calculadora</button>'
+    +'<button class="btn" style="background:#7c3aed;color:#fff;font-size:11px;padding:12px;" onclick="abrirReferencia()">📖 Referência</button>'
+    +'<button class="btn" style="background:#0f766e;color:#fff;font-size:11px;padding:12px;" onclick="abrirNivel()">📐 Nível</button>'
     +'</div>'
     +'<button class="btn" style="background:#0a4099;color:#fff;margin-bottom:8px;font-size:12px;" onclick="ativarVozNav()">🎙️ Navegação por Voz</button>'
     +'<button class="btn" style="background:#64748b;color:#fff;margin-bottom:8px;font-size:12px;" onclick="iniciarTutorial(true)">🎓 Ver Tutorial</button>'
@@ -1730,7 +1737,8 @@ function _renderDet(id){
   if(_hasNcs){
     h+='<button onclick="abrirSeletorNcParaOsp(\''+i.id+'\')" style="background:#0f766e;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 OSP desta inspeção</button>';
     h+='<button onclick="abrirOspEdificacao(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#064e3b;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 Todas NCs — '+_escA(i.edif)+'</button>';
-    h+='<button onclick="iniciarProgramadaDeNCs(\''+i.id+'\')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;grid-column:span 2;">🔧 OSP Programada (NCs→ITP)</button>';
+    h+='<button onclick="iniciarProgramadaDeNCs(\''+i.id+'\')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">🔧 OSP Programada</button>';
+    h+='<button onclick="gerarMsgNcEmpresa(\''+i.id+'\')" style="background:#25d366;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📩 Msg Empresa (NC)</button>';
   }
   h+='<button onclick="abrirAssinatura(\''+i.id+'\')" style="background:#003580;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">✍️ Assinar</button>';
   h+='</div>';
