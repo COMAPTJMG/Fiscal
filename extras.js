@@ -3145,6 +3145,326 @@ function _calcFP(){
   var fp=(kw/kva).toFixed(3);var cor=fp>=0.92?'#16a34a':fp>=0.85?'#d97706':'#dc2626';
   el('_ce_fp_res').innerHTML='<span style="color:'+cor+';">FP = '+fp+(fp>=0.92?' ✅ OK':fp>=0.85?' ⚠️ Baixo':' ❌ Penalidade concessionária')+'</span>';
 }
+
+/* ══════════════════════════════════════════════════════════════
+   6. RELATÓRIO FOTOGRÁFICO RÁPIDO — v93
+   Sem checklist, sem formulário complexo. O fiscal tira fotos
+   com legenda e gera um relatório limpo.
+   Uso: acompanhamento de obra, vistoria informal, registro
+   de ocorrência, documentação geral.
+   ══════════════════════════════════════════════════════════════ */
+
+function abrirRelFotografico() {
+  /* Estado do relatório fotográfico */
+  if (!window._relFoto) {
+    window._relFoto = {
+      edif: '', com: '', assunto: '', obs: '',
+      fotos: [], /* [{b64:'',leg:'',dt:''}, ...] */
+      fiscal: S.sessao ? S.sessao.nome : '',
+      data: new Date().toISOString().slice(0, 10)
+    };
+  }
+  _renderRelFoto();
+}
+
+function _renderRelFoto() {
+  var rf = window._relFoto;
+  var ov = document.getElementById('_relfoto_ov');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = '_relfoto_ov';
+    ov.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:9999;display:flex;flex-direction:column;overflow:hidden;';
+    document.body.appendChild(ov);
+  }
+
+  var nf = rf.fotos.length;
+  var h = '';
+
+  /* Header */
+  h += '<div style="background:#b45309;padding:14px 16px;color:#fff;flex-shrink:0;">';
+  h += '<div style="display:flex;align-items:center;gap:10px;">';
+  h += '<button onclick="_fecharRelFoto()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;">←</button>';
+  h += '<div style="flex:1;"><div style="font-size:15px;font-weight:800;">📸 Relatório Fotográfico</div>';
+  h += '<div style="font-size:10px;opacity:.7;">' + nf + ' foto(s) · ' + fdt(rf.data) + '</div></div>';
+  if (nf > 0) h += '<button onclick="_exportRelFoto()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">📄 Exportar</button>';
+  h += '</div></div>';
+
+  /* Corpo scrollável */
+  h += '<div style="flex:1;overflow-y:auto;padding:12px;">';
+
+  /* Dados básicos */
+  h += '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;">';
+  h += '<div style="font-size:11px;font-weight:800;color:#92400e;margin-bottom:8px;">Identificação</div>';
+  h += '<input value="' + _escA(rf.edif) + '" oninput="window._relFoto.edif=this.value" placeholder="Edificação *" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">';
+  h += '<input value="' + _escA(rf.com) + '" oninput="window._relFoto.com=this.value" placeholder="Comarca" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">';
+  h += '<input value="' + _escA(rf.assunto) + '" oninput="window._relFoto.assunto=this.value" placeholder="Assunto (ex: Acompanhamento obra, Vistoria informal...)" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">';
+  h += '<textarea oninput="window._relFoto.obs=this.value" placeholder="Observações gerais..." style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;min-height:50px;resize:none;box-sizing:border-box;">' + _escA(rf.obs) + '</textarea>';
+  h += '</div>';
+
+  /* Botões de adicionar foto */
+  h += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
+  h += '<label style="flex:1;background:#b45309;color:#fff;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;">';
+  h += '📷 Câmera<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="_addFotoRel(this)">';
+  h += '</label>';
+  h += '<label style="flex:1;background:#7c3aed;color:#fff;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;">';
+  h += '🖼 Galeria<input type="file" accept="image/*" multiple style="display:none;" onchange="_addFotoRel(this)">';
+  h += '</label>';
+  h += '</div>';
+
+  /* Grade de fotos com legendas */
+  if (nf > 0) {
+    h += '<div style="font-size:11px;font-weight:800;color:#374151;margin-bottom:6px;">' + nf + ' foto(s) registrada(s)</div>';
+    rf.fotos.forEach(function(f, idx) {
+      h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;overflow:hidden;">';
+      h += '<div style="position:relative;">';
+      h += '<img src="' + f.b64 + '" style="width:100%;height:200px;object-fit:cover;display:block;">';
+      h += '<button onclick="_remFotoRel(' + idx + ')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;">✕</button>';
+      h += '<div style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.6);color:#fff;border-radius:4px;padding:2px 8px;font-size:10px;">' + (idx + 1) + '/' + nf + ' · ' + (f.dt || '') + '</div>';
+      h += '</div>';
+      h += '<div style="padding:8px;">';
+      h += '<input value="' + _escA(f.leg) + '" oninput="window._relFoto.fotos[' + idx + '].leg=this.value" placeholder="Legenda da foto ' + (idx + 1) + '..." style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:12px;box-sizing:border-box;">';
+      h += '</div></div>';
+    });
+  } else {
+    h += '<div style="text-align:center;padding:40px 20px;color:#94a3b8;">';
+    h += '<div style="font-size:48px;margin-bottom:10px;">📸</div>';
+    h += '<div style="font-size:14px;font-weight:700;">Nenhuma foto ainda</div>';
+    h += '<div style="font-size:12px;margin-top:4px;">Toque em Câmera ou Galeria para começar</div>';
+    h += '</div>';
+  }
+
+  h += '</div>'; /* fim corpo */
+  ov.innerHTML = h;
+}
+
+function _addFotoRel(inp) {
+  if (!inp.files || !inp.files.length) return;
+  var rf = window._relFoto;
+  var total = inp.files.length, done = 0;
+
+  Array.from(inp.files).forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      /* Comprimir */
+      var img = new Image();
+      img.onload = function() {
+        var cv = document.createElement('canvas');
+        var max = 1440;
+        var w = img.width, hh = img.height;
+        if (w > max || hh > max) {
+          if (w >= hh) { hh = Math.round(hh * (max / w)); w = max; }
+          else { w = Math.round(w * (max / hh)); hh = max; }
+        }
+        cv.width = w; cv.height = hh;
+        cv.getContext('2d').drawImage(img, 0, 0, w, hh);
+        var b64 = cv.toDataURL('image/webp', 0.82);
+        var agora = new Date();
+        rf.fotos.push({
+          b64: b64,
+          leg: '',
+          dt: String(agora.getHours()).padStart(2,'0') + ':' + String(agora.getMinutes()).padStart(2,'0')
+        });
+        done++;
+        if (done >= total) _renderRelFoto();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  inp.value = '';
+}
+
+function _remFotoRel(idx) {
+  window._relFoto.fotos.splice(idx, 1);
+  _renderRelFoto();
+}
+
+function _fecharRelFoto() {
+  var ov = document.getElementById('_relfoto_ov');
+  if (ov) {
+    if (window._relFoto && window._relFoto.fotos.length > 0) {
+      cf('?', 'Fechar', 'Tem ' + window._relFoto.fotos.length + ' foto(s). Deseja descartar?', function() {
+        window._relFoto = null;
+        document.body.removeChild(ov);
+      });
+    } else {
+      window._relFoto = null;
+      document.body.removeChild(ov);
+    }
+  }
+}
+
+function _exportRelFoto() {
+  var rf = window._relFoto;
+  if (!rf || !rf.fotos.length) { Tt('Adicione pelo menos uma foto.'); return; }
+  if (!rf.edif) { Tt('Preencha a edificação.'); return; }
+
+  var R = S.sessao && S.sessao.reg && typeof REG !== 'undefined' ? REG[S.sessao.reg] || {} : {};
+
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
+    + '<title>Relatório Fotográfico — ' + _escA(rf.edif) + '</title>'
+    + '<style>'
+    + '@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&display=swap");'
+    + '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{font-family:"IBM Plex Sans",sans-serif;font-size:12px;color:#1f2937;}'
+    + '.topo{background:#b45309;color:#fff;padding:20px 28px;}'
+    + '.topo h1{font-size:18px;font-weight:800;}'
+    + '.topo p{font-size:11px;opacity:.7;margin-top:3px;}'
+    + '.corpo{padding:24px 28px;max-width:800px;margin:0 auto;}'
+    + '.info{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;margin-bottom:20px;}'
+    + '.info b{color:#92400e;}'
+    + '.foto-card{break-inside:avoid;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:16px;overflow:hidden;}'
+    + '.foto-card img{width:100%;display:block;}'
+    + '.foto-leg{padding:10px 14px;background:#f8fafc;}'
+    + '.foto-leg .num{font-size:10px;color:#94a3b8;font-weight:700;}'
+    + '.foto-leg .txt{font-size:13px;color:#1e293b;font-weight:600;margin-top:2px;}'
+    + '.rodape{margin-top:32px;padding:12px;background:#f8fafc;border-top:2px solid #e2e8f0;font-size:9px;color:#9ca3af;text-align:center;}'
+    + '@media print{.topo{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}.foto-card{break-inside:avoid;}}'
+    + '</style></head><body>';
+
+  html += '<div class="topo"><h1>📸 Relatório Fotográfico</h1>';
+  html += '<p>' + _escA(rf.edif) + ' · ' + _escA(rf.com) + ' · ' + fdt(rf.data) + '</p></div>';
+
+  html += '<div class="corpo">';
+  html += '<div class="info">';
+  html += '<b>Edificação:</b> ' + _escA(rf.edif) + '<br>';
+  if (rf.com) html += '<b>Comarca:</b> ' + _escA(rf.com) + '<br>';
+  if (rf.assunto) html += '<b>Assunto:</b> ' + _escA(rf.assunto) + '<br>';
+  html += '<b>Data:</b> ' + fdt(rf.data) + '<br>';
+  html += '<b>Fiscal:</b> ' + _escA(rf.fiscal) + '<br>';
+  if (R.ct) html += '<b>Contrato:</b> ' + _escA(R.ct) + '<br>';
+  if (rf.obs) html += '<br><b>Observações:</b> ' + _escA(rf.obs);
+  html += '</div>';
+
+  rf.fotos.forEach(function(f, idx) {
+    html += '<div class="foto-card">';
+    html += '<img src="' + f.b64 + '" alt="Foto ' + (idx + 1) + '">';
+    html += '<div class="foto-leg">';
+    html += '<div class="num">Foto ' + (idx + 1) + ' de ' + rf.fotos.length + (f.dt ? ' · ' + f.dt : '') + '</div>';
+    if (f.leg) html += '<div class="txt">' + _escA(f.leg) + '</div>';
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  html += '<div class="rodape">TJMG · GEMAP · Relatório gerado em ' + new Date().toLocaleString('pt-BR') + '</div>';
+  html += '</body></html>';
+
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'TJMG_FOTOGRAFICO_' + normProt(rf.edif) + '_' + rf.data + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  Tt('📸 Relatório fotográfico exportado com ' + rf.fotos.length + ' fotos!');
+}
+window.abrirRelFotografico = abrirRelFotografico;
+
+/* ══════════════════════════════════════════════════════════════
+   8. COMPARAR FOTOS COM SWIPE (ANTES × DEPOIS) — v93
+   Barra divisória arrastável entre duas fotos.
+   ══════════════════════════════════════════════════════════════ */
+
+function abrirSwipeAntesDepois(b64Antes, b64Depois, labelAntes, labelDepois) {
+  var ov = document.createElement('div'); ov.id = '_swipe_ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:10001;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+
+  var h = '<div style="color:#fff;text-align:center;margin-bottom:10px;">';
+  h += '<div style="font-size:14px;font-weight:800;">📸 Comparação Antes × Depois</div>';
+  h += '<div style="font-size:10px;opacity:.6;margin-top:2px;">Arraste a barra para comparar</div>';
+  h += '</div>';
+
+  h += '<div id="_swipe_box" style="position:relative;width:90vw;max-width:500px;aspect-ratio:4/3;border-radius:12px;overflow:hidden;touch-action:none;cursor:ew-resize;">';
+
+  /* Imagem Depois (fundo) */
+  h += '<img src="' + b64Depois + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" draggable="false">';
+
+  /* Imagem Antes (clip) */
+  h += '<div id="_swipe_clip" style="position:absolute;inset:0;width:50%;overflow:hidden;">';
+  h += '<img src="' + b64Antes + '" style="width:' + (90) + 'vw;max-width:500px;height:100%;object-fit:cover;" draggable="false">';
+  h += '</div>';
+
+  /* Barra divisória */
+  h += '<div id="_swipe_bar" style="position:absolute;top:0;bottom:0;left:50%;width:4px;background:#fff;transform:translateX(-50%);box-shadow:0 0 10px rgba(0,0,0,.5);z-index:2;">';
+  h += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.3);">⟺</div>';
+  h += '</div>';
+
+  /* Labels */
+  h += '<div style="position:absolute;top:8px;left:8px;background:rgba(220,38,38,.85);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:800;z-index:3;">❌ ' + _escA(labelAntes || 'ANTES') + '</div>';
+  h += '<div style="position:absolute;top:8px;right:8px;background:rgba(22,163,74,.85);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:800;z-index:3;">✅ ' + _escA(labelDepois || 'DEPOIS') + '</div>';
+
+  h += '</div>';
+
+  h += '<button onclick="document.body.removeChild(document.getElementById(\'_swipe_ov\'))" style="margin-top:16px;background:#f1f5f9;color:#374151;border:none;border-radius:10px;padding:10px 28px;font-size:13px;font-weight:700;cursor:pointer;">Fechar</button>';
+
+  ov.innerHTML = h;
+  document.body.appendChild(ov);
+
+  /* Evento de arrasto */
+  var box = document.getElementById('_swipe_box');
+  var clip = document.getElementById('_swipe_clip');
+  var bar = document.getElementById('_swipe_bar');
+
+  function move(clientX) {
+    var rect = box.getBoundingClientRect();
+    var x = clientX - rect.left;
+    var pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    clip.style.width = pct + '%';
+    bar.style.left = pct + '%';
+  }
+
+  box.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    move(e.touches[0].clientX);
+  }, { passive: false });
+
+  box.addEventListener('mousemove', function(e) {
+    if (e.buttons === 1) move(e.clientX);
+  });
+
+  box.addEventListener('touchstart', function(e) {
+    move(e.touches[0].clientX);
+  });
+
+  box.addEventListener('click', function(e) {
+    move(e.clientX);
+  });
+}
+window.abrirSwipeAntesDepois = abrirSwipeAntesDepois;
+
+/* Botão swipe no detalhe: detecta pares NC→Conforme com fotos */
+function _getParesSwipe(inspId) {
+  var i = S.insp.find(function(x) { return x.id === inspId; });
+  if (!i) return [];
+
+  var insps = filterByReg(S.insp).filter(function(x) {
+    return x.edif === i.edif && x.st === 'finalizada' && x.id !== inspId;
+  }).sort(function(a, b) {
+    return (b.dtVistoria || b.data || '') > (a.dtVistoria || a.data || '') ? 1 : -1;
+  });
+
+  var pares = [];
+  Object.entries(i.itens || {}).forEach(function(pair) {
+    var k = pair[0], v = pair[1];
+    if (v.s !== 'conforme' || !(v.fotos || []).length) return;
+
+    for (var pi = 0; pi < insps.length; pi++) {
+      var ant = insps[pi];
+      if (ant.itens && ant.itens[k] && ant.itens[k].s === 'nao_conforme' && (ant.itens[k].fotos || []).length) {
+        pares.push({
+          key: k,
+          nm: v.nm || v.n || k,
+          antes: ant.itens[k].fotos[0].b64,
+          depois: v.fotos[0].b64,
+          dtAntes: fdt(ant.dtVistoria || ant.data),
+          dtDepois: fdt(i.dtVistoria || i.data)
+        });
+        break;
+      }
+    }
+  });
+  return pares;
+}
+window._getParesSwipe = _getParesSwipe;
+
 window.abrirCalculadoraEletrica=abrirCalculadoraEletrica;
 
 /* ══════════════════════════════════════════════════════════════
