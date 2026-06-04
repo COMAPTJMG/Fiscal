@@ -2862,6 +2862,212 @@ var SUB_MEDICOES = [
   {id:'temp_quente',nm:'Temp. Ponto Quente', unidade:'°C', tipo:'number'},
 ];
 
+
+/* ══════════════════════════════════════════════════════════════
+   COMPARATIVO DE MEDIÇÕES ANO A ANO — v93
+   Cruza medições de subestação de todas as vistorias de uma
+   edificação e exibe lado a lado com tendência (▲▼).
+   Alerta quando degradação é detectada.
+   ══════════════════════════════════════════════════════════════ */
+
+function gerarComparativoMedicoes(edif, reg) {
+  var insps = filterByReg(S.insp).filter(function(i) {
+    return i.edif === edif && i.tipo === 'subestacao' && i.st === 'finalizada' && i.sub;
+  }).sort(function(a, b) {
+    return (a.dtVistoria || a.data || '') > (b.dtVistoria || b.data || '') ? 1 : -1;
+  });
+
+  if (insps.length < 1) { Tt('Nenhuma inspeção de subestação finalizada.'); return; }
+
+  var R = (typeof REG !== 'undefined' && REG[reg]) ? REG[reg] : { l: reg, ct: '', empresa: '' };
+
+  /* ── Extrair medições de cada inspeção ── */
+  var colunas = insps.map(function(i) {
+    var dt = fdt(i.dtVistoria || i.data);
+    var ano = (i.dtVistoria || i.data || '').slice(0, 4);
+    var sub = i.sub || {};
+    return { dt: dt, ano: ano, id: i.id, sub: sub, fiscal: i.fiscal || '' };
+  });
+
+  /* ── Construir HTML ── */
+  var css = '<style>'
+    + '@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&display=swap");'
+    + '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{font-family:"IBM Plex Sans",sans-serif;font-size:11px;color:#1f2937;background:#fff;}'
+    + '.topo{background:#1e3a5f;color:#fff;padding:16px 24px;}'
+    + '.topo h1{font-size:16px;font-weight:800;}'
+    + '.topo p{font-size:10px;opacity:.6;margin-top:3px;}'
+    + '.corpo{padding:16px;max-width:960px;margin:0 auto;}'
+    + '.sec{font-size:12px;font-weight:800;color:#0f172a;background:#f1f5f9;padding:8px 12px;margin:16px 0 8px;border-radius:8px;border-left:4px solid #0369a1;}'
+    + 'table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px;}'
+    + 'th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left;font-size:10px;white-space:nowrap;}'
+    + 'td{padding:5px 8px;border-bottom:1px solid #f1f5f9;}'
+    + 'tr:nth-child(even) td{background:#fafafa;}'
+    + '.up{color:#dc2626;font-weight:800;} .dn{color:#16a34a;font-weight:800;} .eq{color:#94a3b8;}'
+    + '.val-ok{color:#16a34a;font-weight:700;} .val-warn{color:#d97706;font-weight:700;} .val-crit{color:#dc2626;font-weight:800;}'
+    + '.alerta{background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px;margin:8px 0;font-size:11px;color:#991b1b;}'
+    + '.resumo{background:#dbeafe;border:1px solid #93c5fd;border-radius:10px;padding:14px;margin-bottom:16px;}'
+    + '.resumo h2{font-size:14px;font-weight:800;color:#1e40af;margin-bottom:4px;}'
+    + '.rodape{margin-top:24px;padding:10px;background:#f8fafc;border-top:2px solid #e2e8f0;font-size:9px;color:#9ca3af;text-align:center;}'
+    + '.btn-print{position:sticky;top:0;z-index:100;background:#fff;padding:6px 16px;text-align:right;border-bottom:1px solid #e2e8f0;}'
+    + '.btn-print button{background:#1e3a5f;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:11px;font-weight:700;cursor:pointer;}'
+    + '@media print{.btn-print{display:none!important;} th{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}'
+    + '</style>';
+
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Comparativo Medições — ' + _escA(edif) + '</title>' + css + '</head><body>';
+  html += '<div class="btn-print"><button onclick="window.print()">⬇ Salvar / Imprimir PDF</button></div>';
+  html += '<div class="topo"><h1>⚡ Comparativo de Medições — Subestação</h1>';
+  html += '<p>' + _escA(edif) + ' · ' + _escA(R.l) + ' · ' + _escA(R.empresa || '') + ' · ' + _escA(R.ct) + '</p></div>';
+  html += '<div class="corpo">';
+
+  /* Resumo */
+  html += '<div class="resumo"><h2>' + colunas.length + ' medição(ões) registrada(s)</h2>';
+  html += '<p style="font-size:11px;color:#3b82f6;">' + colunas.map(function(c) { return c.dt + ' (' + c.fiscal + ')'; }).join(' → ') + '</p></div>';
+
+  var alertas = [];
+
+  /* ── Função auxiliar: renderizar tabela comparativa ── */
+  function renderTabela(titulo, campos, getDados) {
+    html += '<div class="sec">' + titulo + '</div>';
+    html += '<table><thead><tr><th>Medição</th><th>Ref.</th><th>Un.</th>';
+    colunas.forEach(function(c) { html += '<th>' + c.dt + '</th>'; });
+    if (colunas.length >= 2) html += '<th>Tendência</th>';
+    html += '</tr></thead><tbody>';
+
+    campos.forEach(function(campo) {
+      html += '<tr><td style="font-weight:700;">' + campo.nm + '</td>';
+      html += '<td>' + (campo.ref || '—') + '</td>';
+      html += '<td>' + (campo.un || '') + '</td>';
+
+      var valores = [];
+      colunas.forEach(function(col) {
+        var dados = getDados(col);
+        var val = dados ? dados[campo.key] : null;
+        var n = val ? parseFloat(val) : NaN;
+        valores.push(n);
+
+        var corClass = '';
+        if (!isNaN(n)) {
+          if (campo.tipo === 'min') corClass = n >= campo.limite ? 'val-ok' : 'val-crit';
+          else if (campo.tipo === 'max') corClass = n <= campo.limite ? 'val-ok' : n <= campo.limCrit ? 'val-warn' : 'val-crit';
+        }
+        html += '<td class="' + corClass + '">' + (isNaN(n) ? '—' : n.toFixed(campo.dec || 0)) + '</td>';
+      });
+
+      /* Tendência */
+      if (colunas.length >= 2) {
+        var first = valores.find(function(v) { return !isNaN(v); });
+        var last = valores.slice().reverse().find(function(v) { return !isNaN(v); });
+        if (first !== undefined && last !== undefined && !isNaN(first) && !isNaN(last) && first !== 0) {
+          var pct = Math.round((last - first) / Math.abs(first) * 100);
+          var isGood;
+          if (campo.tipo === 'min') isGood = pct >= 0;
+          else isGood = pct <= 0;
+
+          var corT = pct === 0 ? 'eq' : isGood ? 'dn' : 'up';
+          var seta = pct > 0 ? '▲' : pct < 0 ? '▼' : '=';
+          html += '<td class="' + corT + '">' + seta + ' ' + (pct > 0 ? '+' : '') + pct + '%</td>';
+
+          if (!isGood && Math.abs(pct) > 20) {
+            alertas.push(titulo + ' — ' + campo.nm + ': ' + seta + ' ' + pct + '% (' + first.toFixed(campo.dec || 0) + ' → ' + last.toFixed(campo.dec || 0) + ' ' + (campo.un || '') + ')');
+          }
+        } else {
+          html += '<td class="eq">—</td>';
+        }
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  /* ── TRANSFORMADORES ── */
+  var maxTrafos = Math.max.apply(null, colunas.map(function(c) { return (c.sub.trafos || []).length; }));
+  for (var ti = 0; ti < maxTrafos; ti++) {
+    renderTabela('TRANSFORMADOR #' + (ti + 1) + ' — Relação de Transformação (TTR)', [
+      { nm: 'TTR X1', key: 'ttr_x1', ref: '±0.5%', un: '', tipo: 'info', dec: 4 },
+      { nm: 'TTR X2', key: 'ttr_x2', ref: '±0.5%', un: '', tipo: 'info', dec: 4 },
+      { nm: 'TTR X3', key: 'ttr_x3', ref: '±0.5%', un: '', tipo: 'info', dec: 4 },
+    ], function(col) { return (col.sub.trafos || [])[ti] || null; });
+
+    renderTabela('TRANSFORMADOR #' + (ti + 1) + ' — Resistência de Isolamento', [
+      { nm: 'X1-T (BT→Terra)', key: 'iso_x1t', ref: '≥10', un: 'MΩ', tipo: 'min', limite: 10, dec: 0 },
+      { nm: 'X2-T (BT→Terra)', key: 'iso_x2t', ref: '≥10', un: 'MΩ', tipo: 'min', limite: 10, dec: 0 },
+      { nm: 'X3-T (BT→Terra)', key: 'iso_x3t', ref: '≥10', un: 'MΩ', tipo: 'min', limite: 10, dec: 0 },
+      { nm: 'H1-T (AT→Terra)', key: 'iso_h1t', ref: '≥100', un: 'MΩ', tipo: 'min', limite: 100, dec: 0 },
+      { nm: 'H2-T (AT→Terra)', key: 'iso_h2t', ref: '≥100', un: 'MΩ', tipo: 'min', limite: 100, dec: 0 },
+      { nm: 'H3-T (AT→Terra)', key: 'iso_h3t', ref: '≥100', un: 'MΩ', tipo: 'min', limite: 100, dec: 0 },
+      { nm: 'H1-X1 (AT→BT)', key: 'iso_h1x1', ref: '≥10', un: 'MΩ', tipo: 'min', limite: 10, dec: 0 },
+      { nm: 'H2-X2 (AT→BT)', key: 'iso_h2x2', ref: '≥10', un: 'MΩ', tipo: 'min', limite: 10, dec: 0 },
+      { nm: 'H3-X3 (AT→BT)', key: 'iso_h3x3', ref: '≥10', un: 'MΩ', tipo: 'min', limite: 10, dec: 0 },
+    ], function(col) { return (col.sub.trafos || [])[ti] || null; });
+
+    renderTabela('TRANSFORMADOR #' + (ti + 1) + ' — Resistência Ôhmica', [
+      { nm: 'X1-X0 (BT)', key: 'ohm_x1x0', ref: '≤3% var', un: 'mΩ', tipo: 'info', dec: 2 },
+      { nm: 'X2-X0 (BT)', key: 'ohm_x2x0', ref: '≤3% var', un: 'mΩ', tipo: 'info', dec: 2 },
+      { nm: 'X3-X0 (BT)', key: 'ohm_x3x0', ref: '≤3% var', un: 'mΩ', tipo: 'info', dec: 2 },
+      { nm: 'H1-H2 (AT)', key: 'ohm_h1h2', ref: '≤3% var', un: 'mΩ', tipo: 'info', dec: 2 },
+      { nm: 'H1-H3 (AT)', key: 'ohm_h1h3', ref: '≤3% var', un: 'mΩ', tipo: 'info', dec: 2 },
+      { nm: 'H2-H3 (AT)', key: 'ohm_h2h3', ref: '≤3% var', un: 'mΩ', tipo: 'info', dec: 2 },
+    ], function(col) { return (col.sub.trafos || [])[ti] || null; });
+  }
+
+  /* ── DISJUNTORES ── */
+  var maxDisjs = Math.max.apply(null, colunas.map(function(c) { return (c.sub.disjs || []).length; }));
+  for (var di = 0; di < maxDisjs; di++) {
+    renderTabela('DISJUNTOR MT #' + (di + 1) + ' — Isolamento + Contato', [
+      { nm: 'Aberto R', key: 'ab_r', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Aberto S', key: 'ab_s', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Aberto T', key: 'ab_t', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Fechado R', key: 'fe_r', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Fechado S', key: 'fe_s', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Fechado T', key: 'fe_t', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Contato R1-R2', key: 'cr', ref: '≤200', un: 'µΩ', tipo: 'max', limite: 200, limCrit: 300, dec: 0 },
+      { nm: 'Contato S1-S2', key: 'cs', ref: '≤200', un: 'µΩ', tipo: 'max', limite: 200, limCrit: 300, dec: 0 },
+      { nm: 'Contato T1-T2', key: 'ct', ref: '≤200', un: 'µΩ', tipo: 'max', limite: 200, limCrit: 300, dec: 0 },
+    ], function(col) { return (col.sub.disjs || [])[di] || null; });
+  }
+
+  /* ── SECCIONADORAS ── */
+  var maxSecc = Math.max.apply(null, colunas.map(function(c) { return (c.sub.secc || []).length; }));
+  for (var si = 0; si < maxSecc; si++) {
+    renderTabela('SECCIONADORA #' + (si + 1) + ' — Isolamento + Contato', [
+      { nm: 'Aberta R', key: 'ab_r', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Aberta S', key: 'ab_s', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Aberta T', key: 'ab_t', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Fechada R', key: 'fe_r', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Fechada S', key: 'fe_s', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Fechada T', key: 'fe_t', ref: '≥1000', un: 'MΩ', tipo: 'min', limite: 1000, dec: 0 },
+      { nm: 'Contato R', key: 'cr', ref: '≤200', un: 'µΩ', tipo: 'max', limite: 200, limCrit: 500, dec: 0 },
+      { nm: 'Contato S', key: 'cs', ref: '≤200', un: 'µΩ', tipo: 'max', limite: 200, limCrit: 500, dec: 0 },
+      { nm: 'Contato T', key: 'ct_secc', ref: '≤200', un: 'µΩ', tipo: 'max', limite: 200, limCrit: 500, dec: 0 },
+    ], function(col) { return (col.sub.secc || [])[si] || null; });
+  }
+
+  /* ── ALERTAS DE DEGRADAÇÃO ── */
+  if (alertas.length) {
+    html += '<div class="sec" style="border-color:#dc2626;color:#dc2626;">⚠ ALERTAS DE DEGRADAÇÃO (' + alertas.length + ')</div>';
+    html += '<div class="alerta">';
+    alertas.forEach(function(a) { html += '<div style="padding:3px 0;border-bottom:1px solid #fecaca;">⚠ ' + _escA(a) + '</div>'; });
+    html += '</div>';
+  } else if (colunas.length >= 2) {
+    html += '<div style="background:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:10px;margin-top:12px;font-size:12px;color:#166534;font-weight:700;">✅ Nenhuma degradação significativa detectada (variações ≤20%)</div>';
+  }
+
+  html += '</div>';
+  html += '<div class="rodape">TJMG · GEMAP · Comparativo gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + _escA(R.ct) + '</div>';
+  html += '</body></html>';
+
+  /* Download */
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'TJMG_MEDICOES_' + normProt(edif) + '_' + new Date().toISOString().slice(0, 10) + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  Tt('⚡ Comparativo de medições exportado! ' + colunas.length + ' medição(ões), ' + alertas.length + ' alerta(s).');
+}
+window.gerarComparativoMedicoes = gerarComparativoMedicoes;
+
 window.SUB_CHECKLIST = SUB_CHECKLIST;
 window.SUB_MEDICOES = SUB_MEDICOES;
 
