@@ -1573,7 +1573,7 @@ function subDefaultData(sess){
 function subNovoTrafo(){
   return {ref:'',kva:'',at:'',bt:'',obs:'',
     ttr_x1:'',ttr_x2:'',ttr_x3:'',fotos_ttr:[],
-    iso_h1t:'',iso_h2t:'',iso_h3t:'',iso_h1x1:'',iso_h2x2:'',iso_h3x3:'',fotos_iso:[],
+    iso_x1t:'',iso_x2t:'',iso_x3t:'',iso_h1t:'',iso_h2t:'',iso_h3t:'',iso_h1x1:'',iso_h2x2:'',iso_h3x3:'',fotos_iso:[],
     ohm_x1x0:'',ohm_x2x0:'',ohm_x3x0:'',ohm_h1h2:'',ohm_h1h3:'',ohm_h2h3:'',fotos_ohm:[]};
 }
 function subNovoDisj(){
@@ -2014,15 +2014,23 @@ function subRenderTrafo(tr,idx){
   h+='</div>';
   h+=subFotosBarra(tr.fotos_ttr,'trafos',idx,'fotos_ttr','TTR — Trafo #'+(idx+1));
   h+=_secHdr('ISOLAÇÃO MEGÔMETRO — AT ≥ 100 MΩ | BT ≥ 10 MΩ (NBR 5356)','#0369a1');
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px;">';
-  h+=_inpMin('H1-T (AT)',tr.iso_h1t,p+'.iso_h1t','MΩ',100);
-  h+=_inpMin('H2-T (AT)',tr.iso_h2t,p+'.iso_h2t','MΩ',100);
-  h+=_inpMin('H3-T (AT)',tr.iso_h3t,p+'.iso_h3t','MΩ',100);
+  h+='<div style="font-size:10px;font-weight:700;color:#0369a1;margin-bottom:4px;">BT → Terra (X-T)</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">';
+  h+=_inpMin('X1-T',tr.iso_x1t,p+'.iso_x1t','MΩ',10);
+  h+=_inpMin('X2-T',tr.iso_x2t,p+'.iso_x2t','MΩ',10);
+  h+=_inpMin('X3-T',tr.iso_x3t,p+'.iso_x3t','MΩ',10);
   h+='</div>';
+  h+='<div style="font-size:10px;font-weight:700;color:#0369a1;margin-bottom:4px;">AT → Terra (H-T)</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">';
+  h+=_inpMin('H1-T',tr.iso_h1t,p+'.iso_h1t','MΩ',100);
+  h+=_inpMin('H2-T',tr.iso_h2t,p+'.iso_h2t','MΩ',100);
+  h+=_inpMin('H3-T',tr.iso_h3t,p+'.iso_h3t','MΩ',100);
+  h+='</div>';
+  h+='<div style="font-size:10px;font-weight:700;color:#0369a1;margin-bottom:4px;">AT → BT (H-X)</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px;">';
-  h+=_inpMin('H1-X1 (BT)',tr.iso_h1x1,p+'.iso_h1x1','MΩ',10);
-  h+=_inpMin('H2-X2 (BT)',tr.iso_h2x2,p+'.iso_h2x2','MΩ',10);
-  h+=_inpMin('H3-X3 (BT)',tr.iso_h3x3,p+'.iso_h3x3','MΩ',10);
+  h+=_inpMin('H1-X1',tr.iso_h1x1,p+'.iso_h1x1','MΩ',10);
+  h+=_inpMin('H2-X2',tr.iso_h2x2,p+'.iso_h2x2','MΩ',10);
+  h+=_inpMin('H3-X3',tr.iso_h3x3,p+'.iso_h3x3','MΩ',10);
   h+='</div>';
   h+=subFotosBarra(tr.fotos_iso,'trafos',idx,'fotos_iso','Isolação — Trafo #'+(idx+1));
   h+=_secHdr('RESISTÊNCIA ÔHMICA — VARIAÇÃO MÁX. 3% (NBR 5356)','#7c3aed');
