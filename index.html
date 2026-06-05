@@ -947,8 +947,8 @@ function _inpHasStatus(insp,stKey){
 }
 function rRel(){
   BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('rel');});
-  var nl={todos:'Todos',periodica:'RITMP',ose:'RITE',programada:'RITP',osp:'OSP',fachada:'Fachada',spda:'SPDA',prontuario:'Laudos',subestacao:'Subestação'};
-  var fs=['todos'].concat(Object.keys(TIPOS));
+  var nl={todos:'Todos',periodica:'RITMP',ose:'RITE',programada:'RITP',osp:'OSP',fachada:'Fachada',spda:'SPDA',prontuario:'Laudos',subestacao:'Subestação',fotografico:'📸 Fotográfico'};
+  var fs=['todos'].concat(Object.keys(TIPOS)).concat(nl['fotografico']?['fotografico']:[]);
   el('rflt').innerHTML=fs.map(function(f){
     var sel=S.rflt===f;
     var tc=TIPOS[f]?TIPOS[f].c:'#003580';
