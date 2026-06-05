@@ -855,7 +855,7 @@ function rHome(){
       if(atv.length){h+='<div class="pb" style="margin-top:5px;"><div class="pf" style="width:'+pct+'%;background:'+t.c+';"></div></div><div style="font-size:10px;color:#64748b;">'+fet.length+'/'+atv.length+' itens</div>';}
       else{h+='<div style="font-size:10px;color:#64748b;">'+fdth(i.data)+'</div>';}
       h+='</div></div><div style="display:flex;gap:6px;">'
-        +'<button class="btn br" style="flex:1;padding:8px;font-size:11px;" onclick="retomarF(\''+i.id+'\')">Retomar</button>'
+        +'<button class="btn br" style="flex:1;padding:8px;font-size:11px;" onclick="'+(i.tipo==='simplificado'||i.tipo==='fotografico'?'retomarRelSimplificado':'retomarF')+'(\''+i.id+'\')">Retomar</button>'
         +(canDelInsp(i)?'<button onclick="cf(\'X\',\'Excluir\',\'Excluir?\',(function(xid){return function(){var _dkeys=Object.keys((S.insp.find(function(x){return x.id===xid;})||{itens:{}}).itens||{});S.insp=S.insp.filter(function(x){return x.id!==xid;});PhotoStore.delInsp(xid,_dkeys);Sync.queueDeleteInspection(xid);DB.sv();rHome();};})(\'' +i.id+ '\'))" style="background:#f1f5f9;border:none;border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer;">X</button>':'')
         +'</div></div>';
     });
@@ -947,7 +947,7 @@ function _inpHasStatus(insp,stKey){
 }
 function rRel(){
   BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('rel');});
-  var nl={todos:'Todos',periodica:'RITMP',ose:'RITE',programada:'RITP',osp:'OSP',fachada:'Fachada',spda:'SPDA',prontuario:'Laudos',subestacao:'Subestação',simplificado:'📋 Simplificado'};
+  var nl={todos:'Todos',periodica:'RITMP',ose:'RITE',programada:'RITP',osp:'OSP',fachada:'Fachada',spda:'SPDA',prontuario:'Laudos',subestacao:'Subestação',simplificado:'📋 Simplificado',fotografico:'📋 Simplificado'};
   var fs=['todos'].concat(Object.keys(TIPOS)).concat(nl['fotografico']?['fotografico']:[]);
   el('rflt').innerHTML=fs.map(function(f){
     var sel=S.rflt===f;
@@ -1720,7 +1720,7 @@ function _renderDet(id){
     /* v86: Ações avançadas */
   var _hasNcs=Object.values(i.itens||{}).some(function(v){return v.s==='nao_conforme';});
   /* v94: info card para simplificado */
-  if(i.tipo==='simplificado'){
+  if(i.tipo==='simplificado'||i.tipo==='fotografico'){
     var _rfRef=i._ref||'';
     var _rfFotos=i._totalFotos||0;
     h+='<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
@@ -1740,10 +1740,10 @@ function _renderDet(id){
     h+='</div>';
   }
   /* v94: botão retomar para Relatório Simplificado */
-  if(i.tipo==='simplificado'&&i.st==='em_andamento'){
+  if((i.tipo==='simplificado'||i.tipo==='fotografico')&&i.st==='em_andamento'){
     h+='<button onclick="retomarRelSimplificado(\''+i.id+'\')" style="background:#475569;color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;width:100%;margin-bottom:10px;">▶ Retomar Relatório Simplificado</button>';
   }
-  if(i.tipo==='simplificado'&&i.st==='finalizada'){
+  if((i.tipo==='simplificado'||i.tipo==='fotografico')&&i.st==='finalizada'){
     h+='<button onclick="retomarRelSimplificado(\''+i.id+'\')" style="background:#64748b;color:#fff;border:none;border-radius:10px;padding:12px;font-size:12px;font-weight:700;cursor:pointer;width:100%;margin-bottom:10px;">📄 Abrir / Exportar</button>';
   }
   h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Ações</div>';
