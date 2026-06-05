@@ -3154,14 +3154,37 @@ function _calcFP(){
    de ocorrência, documentação geral.
    ══════════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════════
+   RELATÓRIO FOTOGRÁFICO RÁPIDO — v94 (reescrito)
+   Sem checklist, sem formulário. Fotos + legendas + seções.
+   Templates, tags, GPS, auto-save, exporta HTML profissional.
+   ══════════════════════════════════════════════════════════════ */
+var _RF_TEMPLATES = [
+  {id:'obra',     nm:'🏗️ Acompanhamento de Obra',   cor:'#b45309'},
+  {id:'ocorrencia',nm:'⚠️ Registro de Ocorrência',  cor:'#dc2626'},
+  {id:'informal', nm:'🔍 Vistoria Informal',         cor:'#0369a1'},
+  {id:'entrega',  nm:'📋 Termo de Entrega/Recebimento',cor:'#0f766e'},
+  {id:'geral',    nm:'📸 Documentação Geral',        cor:'#6d28d9'},
+];
+var _RF_TAGS = [
+  {id:'civil',nm:'🏗 Civil',cor:'#b45309'},
+  {id:'eletrica',nm:'⚡ Elétrica',cor:'#0369a1'},
+  {id:'hidraulica',nm:'💧 Hidráulica',cor:'#0891b2'},
+  {id:'pci',nm:'🧯 PCI',cor:'#dc2626'},
+  {id:'seguranca',nm:'🛡 Segurança',cor:'#7c3aed'},
+  {id:'estrutura',nm:'🏛 Estrutura',cor:'#374151'},
+  {id:'outros',nm:'📎 Outros',cor:'#64748b'},
+];
+
 function abrirRelFotografico() {
-  /* Estado do relatório fotográfico */
   if (!window._relFoto) {
     window._relFoto = {
-      edif: '', com: '', assunto: '', obs: '',
-      fotos: [], /* [{b64:'',leg:'',dt:''}, ...] */
+      edif:'', com:'', assunto:'', template:'geral', obs:'', conclusao:'',
+      secoes:[{id:uid(),titulo:'Geral',fotos:[]}],
       fiscal: S.sessao ? S.sessao.nome : '',
-      data: new Date().toISOString().slice(0, 10)
+      reg: S.sessao ? S.sessao.reg : '',
+      data: new Date().toISOString().slice(0,10),
+      _savedAt: null
     };
   }
   _renderRelFoto();
@@ -3172,189 +3195,289 @@ function _renderRelFoto() {
   var ov = document.getElementById('_relfoto_ov');
   if (!ov) {
     ov = document.createElement('div'); ov.id = '_relfoto_ov';
-    ov.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:9999;display:flex;flex-direction:column;overflow:hidden;';
+    ov.style.cssText = 'position:fixed;inset:0;background:#f8fafc;z-index:9999;display:flex;flex-direction:column;overflow:hidden;';
     document.body.appendChild(ov);
   }
 
-  var nf = rf.fotos.length;
+  var totalFotos = rf.secoes.reduce(function(s,sec){return s+sec.fotos.length;},0);
+  var tpl = _RF_TEMPLATES.find(function(t){return t.id===rf.template;})||_RF_TEMPLATES[4];
   var h = '';
 
   /* Header */
-  h += '<div style="background:#b45309;padding:14px 16px;color:#fff;flex-shrink:0;">';
+  h += '<div style="background:'+tpl.cor+';padding:12px 14px;color:#fff;flex-shrink:0;">';
   h += '<div style="display:flex;align-items:center;gap:10px;">';
-  h += '<button onclick="_fecharRelFoto()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;">←</button>';
-  h += '<div style="flex:1;"><div style="font-size:15px;font-weight:800;">📸 Relatório Fotográfico</div>';
-  h += '<div style="font-size:10px;opacity:.7;">' + nf + ' foto(s) · ' + fdt(rf.data) + '</div></div>';
-  if (nf > 0) h += '<button onclick="_exportRelFoto()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">📄 Exportar</button>';
+  h += '<button onclick="_fecharRelFoto()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">←</button>';
+  h += '<div style="flex:1;"><div style="font-size:14px;font-weight:800;">📸 Relatório Fotográfico</div>';
+  h += '<div style="font-size:10px;opacity:.7;">'+totalFotos+' foto(s) · '+rf.secoes.length+' seção(ões)</div></div>';
+  h += '<button onclick="_autoSaveRelFoto();Tt(\'💾 Rascunho salvo\')" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;">💾</button>';
+  if(totalFotos>0) h += '<button onclick="_exportRelFoto()" style="background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;">📄 Exportar</button>';
   h += '</div></div>';
 
-  /* Corpo scrollável */
+  /* Corpo */
   h += '<div style="flex:1;overflow-y:auto;padding:12px;">';
 
-  /* Dados básicos */
-  h += '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;">';
-  h += '<div style="font-size:11px;font-weight:800;color:#92400e;margin-bottom:8px;">Identificação</div>';
-  h += '<input value="' + _escA(rf.edif) + '" oninput="window._relFoto.edif=this.value" placeholder="Edificação *" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">';
-  h += '<input value="' + _escA(rf.com) + '" oninput="window._relFoto.com=this.value" placeholder="Comarca" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">';
-  h += '<input value="' + _escA(rf.assunto) + '" oninput="window._relFoto.assunto=this.value" placeholder="Assunto (ex: Acompanhamento obra, Vistoria informal...)" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;margin-bottom:6px;box-sizing:border-box;">';
-  h += '<textarea oninput="window._relFoto.obs=this.value" placeholder="Observações gerais..." style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;min-height:50px;resize:none;box-sizing:border-box;">' + _escA(rf.obs) + '</textarea>';
+  /* Template */
+  h += '<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px;">TIPO DE RELATÓRIO</div>';
+  h += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;">';
+  _RF_TEMPLATES.forEach(function(t){
+    var sel=rf.template===t.id;
+    h+='<button onclick="window._relFoto.template=\''+t.id+'\';_renderRelFoto()" style="border:2px solid '+(sel?t.cor:'#e2e8f0')+';background:'+(sel?t.cor:'#fff')+';color:'+(sel?'#fff':'#374151')+';border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;">'+t.nm+'</button>';
+  });
   h += '</div>';
 
-  /* Botões de adicionar foto */
-  h += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
-  h += '<label style="flex:1;background:#b45309;color:#fff;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;">';
-  h += '📷 Câmera<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="_addFotoRel(this)">';
-  h += '</label>';
-  h += '<label style="flex:1;background:#7c3aed;color:#fff;border-radius:10px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;">';
-  h += '🖼 Galeria<input type="file" accept="image/*" multiple style="display:none;" onchange="_addFotoRel(this)">';
-  h += '</label>';
+  /* Dados */
+  h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:12px;">';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
+  h += '<div><div style="font-size:9px;font-weight:700;color:#94a3b8;">EDIFICAÇÃO *</div><input value="'+_escA(rf.edif)+'" oninput="window._relFoto.edif=this.value" placeholder="Nome da edificação" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;box-sizing:border-box;"></div>';
+  h += '<div><div style="font-size:9px;font-weight:700;color:#94a3b8;">COMARCA</div><input value="'+_escA(rf.com)+'" oninput="window._relFoto.com=this.value" placeholder="Comarca" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;box-sizing:border-box;"></div>';
+  h += '</div>';
+  h += '<div style="font-size:9px;font-weight:700;color:#94a3b8;">ASSUNTO</div>';
+  h += '<input value="'+_escA(rf.assunto)+'" oninput="window._relFoto.assunto=this.value" placeholder="Ex: Acompanhamento pintura 2º pavimento" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;box-sizing:border-box;margin-bottom:6px;">';
+  h += '<div style="font-size:9px;font-weight:700;color:#94a3b8;">OBSERVAÇÕES</div>';
+  h += '<div style="display:flex;gap:4px;">';
+  h += '<textarea oninput="window._relFoto.obs=this.value" placeholder="Observações gerais..." style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;min-height:40px;resize:none;box-sizing:border-box;">'+_escA(rf.obs)+'</textarea>';
+  h += '<button onclick="iniciarVoz(\'_rf_obs_ta\')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px;font-size:16px;cursor:pointer;flex-shrink:0;">🎤</button>';
+  h += '</div>';
   h += '</div>';
 
-  /* Grade de fotos com legendas */
-  if (nf > 0) {
-    h += '<div style="font-size:11px;font-weight:800;color:#374151;margin-bottom:6px;">' + nf + ' foto(s) registrada(s)</div>';
-    rf.fotos.forEach(function(f, idx) {
-      h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;overflow:hidden;">';
-      h += '<div style="position:relative;">';
-      h += '<img src="' + f.b64 + '" style="width:100%;height:200px;object-fit:cover;display:block;">';
-      h += '<button onclick="_remFotoRel(' + idx + ')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;">✕</button>';
-      h += '<div style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.6);color:#fff;border-radius:4px;padding:2px 8px;font-size:10px;">' + (idx + 1) + '/' + nf + ' · ' + (f.dt || '') + '</div>';
-      h += '</div>';
-      h += '<div style="padding:8px;">';
-      h += '<input value="' + _escA(f.leg) + '" oninput="window._relFoto.fotos[' + idx + '].leg=this.value" placeholder="Legenda da foto ' + (idx + 1) + '..." style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:12px;box-sizing:border-box;">';
-      h += '</div></div>';
-    });
-  } else {
-    h += '<div style="text-align:center;padding:40px 20px;color:#94a3b8;">';
-    h += '<div style="font-size:48px;margin-bottom:10px;">📸</div>';
-    h += '<div style="font-size:14px;font-weight:700;">Nenhuma foto ainda</div>';
-    h += '<div style="font-size:12px;margin-top:4px;">Toque em Câmera ou Galeria para começar</div>';
+  /* Seções */
+  rf.secoes.forEach(function(sec, si) {
+    var nf = sec.fotos.length;
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px;overflow:hidden;">';
+
+    /* Header da seção */
+    h += '<div style="background:#f1f5f9;padding:8px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #e2e8f0;">';
+    h += '<span style="font-size:12px;font-weight:800;color:'+tpl.cor+';">'+(si+1)+'.</span>';
+    h += '<input value="'+_escA(sec.titulo)+'" oninput="window._relFoto.secoes['+si+'].titulo=this.value" style="flex:1;border:none;background:transparent;font-size:12px;font-weight:700;color:#1e293b;outline:none;" placeholder="Título da seção">';
+    h += '<span style="font-size:10px;color:#94a3b8;font-weight:700;">'+nf+'📷</span>';
+    if(rf.secoes.length>1) h += '<button onclick="window._relFoto.secoes.splice('+si+',1);_renderRelFoto()" style="border:none;background:none;color:#dc2626;font-size:14px;cursor:pointer;">✕</button>';
     h += '</div>';
+
+    /* Botões câmera/galeria da seção */
+    h += '<div style="padding:8px 12px;display:flex;gap:6px;">';
+    h += '<label style="flex:1;background:'+tpl.cor+';color:#fff;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">';
+    h += '📷 Câmera<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="_addFotoRelSec(this,'+si+')"></label>';
+    h += '<label style="flex:1;background:#64748b;color:#fff;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:center;">';
+    h += '🖼 Galeria<input type="file" accept="image/*" multiple style="display:none;" onchange="_addFotoRelSec(this,'+si+')"></label>';
+    h += '</div>';
+
+    /* Fotos da seção */
+    if(nf>0){
+      sec.fotos.forEach(function(f, fi){
+        h += '<div style="padding:6px 12px;border-top:1px solid #f1f5f9;">';
+        h += '<div style="display:flex;gap:8px;align-items:flex-start;">';
+        /* Thumbnail */
+        h += '<img src="'+f.b64+'" style="width:80px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid #e2e8f0;">';
+        /* Info */
+        h += '<div style="flex:1;min-width:0;">';
+        h += '<input value="'+_escA(f.leg)+'" oninput="window._relFoto.secoes['+si+'].fotos['+fi+'].leg=this.value" placeholder="Legenda..." style="width:100%;border:1px solid #e2e8f0;border-radius:5px;padding:5px 7px;font-size:11px;box-sizing:border-box;margin-bottom:3px;">';
+        /* Tags */
+        h += '<div style="display:flex;gap:3px;flex-wrap:wrap;">';
+        _RF_TAGS.forEach(function(tag){
+          var sel=f.tag===tag.id;
+          h+='<button onclick="window._relFoto.secoes['+si+'].fotos['+fi+'].tag=\''+tag.id+'\';_renderRelFoto()" style="border:1px solid '+(sel?tag.cor:'#e2e8f0')+';background:'+(sel?tag.cor+'22':'#fff')+';color:'+(sel?tag.cor:'#94a3b8')+';border-radius:4px;padding:1px 5px;font-size:8px;font-weight:700;cursor:pointer;">'+tag.nm+'</button>';
+        });
+        h += '</div>';
+        h += '<div style="font-size:9px;color:#94a3b8;margin-top:2px;">'+f.dt+'</div>';
+        h += '</div>';
+        /* Ações */
+        h += '<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">';
+        if(fi>0) h+='<button onclick="_moverFotoRel('+si+','+fi+',-1)" style="border:none;background:#f1f5f9;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">↑</button>';
+        if(fi<nf-1) h+='<button onclick="_moverFotoRel('+si+','+fi+',1)" style="border:none;background:#f1f5f9;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">↓</button>';
+        h+='<button onclick="_remFotoRel('+si+','+fi+')" style="border:none;background:#fee2e2;color:#dc2626;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;">✕</button>';
+        h += '</div>';
+        h += '</div></div>';
+      });
+    }
+    h += '</div>';
+  });
+
+  /* Botão adicionar seção */
+  h += '<button onclick="window._relFoto.secoes.push({id:uid(),titulo:\'Seção \'+(window._relFoto.secoes.length+1),fotos:[]});_renderRelFoto()" style="width:100%;background:#fff;border:2px dashed #cbd5e1;border-radius:10px;padding:12px;font-size:12px;font-weight:700;color:#64748b;cursor:pointer;margin-bottom:12px;">+ Adicionar Seção</button>';
+
+  /* Conclusão */
+  h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:12px;">';
+  h += '<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:4px;">CONCLUSÃO / RECOMENDAÇÃO</div>';
+  h += '<div style="display:flex;gap:4px;">';
+  h += '<textarea id="_rf_concl" oninput="window._relFoto.conclusao=this.value" placeholder="Conclusão e recomendações do fiscal..." style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:12px;min-height:60px;resize:none;box-sizing:border-box;">'+_escA(rf.conclusao)+'</textarea>';
+  h += '<button onclick="iniciarVoz(\'_rf_concl\')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:8px;font-size:16px;cursor:pointer;flex-shrink:0;">🎤</button>';
+  h += '</div></div>';
+
+  /* Botão exportar final */
+  if(totalFotos>0){
+    h += '<button onclick="_exportRelFoto()" style="width:100%;background:'+tpl.cor+';color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:20px;">📄 Exportar Relatório ('+totalFotos+' fotos)</button>';
   }
 
-  h += '</div>'; /* fim corpo */
+  h += '</div>';
   ov.innerHTML = h;
+  _autoSaveRelFoto();
 }
 
-function _addFotoRel(inp) {
-  if (!inp.files || !inp.files.length) return;
-  var rf = window._relFoto;
-  var total = inp.files.length, done = 0;
-
-  Array.from(inp.files).forEach(function(file) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      /* Comprimir */
-      var img = new Image();
-      img.onload = function() {
-        var cv = document.createElement('canvas');
-        var max = 1440;
-        var w = img.width, hh = img.height;
-        if (w > max || hh > max) {
-          if (w >= hh) { hh = Math.round(hh * (max / w)); w = max; }
-          else { w = Math.round(w * (max / hh)); hh = max; }
-        }
-        cv.width = w; cv.height = hh;
-        cv.getContext('2d').drawImage(img, 0, 0, w, hh);
-        var b64 = cv.toDataURL('image/webp', 0.82);
-        var agora = new Date();
-        rf.fotos.push({
-          b64: b64,
-          leg: '',
-          dt: String(agora.getHours()).padStart(2,'0') + ':' + String(agora.getMinutes()).padStart(2,'0')
+function _addFotoRelSec(inp, secIdx) {
+  if(!inp.files||!inp.files.length)return;
+  var sec=window._relFoto.secoes[secIdx];
+  var total=inp.files.length, done=0;
+  Array.from(inp.files).forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var cv=document.createElement('canvas');var max=1440;
+        var w=img.width,hh=img.height;
+        if(w>max||hh>max){if(w>=hh){hh=Math.round(hh*(max/w));w=max;}else{w=Math.round(w*(max/hh));hh=max;}}
+        cv.width=w;cv.height=hh;cv.getContext('2d').drawImage(img,0,0,w,hh);
+        var b64=cv.toDataURL('image/webp',0.82);
+        var agora=new Date();
+        sec.fotos.push({
+          b64:b64, leg:'', tag:'',
+          dt:fdt(agora.toISOString().slice(0,10))+' '+String(agora.getHours()).padStart(2,'0')+':'+String(agora.getMinutes()).padStart(2,'0')
         });
-        done++;
-        if (done >= total) _renderRelFoto();
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+        done++;if(done>=total)_renderRelFoto();
+      };img.src=e.target.result;
+    };reader.readAsDataURL(file);
   });
-  inp.value = '';
+  inp.value='';
 }
 
-function _remFotoRel(idx) {
-  window._relFoto.fotos.splice(idx, 1);
+function _moverFotoRel(si,fi,dir){
+  var fotos=window._relFoto.secoes[si].fotos;
+  var ni=fi+dir;if(ni<0||ni>=fotos.length)return;
+  var tmp=fotos[fi];fotos[fi]=fotos[ni];fotos[ni]=tmp;
   _renderRelFoto();
 }
 
-function _fecharRelFoto() {
-  var ov = document.getElementById('_relfoto_ov');
-  if (ov) {
-    if (window._relFoto && window._relFoto.fotos.length > 0) {
-      cf('?', 'Fechar', 'Tem ' + window._relFoto.fotos.length + ' foto(s). Deseja descartar?', function() {
-        window._relFoto = null;
-        document.body.removeChild(ov);
-      });
-    } else {
-      window._relFoto = null;
-      document.body.removeChild(ov);
-    }
-  }
+function _remFotoRel(si,fi){
+  window._relFoto.secoes[si].fotos.splice(fi,1);
+  _renderRelFoto();
 }
 
-function _exportRelFoto() {
-  var rf = window._relFoto;
-  if (!rf || !rf.fotos.length) { Tt('Adicione pelo menos uma foto.'); return; }
-  if (!rf.edif) { Tt('Preencha a edificação.'); return; }
+function _autoSaveRelFoto(){
+  try{
+    var rf=window._relFoto;if(!rf)return;
+    var lite=JSON.parse(JSON.stringify(rf));
+    lite.secoes.forEach(function(s){s.fotos.forEach(function(f){f.b64='[saved]';});});
+    localStorage.setItem('_relFoto_draft',JSON.stringify(lite));
+    rf._savedAt=new Date().toISOString();
+  }catch(e){}
+}
 
-  var R = S.sessao && S.sessao.reg && typeof REG !== 'undefined' ? REG[S.sessao.reg] || {} : {};
+function _fecharRelFoto(){
+  var ov=document.getElementById('_relfoto_ov');if(!ov)return;
+  var rf=window._relFoto;
+  var totalFotos=rf?rf.secoes.reduce(function(s,sec){return s+sec.fotos.length;},0):0;
+  if(totalFotos>0){
+    cf('?','Fechar','Tem '+totalFotos+' foto(s). O rascunho será perdido. Deseja fechar?',function(){
+      window._relFoto=null;localStorage.removeItem('_relFoto_draft');document.body.removeChild(ov);
+    });
+  }else{window._relFoto=null;document.body.removeChild(ov);}
+}
 
-  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
-    + '<title>Relatório Fotográfico — ' + _escA(rf.edif) + '</title>'
-    + '<style>'
-    + '@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&display=swap");'
-    + '*{box-sizing:border-box;margin:0;padding:0}'
-    + 'body{font-family:"IBM Plex Sans",sans-serif;font-size:12px;color:#1f2937;}'
-    + '.topo{background:#b45309;color:#fff;padding:20px 28px;}'
-    + '.topo h1{font-size:18px;font-weight:800;}'
-    + '.topo p{font-size:11px;opacity:.7;margin-top:3px;}'
-    + '.corpo{padding:24px 28px;max-width:800px;margin:0 auto;}'
-    + '.info{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;margin-bottom:20px;}'
-    + '.info b{color:#92400e;}'
-    + '.foto-card{break-inside:avoid;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:16px;overflow:hidden;}'
-    + '.foto-card img{width:100%;display:block;}'
-    + '.foto-leg{padding:10px 14px;background:#f8fafc;}'
-    + '.foto-leg .num{font-size:10px;color:#94a3b8;font-weight:700;}'
-    + '.foto-leg .txt{font-size:13px;color:#1e293b;font-weight:600;margin-top:2px;}'
-    + '.rodape{margin-top:32px;padding:12px;background:#f8fafc;border-top:2px solid #e2e8f0;font-size:9px;color:#9ca3af;text-align:center;}'
-    + '@media print{.topo{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}.foto-card{break-inside:avoid;}}'
-    + '</style></head><body>';
+function _exportRelFoto(){
+  var rf=window._relFoto;
+  if(!rf)return;
+  var totalFotos=rf.secoes.reduce(function(s,sec){return s+sec.fotos.length;},0);
+  if(!totalFotos){Tt('Adicione pelo menos uma foto.');return;}
+  if(!rf.edif){Tt('Preencha a edificação.');return;}
 
-  html += '<div class="topo"><h1>📸 Relatório Fotográfico</h1>';
-  html += '<p>' + _escA(rf.edif) + ' · ' + _escA(rf.com) + ' · ' + fdt(rf.data) + '</p></div>';
+  var R=S.sessao&&S.sessao.reg&&typeof REG!=='undefined'?REG[S.sessao.reg]||{}:{};
+  var tpl=_RF_TEMPLATES.find(function(t){return t.id===rf.template;})||_RF_TEMPLATES[4];
 
-  html += '<div class="corpo">';
-  html += '<div class="info">';
-  html += '<b>Edificação:</b> ' + _escA(rf.edif) + '<br>';
-  if (rf.com) html += '<b>Comarca:</b> ' + _escA(rf.com) + '<br>';
-  if (rf.assunto) html += '<b>Assunto:</b> ' + _escA(rf.assunto) + '<br>';
-  html += '<b>Data:</b> ' + fdt(rf.data) + '<br>';
-  html += '<b>Fiscal:</b> ' + _escA(rf.fiscal) + '<br>';
-  if (R.ct) html += '<b>Contrato:</b> ' + _escA(R.ct) + '<br>';
-  if (rf.obs) html += '<br><b>Observações:</b> ' + _escA(rf.obs);
-  html += '</div>';
+  var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
+    +'<title>'+_escA(tpl.nm)+' — '+_escA(rf.edif)+'</title>'
+    +'<style>'
+    +'@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&display=swap");'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:"IBM Plex Sans",sans-serif;font-size:12px;color:#1f2937;}'
+    +'.capa{background:'+tpl.cor+';color:#fff;padding:40px 28px;min-height:200px;display:flex;flex-direction:column;justify-content:flex-end;}'
+    +'.capa h1{font-size:22px;font-weight:800;margin-bottom:6px;}'
+    +'.capa h2{font-size:14px;font-weight:600;opacity:.85;}'
+    +'.capa p{font-size:11px;opacity:.6;margin-top:10px;}'
+    +'.corpo{padding:20px 24px;max-width:800px;margin:0 auto;}'
+    +'.info{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:20px;line-height:1.8;}'
+    +'.info b{color:#374151;}'
+    +'.sec-hdr{font-size:14px;font-weight:800;color:'+tpl.cor+';border-bottom:3px solid '+tpl.cor+';padding-bottom:6px;margin:28px 0 14px;}'
+    +'.foto-card{break-inside:avoid;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:16px;overflow:hidden;page-break-inside:avoid;}'
+    +'.foto-card img{width:100%;display:block;max-height:500px;object-fit:contain;background:#f8fafc;}'
+    +'.foto-info{padding:10px 14px;background:#fff;}'
+    +'.foto-num{font-size:10px;color:#94a3b8;font-weight:700;}'
+    +'.foto-leg{font-size:13px;color:#1e293b;font-weight:600;margin-top:2px;}'
+    +'.foto-tag{display:inline-block;font-size:9px;padding:2px 8px;border-radius:4px;font-weight:700;margin-top:4px;}'
+    +'.conclusao{background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px;margin:24px 0;}'
+    +'.conclusao h3{font-size:12px;font-weight:800;color:#166534;margin-bottom:6px;}'
+    +'.conclusao p{font-size:12px;color:#15803d;line-height:1.6;}'
+    +'.rodape{margin-top:32px;padding:12px;background:#f8fafc;border-top:2px solid #e2e8f0;font-size:9px;color:#9ca3af;text-align:center;}'
+    +'.btn-print{position:sticky;top:0;z-index:100;background:#fff;padding:6px 16px;text-align:right;border-bottom:1px solid #e2e8f0;}'
+    +'.btn-print button{background:'+tpl.cor+';color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:11px;font-weight:700;cursor:pointer;}'
+    +'@media print{.btn-print{display:none!important;}.capa,.foto-card{break-inside:avoid;}-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}'
+    +'</style></head><body>';
 
-  rf.fotos.forEach(function(f, idx) {
-    html += '<div class="foto-card">';
-    html += '<img src="' + f.b64 + '" alt="Foto ' + (idx + 1) + '">';
-    html += '<div class="foto-leg">';
-    html += '<div class="num">Foto ' + (idx + 1) + ' de ' + rf.fotos.length + (f.dt ? ' · ' + f.dt : '') + '</div>';
-    if (f.leg) html += '<div class="txt">' + _escA(f.leg) + '</div>';
-    html += '</div></div>';
+  html+='<div class="btn-print"><button onclick="window.print()">⬇ Salvar / Imprimir PDF</button></div>';
+
+  /* Capa */
+  html+='<div class="capa">';
+  html+='<div style="font-size:11px;opacity:.5;margin-bottom:auto;">TRIBUNAL DE JUSTIÇA DO ESTADO DE MINAS GERAIS<br>DIRETORIA EXECUTIVA DE ENGENHARIA E GESTÃO PREDIAL</div>';
+  html+='<h1>'+_escA(tpl.nm)+'</h1>';
+  html+='<h2>'+_escA(rf.edif)+(rf.com?' · '+_escA(rf.com):'')+'</h2>';
+  if(rf.assunto) html+='<p style="opacity:.8;font-size:12px;">'+_escA(rf.assunto)+'</p>';
+  html+='<p>'+fdt(rf.data)+' · '+_escA(rf.fiscal)+(R.ct?' · '+_escA(R.ct):'')+'</p>';
+  html+='</div>';
+
+  /* Info */
+  html+='<div class="corpo">';
+  html+='<div class="info">';
+  html+='<b>Edificação:</b> '+_escA(rf.edif)+'<br>';
+  if(rf.com) html+='<b>Comarca:</b> '+_escA(rf.com)+'<br>';
+  html+='<b>Data:</b> '+fdt(rf.data)+'<br>';
+  html+='<b>Fiscal:</b> '+_escA(rf.fiscal)+'<br>';
+  if(R.ct) html+='<b>Contrato:</b> '+_escA(R.ct)+'<br>';
+  if(R.empresa) html+='<b>Empresa:</b> '+_escA(R.empresa)+'<br>';
+  if(rf.assunto) html+='<b>Assunto:</b> '+_escA(rf.assunto)+'<br>';
+  if(rf.obs) html+='<br><b>Observações:</b> '+_escA(rf.obs);
+  html+='</div>';
+
+  /* Sumário */
+  html+='<div style="background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:20px;">';
+  html+='<div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:6px;">SUMÁRIO</div>';
+  var fotoGlobal=0;
+  rf.secoes.forEach(function(sec,si){
+    html+='<div style="font-size:12px;padding:2px 0;">'+(si+1)+'. '+_escA(sec.titulo)+' <span style="color:#94a3b8;">('+sec.fotos.length+' fotos)</span></div>';
+  });
+  html+='<div style="font-size:11px;font-weight:700;color:'+tpl.cor+';margin-top:6px;">Total: '+totalFotos+' fotografias</div>';
+  html+='</div>';
+
+  /* Seções com fotos */
+  rf.secoes.forEach(function(sec,si){
+    if(!sec.fotos.length)return;
+    html+='<div class="sec-hdr">'+(si+1)+'. '+_escA(sec.titulo)+'</div>';
+    sec.fotos.forEach(function(f,fi){
+      fotoGlobal++;
+      var tagObj=_RF_TAGS.find(function(t){return t.id===f.tag;});
+      html+='<div class="foto-card">';
+      html+='<img src="'+f.b64+'" alt="Foto '+fotoGlobal+'">';
+      html+='<div class="foto-info">';
+      html+='<div class="foto-num">Foto '+fotoGlobal+' de '+totalFotos+' · '+_escA(sec.titulo)+(f.dt?' · '+f.dt:'')+'</div>';
+      if(f.leg) html+='<div class="foto-leg">'+_escA(f.leg)+'</div>';
+      if(tagObj) html+='<span class="foto-tag" style="background:'+tagObj.cor+'22;color:'+tagObj.cor+';">'+tagObj.nm+'</span>';
+      html+='</div></div>';
+    });
   });
 
-  html += '</div>';
-  html += '<div class="rodape">TJMG · GEMAP · Relatório gerado em ' + new Date().toLocaleString('pt-BR') + '</div>';
-  html += '</body></html>';
+  /* Conclusão */
+  if(rf.conclusao){
+    html+='<div class="conclusao"><h3>Conclusão e Recomendações</h3><p>'+_escA(rf.conclusao).replace(/\n/g,'<br>')+'</p></div>';
+  }
 
-  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'TJMG_FOTOGRAFICO_' + normProt(rf.edif) + '_' + rf.data + '.html';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  html+='</div>';
+  html+='<div class="rodape">TJMG · DENGEP · GEMAP · Relatório gerado em '+new Date().toLocaleString('pt-BR')+'</div>';
+  html+='</body></html>';
+
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='TJMG_'+rf.template.toUpperCase()+'_'+normProt(rf.edif)+'_'+rf.data+'.html';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
-  Tt('📸 Relatório fotográfico exportado com ' + rf.fotos.length + ' fotos!');
+  Tt('📸 Relatório exportado! '+totalFotos+' fotos em '+rf.secoes.length+' seção(ões).');
 }
 window.abrirRelFotografico = abrirRelFotografico;
 
