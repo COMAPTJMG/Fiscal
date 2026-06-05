@@ -3160,13 +3160,13 @@ function _calcFP(){
    Templates, tags, GPS, auto-save, exporta HTML profissional.
    ══════════════════════════════════════════════════════════════ */
 var _RF_TEMPLATES = [
-  {id:'periodica',   nm:'🔧 Manutenção Periódica',         cor:'#16a34a',  sigla:'RITMP', titulo:'RITMP — Acompanhamento Manutenção Periódica'},
-  {id:'intermediario',nm:'📋 Atendimento Intermediário',    cor:'#0369a1',  sigla:'AI',    titulo:'Acompanhamento Atendimento Intermediário'},
-  {id:'emergencial', nm:'⚡ Manutenção Emergencial',        cor:'#dc2626',  sigla:'RITE',  titulo:'RITE — Acompanhamento Manutenção Emergencial'},
-  {id:'programada',  nm:'📐 Manutenção Programada',         cor:'#2563eb',  sigla:'RITP',  titulo:'RITP — Acompanhamento Manutenção Programada'},
-  {id:'subestacao',  nm:'🔌 Manutenção de Subestação',      cor:'#b45309',  sigla:'SUB',   titulo:'Acompanhamento Manutenção de Subestação'},
-  {id:'spda',        nm:'⚡ SPDA',                           cor:'#7c3aed',  sigla:'SPDA',  titulo:'Acompanhamento SPDA'},
-  {id:'fachada',     nm:'🏛️ Fachada',                       cor:'#374151',  sigla:'FACH',  titulo:'Acompanhamento Fachada'},
+  {id:'periodica',   nm:'🔧 Manutenção Periódica',         cor:'#16a34a',  ref:'Manutenção Periódica'},
+  {id:'intermediario',nm:'📋 Atendimento Intermediário',    cor:'#0369a1',  ref:'Atendimento Intermediário'},
+  {id:'emergencial', nm:'⚡ Manutenção Emergencial',        cor:'#dc2626',  ref:'Manutenção Emergencial'},
+  {id:'programada',  nm:'📐 Manutenção Programada',         cor:'#2563eb',  ref:'Manutenção Programada'},
+  {id:'subestacao',  nm:'🔌 Manutenção de Subestação',      cor:'#b45309',  ref:'Manutenção de Subestação'},
+  {id:'spda',        nm:'⚡ SPDA',                           cor:'#7c3aed',  ref:'SPDA'},
+  {id:'fachada',     nm:'🏛️ Fachada',                       cor:'#374151',  ref:'Fachada'},
 ];
 var _RF_TAGS = [
   {id:'civil',nm:'🏗 Civil',cor:'#b45309'},
@@ -3209,8 +3209,8 @@ function _renderRelFoto() {
   h += '<div style="background:'+tpl.cor+';padding:12px 14px;color:#fff;flex-shrink:0;">';
   h += '<div style="display:flex;align-items:center;gap:10px;">';
   h += '<button onclick="_fecharRelFoto()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">←</button>';
-  h += '<div style="flex:1;"><div style="font-size:13px;font-weight:800;">📸 '+_escA(tpl.titulo)+'</div>';
-  h += '<div style="font-size:10px;opacity:.7;">'+totalFotos+' foto(s) · '+rf.secoes.length+' seção(ões)</div></div>';
+  h += '<div style="flex:1;"><div style="font-size:13px;font-weight:800;">📋 Relatório Simplificado</div>';
+  h += '<div style="font-size:10px;opacity:.7;">Ref: '+_escA(tpl.ref)+' · '+totalFotos+' foto(s) · '+rf.secoes.length+' seção(ões)</div></div>';
   h += '<button onclick="_autoSaveRelFoto();Tt(\'💾 Rascunho salvo\')" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;">💾</button>';
   if(totalFotos>0) h += '<button onclick="_exportRelFoto()" style="background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;">📄 Exportar</button>';
   h += '</div></div>';
@@ -3386,7 +3386,7 @@ function _renderRelFoto() {
 
   /* Botão exportar final */
   if(totalFotos>0){
-    h += '<button onclick="_exportRelFoto()" style="width:100%;background:'+tpl.cor+';color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;">📄 Exportar '+_escA(tpl.sigla)+' ('+totalFotos+' fotos)</button>';
+    h += '<button onclick="_exportRelFoto()" style="width:100%;background:'+tpl.cor+';color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;">📄 Exportar Relatório ('+totalFotos+' fotos)</button>';
   }
   /* v94: botão Gerar OSP Programada — só para tipo programada */
   if(rf.template==='programada'&&rf.edif){
@@ -3465,7 +3465,7 @@ function _salvarRascunhoRelFoto(){
 
   var inspData={
     id: rf._inspId || uid(),
-    tipo: 'fotografico',
+    tipo: 'simplificado',
     _tipoFoto: rf.template,
     edif: rf.edif,
     com: rf.com,
@@ -3487,8 +3487,8 @@ function _salvarRascunhoRelFoto(){
       })
     },
     itens: {},
-    _titulo: tpl.titulo,
-    _sigla: tpl.sigla,
+    _titulo: 'Relatório Simplificado',
+    _ref: tpl.ref,
     _totalFotos: totalFotos
   };
 
@@ -3590,7 +3590,7 @@ function _exportRelFoto(){
   var tpl=_RF_TEMPLATES.find(function(t){return t.id===rf.template;})||_RF_TEMPLATES[4];
 
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
-    +'<title>'+_escA(tpl.titulo)+' — '+_escA(rf.edif)+'</title>'
+    +'<title>Relatório Simplificado — '+_escA(rf.edif)+'</title>'
     +'<style>'
     +'@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&display=swap");'
     +'*{box-sizing:border-box;margin:0;padding:0}'
@@ -3623,8 +3623,9 @@ function _exportRelFoto(){
   /* Capa */
   html+='<div class="capa">';
   html+='<div style="font-size:11px;opacity:.5;margin-bottom:auto;">TRIBUNAL DE JUSTIÇA DO ESTADO DE MINAS GERAIS<br>DIRETORIA EXECUTIVA DE ENGENHARIA E GESTÃO PREDIAL</div>';
-  html+='<h1>'+_escA(tpl.titulo)+'</h1>';
+  html+='<h1>Relatório Simplificado</h1>';
   html+='<h2>'+_escA(rf.edif)+(rf.com?' · '+_escA(rf.com):'')+'</h2>';
+  html+='<p style="opacity:.85;font-size:13px;font-weight:600;">Ref: '+_escA(tpl.ref)+'</p>';
   if(rf.assunto) html+='<p style="opacity:.8;font-size:12px;">'+_escA(rf.assunto)+'</p>';
   html+='<p>'+fdt(rf.data)+' · '+_escA(rf.fiscal)+(R.ct?' · '+_escA(R.ct):'')+'</p>';
   html+='</div>';
@@ -3681,11 +3682,64 @@ function _exportRelFoto(){
   var blob=new Blob([html],{type:'text/html;charset=utf-8'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='TJMG_'+tpl.sigla+'_'+normProt(rf.edif)+'_'+rf.data+'.html';
+  a.download='TJMG_SIMPLIFICADO_'+normProt(rf.edif)+'_'+rf.data+'.html';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
   Tt('📸 Relatório exportado! '+totalFotos+' fotos em '+rf.secoes.length+' seção(ões).');
 }
+
+/* v94: Retomar rascunho de Relatório Simplificado salvo em S.insp */
+function retomarRelSimplificado(inspId){
+  var i=S.insp.find(function(x){return x.id===inspId;});
+  if(!i||i.tipo!=='simplificado'){Tt('Rascunho não encontrado.');return;}
+  var rfData=i._relFotoData||{};
+
+  /* Reconstruir window._relFoto a partir dos dados salvos */
+  window._relFoto={
+    edif: i.edif||'',
+    com: i.com||'',
+    assunto: rfData.assunto||'',
+    template: rfData.template||'periodica',
+    obs: i.obs||'',
+    conclusao: rfData.conclusao||'',
+    secoes: (rfData.secoes||[{id:uid(),titulo:'Geral',fotos:[]}]).map(function(s){
+      return {id:s.id||uid(), titulo:s.titulo||'Geral', fotos:(s.fotos||[]).map(function(f){
+        return {b64:'', leg:f.leg||'', tag:f.tag||'', dt:f.dt||''};
+      })};
+    }),
+    fiscal: i.fiscal||'',
+    reg: i.reg||'',
+    data: i.dtVistoria||i.data||new Date().toISOString().slice(0,10),
+    polo: i._polo||'',
+    grp: i._grp||'',
+    _inspId: i.id,
+    _saved: true
+  };
+
+  /* Carregar fotos do PhotoStore */
+  var promises=[];
+  window._relFoto.secoes.forEach(function(sec,si){
+    sec.fotos.forEach(function(f,fi){
+      var key='relfoto::'+inspId+'::'+si+'_'+fi;
+      promises.push(
+        PhotoStore.get(key).then(function(b64){
+          if(b64) window._relFoto.secoes[si].fotos[fi].b64=b64;
+        }).catch(function(){})
+      );
+    });
+  });
+
+  Promise.all(promises).then(function(){
+    var totalRecuperadas=window._relFoto.secoes.reduce(function(s,sec){
+      return s+sec.fotos.filter(function(f){return f.b64&&f.b64.length>10;}).length;
+    },0);
+    if(totalRecuperadas>0) Tt('📸 '+totalRecuperadas+' foto(s) recuperada(s)');
+    window._relFoto._saved=false; /* Permitir edição */
+    _renderRelFoto();
+  });
+}
+window.retomarRelSimplificado = retomarRelSimplificado;
+
 window.abrirRelFotografico = abrirRelFotografico;
 
 /* ══════════════════════════════════════════════════════════════
