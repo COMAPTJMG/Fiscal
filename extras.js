@@ -3341,24 +3341,39 @@ function _renderRelFoto() {
     h += '</div>';
   });
 
-  /* Botão adicionar seção — com select de itens do Anexo B */
+  /* v94: Adicionar seção — 2 dropdowns cascata: Sistema → Atividade */
+  var _rfSis = window._rfSisSelected || '';
   h += '<div style="background:#fff;border:2px dashed #cbd5e1;border-radius:10px;padding:10px;margin-bottom:12px;">';
   h += '<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px;">+ ADICIONAR SEÇÃO</div>';
-  h += '<select id="_rf_nova_sec" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:11px;box-sizing:border-box;margin-bottom:6px;background:#fff;">';
-  h += '<option value="">Selecione um item do Anexo B ou digite livre...</option>';
-  if(typeof ATVs!=="undefined"&&typeof SIS!=="undefined"){
+
+  /* Dropdown 1: Sistema */
+  h += '<div style="font-size:9px;font-weight:700;color:#94a3b8;margin-bottom:2px;">SISTEMA</div>';
+  h += '<select onchange="window._rfSisSelected=this.value;_renderRelFoto()" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:9px;font-size:12px;box-sizing:border-box;background:#fff;margin-bottom:6px;">';
+  h += '<option value="">— Selecione o Sistema —</option>';
+  if(typeof SIS!=="undefined"){
     SIS.forEach(function(s){
-      h+="<optgroup label=\""+_escA(s.n+" "+s.nm)+"\">";
-      (ATVs[s.id]||[]).forEach(function(a){
-        h+="<option value=\""+_escA(a.n+" "+a.nm)+"\">"+_escA(a.n)+" — "+_escA(a.nm)+"</option>";
-      });
-      h+="</optgroup>";
+      h += '<option value="'+s.id+'"'+(_rfSis===s.id?' selected':'')+'>'+_escA(s.n)+' '+_escA(s.nm)+'</option>';
     });
   }
   h += '</select>';
-  h += '<div style="display:flex;gap:6px;">';
-  h += '<input id="_rf_sec_livre" placeholder="Ou digite título livre..." style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:11px;box-sizing:border-box;">';
-  h += '<button onclick="var sel=el(\'_rf_nova_sec\').value;var livre=el(\'_rf_sec_livre\').value;var titulo=sel||livre||\'Seção \'+( window._relFoto.secoes.length+1);window._relFoto.secoes.push({id:uid(),titulo:titulo,fotos:[]});_renderRelFoto()" style="background:'+tpl.cor+';color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Adicionar</button>';
+
+  /* Dropdown 2: Atividade (filtrada pelo sistema) */
+  if(_rfSis && typeof ATVs!=="undefined"){
+    var _atvsSis = ATVs[_rfSis] || [];
+    h += '<div style="font-size:9px;font-weight:700;color:#94a3b8;margin-bottom:2px;">ATIVIDADE</div>';
+    h += '<select id="_rf_nova_sec" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:9px;font-size:12px;box-sizing:border-box;background:#fff;margin-bottom:6px;">';
+    h += '<option value="">— Selecione a Atividade —</option>';
+    _atvsSis.forEach(function(a){
+      h += '<option value="'+_escA(a.n+' — '+a.nm)+'">'+_escA(a.n)+' — '+_escA(a.nm)+'</option>';
+    });
+    h += '</select>';
+    h += '<button onclick="var sel=el(\'_rf_nova_sec\').value;if(!sel){Tt(\'Selecione uma atividade\');return;}window._relFoto.secoes.push({id:uid(),titulo:sel,fotos:[]});window._rfSisSelected=\'\';_renderRelFoto()" style="width:100%;background:'+tpl.cor+';color:#fff;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:8px;">+ Adicionar Seção</button>';
+  }
+
+  /* Alternativa: título livre */
+  h += '<div style="display:flex;gap:6px;margin-top:4px;">';
+  h += '<input id="_rf_sec_livre" placeholder="Ou digite título livre..." style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:11px;box-sizing:border-box;">';
+  h += '<button onclick="var livre=el(\'_rf_sec_livre\').value;if(!livre){Tt(\'Digite um título\');return;}window._relFoto.secoes.push({id:uid(),titulo:livre,fotos:[]});_renderRelFoto()" style="background:#64748b;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Livre</button>';
   h += '</div></div>';
 
   /* Conclusão */
