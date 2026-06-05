@@ -1752,6 +1752,9 @@ function _renderDet(id){
     h+='<button onclick="gerarMsgNcEmpresa(\''+i.id+'\')" style="background:#25d366;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📩 Msg Empresa</button>';
     h+='<button onclick="gerarNOTINA(\''+i.id+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">⚠️ NOT-INA</button>';
   }
+  /* v94: Emergencial → Programada / Periódica → Emergencial */
+  if(i.tipo==='ose') h+='<button onclick="gerarRITPdoRITE(\''+i.id+'\')" style="background:#2563eb;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">🔧 Gerar RITP (Programada)</button>';
+  if(i.tipo==='periodica') h+='<button onclick="gerarRITEdaPeriodica(\''+i.id+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">⚡ Registrar Emergencial</button>';
   h+='<button onclick="abrirAssinatura(\''+i.id+'\')" style="background:#003580;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">✍️ Assinar</button>';
   h+='</div>';
   h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Exportar</div>';
@@ -2591,6 +2594,72 @@ function iniciarProgramadaDeNCs(inspId) {
   }, 500);
 }
 window.iniciarProgramadaDeNCs = iniciarProgramadaDeNCs;
+
+
+/* v94: RITE → RITP (Emergencial gera Programada) */
+function gerarRITPdoRITE(inspId){
+  var i=S.insp.find(function(x){return x.id===inspId;});
+  if(!i)return;
+  var ncs=[];
+  Object.values(i.itens||{}).forEach(function(v){
+    if(v.s==='nao_conforme') ncs.push(v);
+  });
+
+  var desc='Intervenção programada gerada a partir do atendimento emergencial (RITE) de '
+    +fdt(i.dtVistoria||i.data)+' em '+_escA(i.edif||'')+':\n\n';
+  if(ncs.length){
+    desc+=ncs.map(function(nc,idx){return (idx+1)+'. '+(nc.sn||'Geral')+' — '+(nc.nm||nc.n||'')+(nc.obs?' ('+nc.obs+')':'');}).join('\n');
+  } else {
+    desc+=(i.obs||i.concl||'Detalhar a intervenção necessária.');
+  }
+
+  var novaId=uid();
+  S.insp.unshift({
+    id:novaId, tipo:'programada',
+    edif:i.edif, com:i.com, reg:i.reg,
+    fiscal:S.sessao?S.sessao.nome:'',
+    dtVistoria:new Date().toISOString().slice(0,10),
+    data:new Date().toISOString().slice(0,10),
+    st:'em_andamento', itens:{},
+    obs:desc,
+    _origemRITE:inspId,
+    os:''
+  });
+  DB.sv();
+  Tt('🔧 RITP criada a partir do RITE!');
+  cf('OK','RITP Criada','Programada gerada para '+_escA(i.edif)+'.\nDeseja abrir agora?',function(){
+    retomarF(novaId);
+  });
+}
+window.gerarRITPdoRITE = gerarRITPdoRITE;
+
+/* v94: Periódica → RITE (Periódica registra emergencial) */
+function gerarRITEdaPeriodica(inspId){
+  var i=S.insp.find(function(x){return x.id===inspId;});
+  if(!i)return;
+
+  var desc='Atendimento emergencial registrado durante manutenção periódica de '
+    +fdt(i.dtVistoria||i.data)+' em '+_escA(i.edif||'')+'.\n\n'
+    +'Detalhar a situação de emergência encontrada.';
+
+  var novaId=uid();
+  S.insp.unshift({
+    id:novaId, tipo:'ose',
+    edif:i.edif, com:i.com, reg:i.reg,
+    fiscal:S.sessao?S.sessao.nome:'',
+    dtVistoria:new Date().toISOString().slice(0,10),
+    data:new Date().toISOString().slice(0,10),
+    st:'em_andamento', itens:{},
+    obs:desc,
+    _origemPeriodica:inspId
+  });
+  DB.sv();
+  Tt('⚡ RITE criado a partir da periódica!');
+  cf('OK','RITE Criado','Emergencial registrado para '+_escA(i.edif)+'.\nDeseja abrir agora?',function(){
+    retomarF(novaId);
+  });
+}
+window.gerarRITEdaPeriodica = gerarRITEdaPeriodica;
 
 window.abrirTimeline = abrirTimeline;
 
