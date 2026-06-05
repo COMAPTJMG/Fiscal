@@ -909,6 +909,8 @@ function rTipos(){
     var t=TIPOS[k];
     h+='<div class="tc" style="border-color:'+t.c+';" onclick="iniciarF(\''+k+'\')"><div style="width:46px;height:46px;border-radius:12px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:24px;">'+t.i+'</div><div style="font-size:12px;font-weight:800;color:'+t.c+';">'+t.l+'</div><div style="font-size:10px;color:#64748b;flex:1;line-height:1.5;">'+(descs[k]||'')+'</div><div style="background:'+t.c+';border-radius:8px;padding:7px;text-align:center;font-size:11px;font-weight:700;color:#fff;">Iniciar &#8594;</div></div>';
   });
+  /* v94: card Relatório Fotográfico */
+  h+='<div class="tc" style="border-color:#b45309;" onclick="abrirRelFotografico()"><div style="width:46px;height:46px;border-radius:12px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:24px;">📸</div><div style="font-size:12px;font-weight:800;color:#b45309;">Relatório Fotográfico</div><div style="font-size:10px;color:#64748b;flex:1;line-height:1.5;">Fotos com legenda, seções e tags — rápido e direto</div><div style="background:#b45309;border-radius:8px;padding:7px;text-align:center;font-size:11px;font-weight:700;color:#fff;">Iniciar &#8594;</div></div>';
   el('tgrid').innerHTML=h;
 }
 
