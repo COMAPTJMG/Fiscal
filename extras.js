@@ -3160,11 +3160,13 @@ function _calcFP(){
    Templates, tags, GPS, auto-save, exporta HTML profissional.
    ══════════════════════════════════════════════════════════════ */
 var _RF_TEMPLATES = [
-  {id:'obra',     nm:'🏗️ Acompanhamento de Obra',   cor:'#b45309'},
-  {id:'ocorrencia',nm:'⚠️ Registro de Ocorrência',  cor:'#dc2626'},
-  {id:'informal', nm:'🔍 Vistoria Informal',         cor:'#0369a1'},
-  {id:'entrega',  nm:'📋 Termo de Entrega/Recebimento',cor:'#0f766e'},
-  {id:'geral',    nm:'📸 Documentação Geral',        cor:'#6d28d9'},
+  {id:'periodica',   nm:'🔧 Manutenção Periódica',         cor:'#16a34a'},
+  {id:'intermediario',nm:'📋 Atendimento Intermediário',    cor:'#0369a1'},
+  {id:'emergencial', nm:'⚡ Manutenção Emergencial',        cor:'#dc2626'},
+  {id:'programada',  nm:'📐 Manutenção Programada',         cor:'#2563eb'},
+  {id:'subestacao',  nm:'🔌 Manutenção de Subestação',      cor:'#b45309'},
+  {id:'spda',        nm:'⚡ SPDA',                           cor:'#7c3aed'},
+  {id:'fachada',     nm:'🏛️ Fachada',                       cor:'#374151'},
 ];
 var _RF_TAGS = [
   {id:'civil',nm:'🏗 Civil',cor:'#b45309'},
@@ -3179,7 +3181,7 @@ var _RF_TAGS = [
 function abrirRelFotografico() {
   if (!window._relFoto) {
     window._relFoto = {
-      edif:'', com:'', assunto:'', template:'geral', obs:'', conclusao:'',
+      edif:'', com:'', assunto:'', template:'periodica', obs:'', conclusao:'',
       secoes:[{id:uid(),titulo:'Geral',fotos:[]}],
       fiscal: S.sessao ? S.sessao.nome : '',
       reg: S.sessao ? S.sessao.reg : '',
@@ -3272,7 +3274,7 @@ function _renderRelFoto() {
     /* Header da seção */
     h += '<div style="background:#f1f5f9;padding:8px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #e2e8f0;">';
     h += '<span style="font-size:12px;font-weight:800;color:'+tpl.cor+';">'+(si+1)+'.</span>';
-    h += '<input value="'+_escA(sec.titulo)+'" oninput="window._relFoto.secoes['+si+'].titulo=this.value" style="flex:1;border:none;background:transparent;font-size:12px;font-weight:700;color:#1e293b;outline:none;" placeholder="Título da seção">';
+    h += '<input value="'+_escA(sec.titulo)+'" oninput="window._relFoto.secoes['+si+'].titulo=this.value" style="flex:1;border:none;background:transparent;font-size:12px;font-weight:700;color:#1e293b;outline:none;" placeholder="Título da seção — toque para editar">';
     h += '<span style="font-size:10px;color:#94a3b8;font-weight:700;">'+nf+'📷</span>';
     if(rf.secoes.length>1) h += '<button onclick="window._relFoto.secoes.splice('+si+',1);_renderRelFoto()" style="border:none;background:none;color:#dc2626;font-size:14px;cursor:pointer;">✕</button>';
     h += '</div>';
@@ -3316,8 +3318,25 @@ function _renderRelFoto() {
     h += '</div>';
   });
 
-  /* Botão adicionar seção */
-  h += '<button onclick="window._relFoto.secoes.push({id:uid(),titulo:\'Seção \'+(window._relFoto.secoes.length+1),fotos:[]});_renderRelFoto()" style="width:100%;background:#fff;border:2px dashed #cbd5e1;border-radius:10px;padding:12px;font-size:12px;font-weight:700;color:#64748b;cursor:pointer;margin-bottom:12px;">+ Adicionar Seção</button>';
+  /* Botão adicionar seção — com select de itens do Anexo B */
+  h += '<div style="background:#fff;border:2px dashed #cbd5e1;border-radius:10px;padding:10px;margin-bottom:12px;">';
+  h += '<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px;">+ ADICIONAR SEÇÃO</div>';
+  h += '<select id="_rf_nova_sec" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:11px;box-sizing:border-box;margin-bottom:6px;background:#fff;">';
+  h += '<option value="">Selecione um item do Anexo B ou digite livre...</option>';
+  if(typeof ATVs!=="undefined"&&typeof SIS!=="undefined"){
+    SIS.forEach(function(s){
+      h+="<optgroup label=\""+_escA(s.n+" "+s.nm)+"\">";
+      (ATVs[s.id]||[]).forEach(function(a){
+        h+="<option value=\""+_escA(a.n+" "+a.nm)+"\">"+_escA(a.n)+" — "+_escA(a.nm)+"</option>";
+      });
+      h+="</optgroup>";
+    });
+  }
+  h += '</select>';
+  h += '<div style="display:flex;gap:6px;">';
+  h += '<input id="_rf_sec_livre" placeholder="Ou digite título livre..." style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:11px;box-sizing:border-box;">';
+  h += '<button onclick="var sel=el(\'_rf_nova_sec\').value;var livre=el(\'_rf_sec_livre\').value;var titulo=sel||livre||\'Seção \'+( window._relFoto.secoes.length+1);window._relFoto.secoes.push({id:uid(),titulo:titulo,fotos:[]});_renderRelFoto()" style="background:'+tpl.cor+';color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">+ Adicionar</button>';
+  h += '</div></div>';
 
   /* Conclusão */
   h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:12px;">';
