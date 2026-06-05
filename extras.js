@@ -3511,7 +3511,14 @@ function _salvarRascunhoRelFoto(){
       rf._inspId=inspData.id;
     }
     DB.sv();
-    Tt('💾 Rascunho salvo! ('+totalFotos+' fotos) — Aparece em Relatórios.');
+    rf._saved=true;
+    Tt('💾 Rascunho salvo! ('+totalFotos+' fotos)');
+    /* Fechar overlay e voltar à tela principal */
+    var ov=document.getElementById('_relfoto_ov');
+    if(ov)document.body.removeChild(ov);
+    window._relFoto=null;
+    if(typeof rRel==='function')rRel();
+    if(typeof G==='function')G('s-rel');
   });
 }
 window._salvarRascunhoRelFoto=_salvarRascunhoRelFoto;
@@ -3561,8 +3568,12 @@ function _fecharRelFoto(){
   var ov=document.getElementById('_relfoto_ov');if(!ov)return;
   var rf=window._relFoto;
   var totalFotos=rf?rf.secoes.reduce(function(s,sec){return s+sec.fotos.length;},0):0;
+  /* Se já foi salvo como rascunho, fechar direto */
+  if(rf&&rf._saved){
+    window._relFoto=null;document.body.removeChild(ov);return;
+  }
   if(totalFotos>0){
-    cf('?','Fechar','Tem '+totalFotos+' foto(s). O rascunho será perdido. Deseja fechar?',function(){
+    cf('Descartar','Fechar sem salvar?','Tem '+totalFotos+' foto(s). Use o botão 💾 Salvar para guardar o rascunho antes de sair.',function(){
       window._relFoto=null;localStorage.removeItem('_relFoto_draft');document.body.removeChild(ov);
     });
   }else{window._relFoto=null;document.body.removeChild(ov);}
