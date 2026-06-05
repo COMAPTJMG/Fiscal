@@ -3691,7 +3691,7 @@ function _exportRelFoto(){
 /* v94: Retomar rascunho de Relatório Simplificado salvo em S.insp */
 function retomarRelSimplificado(inspId){
   var i=S.insp.find(function(x){return x.id===inspId;});
-  if(!i||i.tipo!=='simplificado'){Tt('Rascunho não encontrado.');return;}
+  if(!i||(i.tipo!=='simplificado'&&i.tipo!=='fotografico')){Tt('Rascunho não encontrado.');return;}
   var rfData=i._relFotoData||{};
 
   /* Reconstruir window._relFoto a partir dos dados salvos */
