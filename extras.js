@@ -3682,7 +3682,7 @@ function _exportRelFoto(){
   var blob=new Blob([html],{type:'text/html;charset=utf-8'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='TJMG_SIMPLIFICADO_'+normProt(rf.edif)+'_'+rf.data+'.html';
+  a.download='TJMG_SIMPLIFICADO_'+normProt(rf.com||'')+'_'+normProt(rf.edif)+'_'+rf.data+'.html';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
   Tt('📸 Relatório exportado! '+totalFotos+' fotos em '+rf.secoes.length+' seção(ões).');
