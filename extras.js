@@ -3160,13 +3160,13 @@ function _calcFP(){
    Templates, tags, GPS, auto-save, exporta HTML profissional.
    ══════════════════════════════════════════════════════════════ */
 var _RF_TEMPLATES = [
-  {id:'periodica',   nm:'🔧 Manutenção Periódica',         cor:'#16a34a'},
-  {id:'intermediario',nm:'📋 Atendimento Intermediário',    cor:'#0369a1'},
-  {id:'emergencial', nm:'⚡ Manutenção Emergencial',        cor:'#dc2626'},
-  {id:'programada',  nm:'📐 Manutenção Programada',         cor:'#2563eb'},
-  {id:'subestacao',  nm:'🔌 Manutenção de Subestação',      cor:'#b45309'},
-  {id:'spda',        nm:'⚡ SPDA',                           cor:'#7c3aed'},
-  {id:'fachada',     nm:'🏛️ Fachada',                       cor:'#374151'},
+  {id:'periodica',   nm:'🔧 Manutenção Periódica',         cor:'#16a34a',  sigla:'RITMP', titulo:'RITMP — Acompanhamento Manutenção Periódica'},
+  {id:'intermediario',nm:'📋 Atendimento Intermediário',    cor:'#0369a1',  sigla:'AI',    titulo:'Acompanhamento Atendimento Intermediário'},
+  {id:'emergencial', nm:'⚡ Manutenção Emergencial',        cor:'#dc2626',  sigla:'RITE',  titulo:'RITE — Acompanhamento Manutenção Emergencial'},
+  {id:'programada',  nm:'📐 Manutenção Programada',         cor:'#2563eb',  sigla:'RITP',  titulo:'RITP — Acompanhamento Manutenção Programada'},
+  {id:'subestacao',  nm:'🔌 Manutenção de Subestação',      cor:'#b45309',  sigla:'SUB',   titulo:'Acompanhamento Manutenção de Subestação'},
+  {id:'spda',        nm:'⚡ SPDA',                           cor:'#7c3aed',  sigla:'SPDA',  titulo:'Acompanhamento SPDA'},
+  {id:'fachada',     nm:'🏛️ Fachada',                       cor:'#374151',  sigla:'FACH',  titulo:'Acompanhamento Fachada'},
 ];
 var _RF_TAGS = [
   {id:'civil',nm:'🏗 Civil',cor:'#b45309'},
@@ -3209,7 +3209,7 @@ function _renderRelFoto() {
   h += '<div style="background:'+tpl.cor+';padding:12px 14px;color:#fff;flex-shrink:0;">';
   h += '<div style="display:flex;align-items:center;gap:10px;">';
   h += '<button onclick="_fecharRelFoto()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">←</button>';
-  h += '<div style="flex:1;"><div style="font-size:14px;font-weight:800;">📸 Relatório Fotográfico</div>';
+  h += '<div style="flex:1;"><div style="font-size:13px;font-weight:800;">📸 '+_escA(tpl.titulo)+'</div>';
   h += '<div style="font-size:10px;opacity:.7;">'+totalFotos+' foto(s) · '+rf.secoes.length+' seção(ões)</div></div>';
   h += '<button onclick="_autoSaveRelFoto();Tt(\'💾 Rascunho salvo\')" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;">💾</button>';
   if(totalFotos>0) h += '<button onclick="_exportRelFoto()" style="background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;">📄 Exportar</button>';
@@ -3386,7 +3386,15 @@ function _renderRelFoto() {
 
   /* Botão exportar final */
   if(totalFotos>0){
-    h += '<button onclick="_exportRelFoto()" style="width:100%;background:'+tpl.cor+';color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:20px;">📄 Exportar Relatório ('+totalFotos+' fotos)</button>';
+    h += '<button onclick="_exportRelFoto()" style="width:100%;background:'+tpl.cor+';color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;">📄 Exportar '+_escA(tpl.sigla)+' ('+totalFotos+' fotos)</button>';
+  }
+  /* v94: botão Gerar OSP Programada — só para tipo programada */
+  if(rf.template==='programada'&&rf.edif){
+    h += '<button onclick="_gerarOSPdoRelFoto()" style="width:100%;background:#7c3aed;color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;">🔧 Gerar Ordem Programada (OSP)</button>';
+  }
+  /* Botão salvar rascunho grande */
+  if(rf.edif){
+    h += '<button onclick="_salvarRascunhoRelFoto()" style="width:100%;background:#475569;color:#fff;border:none;border-radius:12px;padding:12px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:20px;">💾 Salvar Rascunho</button>';
   }
 
   h += '</div>';
@@ -3442,6 +3450,113 @@ function _autoSaveRelFoto(){
   }catch(e){}
 }
 
+/* v94: Salvar como rascunho no S.insp (aparece em Relatórios, sincroniza) */
+function _salvarRascunhoRelFoto(){
+  var rf=window._relFoto;
+  if(!rf||!rf.edif){Tt('Preencha a edificação primeiro.');return;}
+  var tpl=_RF_TEMPLATES.find(function(t){return t.id===rf.template;})||_RF_TEMPLATES[0];
+  var totalFotos=rf.secoes.reduce(function(s,sec){return s+sec.fotos.length;},0);
+
+  /* Verificar se já existe rascunho salvo para este relFoto */
+  var existente=rf._inspId?S.insp.find(function(x){return x.id===rf._inspId;}):null;
+
+  var reg=(S.sessao&&S.sessao.reg)||'NORTE';
+  var R=typeof REG!=='undefined'?REG[reg]||{}:{};
+
+  var inspData={
+    id: rf._inspId || uid(),
+    tipo: 'fotografico',
+    _tipoFoto: rf.template,
+    edif: rf.edif,
+    com: rf.com,
+    reg: reg,
+    fiscal: rf.fiscal,
+    dtVistoria: rf.data,
+    data: rf.data,
+    st: 'em_andamento',
+    obs: rf.obs||'',
+    _relFotoData: {
+      template: rf.template,
+      assunto: rf.assunto,
+      conclusao: rf.conclusao,
+      secoes: rf.secoes.map(function(s){
+        return {
+          id:s.id, titulo:s.titulo,
+          fotos: s.fotos.map(function(f){return {leg:f.leg,tag:f.tag,dt:f.dt};})
+        };
+      })
+    },
+    itens: {},
+    _titulo: tpl.titulo,
+    _sigla: tpl.sigla,
+    _totalFotos: totalFotos
+  };
+
+  /* Salvar fotos no PhotoStore (IDB) para não estourar localStorage */
+  var fotoPromises=[];
+  rf.secoes.forEach(function(sec,si){
+    sec.fotos.forEach(function(f,fi){
+      var key='relfoto::'+inspData.id+'::'+si+'_'+fi;
+      if(f.b64&&f.b64!=='[saved]'){
+        fotoPromises.push(PhotoStore.put(key,f.b64));
+      }
+    });
+  });
+
+  Promise.all(fotoPromises).then(function(){
+    if(existente){
+      Object.keys(inspData).forEach(function(k){existente[k]=inspData[k];});
+    }else{
+      S.insp.unshift(inspData);
+      rf._inspId=inspData.id;
+    }
+    DB.sv();
+    Tt('💾 Rascunho salvo! ('+totalFotos+' fotos) — Aparece em Relatórios.');
+  });
+}
+window._salvarRascunhoRelFoto=_salvarRascunhoRelFoto;
+
+/* v94: Gerar OSP Programada a partir do rel. fotográfico */
+function _gerarOSPdoRelFoto(){
+  var rf=window._relFoto;
+  if(!rf||!rf.edif){Tt('Preencha a edificação primeiro.');return;}
+
+  var desc=rf.secoes.map(function(sec,idx){
+    return (idx+1)+'. '+sec.titulo+(sec.fotos.length?' ('+sec.fotos.length+' fotos)':'');
+  }).join('\n');
+
+  var novaId=uid();
+  var reg=(S.sessao&&S.sessao.reg)||'NORTE';
+  var nova={
+    id:novaId,
+    tipo:'osp',
+    edif:rf.edif,
+    com:rf.com,
+    reg:reg,
+    fiscal:rf.fiscal||'',
+    dtVistoria:new Date().toISOString().slice(0,10),
+    data:new Date().toISOString().slice(0,10),
+    st:'em_andamento',
+    obs:'OSP gerada a partir do Relatório Fotográfico:\n'+rf.assunto+'\n\nSeções:\n'+desc,
+    itens:{},
+    _origemRelFoto:rf._inspId||'',
+    os:''
+  };
+
+  S.insp.unshift(nova);
+  DB.sv();
+  Tt('🔧 OSP Programada criada! Aparece no select de programadas.');
+
+  /* Perguntar se quer abrir a OSP */
+  cf('OK','OSP Criada','OSP Programada gerada com sucesso para '+rf.edif+'.\nDeseja abrir agora?',function(){
+    var ov=document.getElementById('_relfoto_ov');
+    if(ov)document.body.removeChild(ov);
+    window._relFoto=null;
+    if(typeof retomarF==='function')retomarF(novaId);
+  });
+}
+window._gerarOSPdoRelFoto=_gerarOSPdoRelFoto;
+
 function _fecharRelFoto(){
   var ov=document.getElementById('_relfoto_ov');if(!ov)return;
   var rf=window._relFoto;
@@ -3464,7 +3579,7 @@ function _exportRelFoto(){
   var tpl=_RF_TEMPLATES.find(function(t){return t.id===rf.template;})||_RF_TEMPLATES[4];
 
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
-    +'<title>'+_escA(tpl.nm)+' — '+_escA(rf.edif)+'</title>'
+    +'<title>'+_escA(tpl.titulo)+' — '+_escA(rf.edif)+'</title>'
     +'<style>'
     +'@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&display=swap");'
     +'*{box-sizing:border-box;margin:0;padding:0}'
@@ -3497,7 +3612,7 @@ function _exportRelFoto(){
   /* Capa */
   html+='<div class="capa">';
   html+='<div style="font-size:11px;opacity:.5;margin-bottom:auto;">TRIBUNAL DE JUSTIÇA DO ESTADO DE MINAS GERAIS<br>DIRETORIA EXECUTIVA DE ENGENHARIA E GESTÃO PREDIAL</div>';
-  html+='<h1>'+_escA(tpl.nm)+'</h1>';
+  html+='<h1>'+_escA(tpl.titulo)+'</h1>';
   html+='<h2>'+_escA(rf.edif)+(rf.com?' · '+_escA(rf.com):'')+'</h2>';
   if(rf.assunto) html+='<p style="opacity:.8;font-size:12px;">'+_escA(rf.assunto)+'</p>';
   html+='<p>'+fdt(rf.data)+' · '+_escA(rf.fiscal)+(R.ct?' · '+_escA(R.ct):'')+'</p>';
@@ -3555,7 +3670,7 @@ function _exportRelFoto(){
   var blob=new Blob([html],{type:'text/html;charset=utf-8'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='TJMG_'+rf.template.toUpperCase()+'_'+normProt(rf.edif)+'_'+rf.data+'.html';
+  a.download='TJMG_'+tpl.sigla+'_'+normProt(rf.edif)+'_'+rf.data+'.html';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
   Tt('📸 Relatório exportado! '+totalFotos+' fotos em '+rf.secoes.length+' seção(ões).');
