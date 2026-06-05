@@ -428,9 +428,50 @@ function gerarNOTINA(inspId){
   if(!i){Tt('Inspeção não encontrada.');return;}
   var ncs=ovals(i.itens||{}).filter(function(v){return v.s==='nao_conforme';});
   if(!ncs.length){Tt('Nenhuma não-conformidade encontrada.');return;}
+
+  /* v94: modal para fiscal definir o prazo */
+  var ov=document.createElement('div');ov.id='_notina_prazo_ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:flex;align-items:center;justify-content:center;';
+  var mh='<div style="background:#fff;border-radius:16px;padding:20px;max-width:340px;width:90%;">';
+  mh+='<div style="font-size:15px;font-weight:800;color:#dc2626;margin-bottom:6px;">⚠️ Gerar NOT-INA</div>';
+  mh+='<div style="font-size:11px;color:#64748b;margin-bottom:12px;">'+ncs.length+' NC(s) encontrada(s) em <b>'+_escA(i.edif)+'</b>.<br>Defina o prazo para regularização:</div>';
+  mh+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
+  [15,30,60,90].forEach(function(d){
+    mh+='<button onclick="_executarNOTINA(\''+inspId+'\','+d+')" style="background:#fee2e2;color:#dc2626;border:2px solid #fca5a5;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;">'+d+' dias</button>';
+  });
+  mh+='</div>';
+  mh+='<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px;">Ou prazo personalizado:</div>';
+  mh+='<div style="display:flex;gap:6px;">';
+  mh+='<input id="_notina_dias_custom" type="number" min="1" max="365" placeholder="Dias" style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:14px;">';
+  mh+='<button onclick="var d=parseInt(el(\'_notina_dias_custom\').value);if(!d||d<1){Tt(\'Digite um número válido\');return;}_executarNOTINA(\''+inspId+'\',d)" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">Gerar</button>';
+  mh+='</div>';
+  mh+='<button onclick="document.body.removeChild(document.getElementById(\'_notina_prazo_ov\'))" style="width:100%;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;margin-top:10px;">Cancelar</button>';
+  mh+='</div>';
+  ov.innerHTML=mh;document.body.appendChild(ov);
+}
+
+function _executarNOTINA(inspId, prazoDias){
+  /* Fechar modal */
+  var ov=document.getElementById('_notina_prazo_ov');
+  if(ov)document.body.removeChild(ov);
+
+  var i=S.insp.find(function(x){return x.id===inspId;});
+  if(!i)return;
+  var ncs=ovals(i.itens||{}).filter(function(v){return v.s==='nao_conforme';});
   var s=S.sessao||{};var R=REG[i.reg]||{l:i.reg||'',ct:'CT 017/2026'};
   var numDoc=gerarNumRegistro(i.reg,'NOT');
   var dtHoje=fdt(new Date().toISOString().slice(0,10));
+
+  /* Texto do prazo por extenso */
+  var prazoExtenso = {15:'quinze',30:'trinta',60:'sessenta',90:'noventa'}[prazoDias] || String(prazoDias);
+  var prazoTexto = prazoDias + ' (' + prazoExtenso + ') dias corridos';
+
+  /* Salvar prazo nas NCs para contagem regressiva */
+  if(typeof definirPrazoNC==='function'){
+    Object.entries(i.itens||{}).forEach(function(pair){
+      if(pair[1].s==='nao_conforme') definirPrazoNC(inspId, pair[0], prazoDias);
+    });
+  }
   var html='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'+
     '<title>NOT-INA '+numDoc+'</title>'+
     '<style>body{font-family:Arial,sans-serif;font-size:11pt;margin:2cm;color:#000;}'+
@@ -461,7 +502,7 @@ function gerarNOTINA(inspId){
     var _emp = R.empresa && R.empresa !== 'A definir' ? R.empresa : null;
     html +=
     '<p>Em virtude das inadequações constatadas acima, notificamos a empresa <b>'+(_emp?_escA(_emp):'contratada ('+_escA(R.ct||'—')+')')+'</b> '+
-    'a regularizar as pendências no prazo de <b>30 (trinta) dias corridos</b>, conforme '+_escA(R.ct||'o contrato')+'.</p>'+
+    'a regularizar as pendências no prazo de <b>'+prazoTexto+'</b>, conforme '+_escA(R.ct||'o contrato')+'.</p>'+
     '<div class="footer">'+
     '<div class="ass">'+_escA(i.fiscal||s.nome||'—')+'<br>Fiscal de Contrato — TJMG/COMAP-GEMAP-DENGEP</div>'+
     '<div class="ass">_______________________<br>Representante da Contratada<br>'+(_emp?_escA(_emp):_escA(R.ct||'—'))+'</div>'+
@@ -530,4 +571,5 @@ window.undoPop            = undoPop;
 window.calcAgenda         = calcAgenda;
 window.gerarNumRegistro   = gerarNumRegistro;
 window.gerarNOTINA        = gerarNOTINA;
+window._executarNOTINA    = _executarNOTINA;
 window.gerarROC           = gerarROC;
