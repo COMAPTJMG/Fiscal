@@ -1749,7 +1749,8 @@ function _renderDet(id){
     h+='<button onclick="abrirSeletorNcParaOsp(\''+i.id+'\')" style="background:#0f766e;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 OSP desta inspeção</button>';
     h+='<button onclick="abrirOspEdificacao(\''+_escA(i.edif)+'\',\''+_escA(i.reg||'')+'\')" style="background:#064e3b;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📋 Todas NCs — '+_escA(i.edif)+'</button>';
     h+='<button onclick="iniciarProgramadaDeNCs(\''+i.id+'\')" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">🔧 OSP Programada</button>';
-    h+='<button onclick="gerarMsgNcEmpresa(\''+i.id+'\')" style="background:#25d366;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📩 Msg Empresa (NC)</button>';
+    h+='<button onclick="gerarMsgNcEmpresa(\''+i.id+'\')" style="background:#25d366;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">📩 Msg Empresa</button>';
+    h+='<button onclick="gerarNOTINA(\''+i.id+'\')" style="background:#dc2626;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">⚠️ NOT-INA</button>';
   }
   h+='<button onclick="abrirAssinatura(\''+i.id+'\')" style="background:#003580;color:#fff;border:none;border-radius:10px;padding:10px;font-size:11px;font-weight:700;cursor:pointer;">✍️ Assinar</button>';
   h+='</div>';
