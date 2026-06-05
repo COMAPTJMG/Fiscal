@@ -3225,11 +3225,35 @@ function _renderRelFoto() {
   });
   h += '</div>';
 
-  /* Dados */
+  /* Dados — comarca e edificação via select da região do fiscal */
+  var _reg = (S.sessao && S.sessao.reg) ? S.sessao.reg : 'NORTE';
+  var _edifData = typeof EDIFICACOES !== 'undefined' ? EDIFICACOES[_reg] || {} : {};
+  var _comarcas = Object.keys(_edifData).sort();
+
   h += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:12px;">';
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">';
-  h += '<div><div style="font-size:9px;font-weight:700;color:#94a3b8;">EDIFICAÇÃO *</div><input value="'+_escA(rf.edif)+'" oninput="window._relFoto.edif=this.value" placeholder="Nome da edificação" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;box-sizing:border-box;"></div>';
-  h += '<div><div style="font-size:9px;font-weight:700;color:#94a3b8;">COMARCA</div><input value="'+_escA(rf.com)+'" oninput="window._relFoto.com=this.value" placeholder="Comarca" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;box-sizing:border-box;"></div>';
+
+  /* Select Comarca */
+  h += '<div><div style="font-size:9px;font-weight:700;color:#94a3b8;">COMARCA *</div>';
+  h += '<select id="_rf_com" onchange="window._relFoto.com=this.value;window._relFoto.edif=\'\';_renderRelFoto()" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;box-sizing:border-box;background:#fff;">';
+  h += '<option value="">Selecione...</option>';
+  _comarcas.forEach(function(c){
+    h += '<option value="'+_escA(c)+'"'+(rf.com===c?' selected':'')+'>'+_escA(c)+'</option>';
+  });
+  h += '</select></div>';
+
+  /* Select Edificação (filtrado pela comarca) */
+  var _edifsDaComarca = rf.com ? (_edifData[rf.com] || []) : [];
+  h += '<div><div style="font-size:9px;font-weight:700;color:#94a3b8;">EDIFICAÇÃO *</div>';
+  h += '<select onchange="window._relFoto.edif=this.value" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;box-sizing:border-box;background:#fff;">';
+  if(!rf.com) h += '<option value="">Selecione a comarca primeiro</option>';
+  else {
+    h += '<option value="">Selecione...</option>';
+    _edifsDaComarca.forEach(function(e){
+      h += '<option value="'+_escA(e.edif)+'"'+(rf.edif===e.edif?' selected':'')+'>'+_escA(e.edif)+' (Grp '+e.grp+')</option>';
+    });
+  }
+  h += '</select></div>';
   h += '</div>';
   h += '<div style="font-size:9px;font-weight:700;color:#94a3b8;">ASSUNTO</div>';
   h += '<input value="'+_escA(rf.assunto)+'" oninput="window._relFoto.assunto=this.value" placeholder="Ex: Acompanhamento pintura 2º pavimento" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:7px;font-size:12px;box-sizing:border-box;margin-bottom:6px;">';
