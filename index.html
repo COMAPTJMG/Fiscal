@@ -909,7 +909,7 @@ function rTipos(){
     h+='<div class="tc" style="border-color:'+t.c+';" onclick="iniciarF(\''+k+'\')"><div style="width:46px;height:46px;border-radius:12px;background:'+t.bg+';display:flex;align-items:center;justify-content:center;font-size:24px;">'+t.i+'</div><div style="font-size:12px;font-weight:800;color:'+t.c+';">'+t.l+'</div><div style="font-size:10px;color:#64748b;flex:1;line-height:1.5;">'+(descs[k]||'')+'</div><div style="background:'+t.c+';border-radius:8px;padding:7px;text-align:center;font-size:11px;font-weight:700;color:#fff;">Iniciar &#8594;</div></div>';
   });
   /* v94: card Relatório Fotográfico */
-  h+='<div class="tc" style="border-color:#b45309;" onclick="abrirRelFotografico()"><div style="width:46px;height:46px;border-radius:12px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:24px;">📸</div><div style="font-size:12px;font-weight:800;color:#b45309;">Relatório Fotográfico</div><div style="font-size:10px;color:#64748b;flex:1;line-height:1.5;">Fotos com legenda, seções e tags — rápido e direto</div><div style="background:#b45309;border-radius:8px;padding:7px;text-align:center;font-size:11px;font-weight:700;color:#fff;">Iniciar &#8594;</div></div>';
+  h+='<div class="tc" style="border-color:#475569;" onclick="abrirRelFotografico()"><div style="width:46px;height:46px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:24px;">📋</div><div style="font-size:12px;font-weight:800;color:#475569;">Relatório Simplificado</div><div style="font-size:10px;color:#64748b;flex:1;line-height:1.5;">Fotos com legenda, seções e tags — rápido e direto</div><div style="background:#475569;border-radius:8px;padding:7px;text-align:center;font-size:11px;font-weight:700;color:#fff;">Iniciar &#8594;</div></div>';
   el('tgrid').innerHTML=h;
 }
 
@@ -947,7 +947,7 @@ function _inpHasStatus(insp,stKey){
 }
 function rRel(){
   BNS.forEach(function(id){var e=el(id);if(e)e.innerHTML=bH('rel');});
-  var nl={todos:'Todos',periodica:'RITMP',ose:'RITE',programada:'RITP',osp:'OSP',fachada:'Fachada',spda:'SPDA',prontuario:'Laudos',subestacao:'Subestação',fotografico:'📸 Fotográfico'};
+  var nl={todos:'Todos',periodica:'RITMP',ose:'RITE',programada:'RITP',osp:'OSP',fachada:'Fachada',spda:'SPDA',prontuario:'Laudos',subestacao:'Subestação',simplificado:'📋 Simplificado'};
   var fs=['todos'].concat(Object.keys(TIPOS)).concat(nl['fotografico']?['fotografico']:[]);
   el('rflt').innerHTML=fs.map(function(f){
     var sel=S.rflt===f;
@@ -1719,6 +1719,16 @@ function _renderDet(id){
     /* ── Grupo: Exportar ── */
     /* v86: Ações avançadas */
   var _hasNcs=Object.values(i.itens||{}).some(function(v){return v.s==='nao_conforme';});
+  /* v94: info card para simplificado */
+  if(i.tipo==='simplificado'){
+    var _rfRef=i._ref||'';
+    var _rfFotos=i._totalFotos||0;
+    h+='<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
+    h+='<div style="font-size:12px;font-weight:800;color:#475569;">📋 Relatório Simplificado</div>';
+    if(_rfRef) h+='<div style="font-size:11px;color:#64748b;margin-top:2px;">Ref: '+_escA(_rfRef)+'</div>';
+    h+='<div style="font-size:10px;color:#94a3b8;margin-top:2px;">'+_rfFotos+' foto(s) registrada(s)</div>';
+    h+='</div>';
+  }
   /* v92: label contra-vistoria + NC→OSP Programada */
   if(i._contraVistoria){
     var _ncPersistem = Object.values(i.itens||{}).filter(function(v){return v.s==='nao_conforme';}).length;
@@ -1728,6 +1738,13 @@ function _renderDet(id){
     h+='<div style="font-size:11px;color:#7c3aed;margin-top:4px;">'+_corrigidos+' corrigido(s) ✅ · '+_ncPersistem+' persistente(s) ❌</div>';
     if(_ncPersistem>0) h+='<div style="font-size:10px;color:#dc2626;margin-top:4px;font-weight:700;">NCs que persistem podem virar OSP Programada ↓</div>';
     h+='</div>';
+  }
+  /* v94: botão retomar para Relatório Simplificado */
+  if(i.tipo==='simplificado'&&i.st==='em_andamento'){
+    h+='<button onclick="retomarRelSimplificado(\''+i.id+'\')" style="background:#475569;color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;width:100%;margin-bottom:10px;">▶ Retomar Relatório Simplificado</button>';
+  }
+  if(i.tipo==='simplificado'&&i.st==='finalizada'){
+    h+='<button onclick="retomarRelSimplificado(\''+i.id+'\')" style="background:#64748b;color:#fff;border:none;border-radius:10px;padding:12px;font-size:12px;font-weight:700;cursor:pointer;width:100%;margin-bottom:10px;">📄 Abrir / Exportar</button>';
   }
   h+='<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Ações</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">';
