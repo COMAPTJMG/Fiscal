@@ -3849,6 +3849,19 @@ function _getParesSwipe(inspId) {
 }
 window._getParesSwipe = _getParesSwipe;
 
+
+/* v94: stubs para funções referenciadas mas pendentes de implementação */
+function rIMR(){
+  var c=el('imr-body');if(!c)return;
+  c.innerHTML='<div style="padding:20px;text-align:center;color:#64748b;"><div style="font-size:48px;margin-bottom:10px;">📊</div><div style="font-size:14px;font-weight:700;">IMR — Em desenvolvimento</div><div style="font-size:11px;margin-top:6px;">O cálculo de IMR será implementado em breve.</div></div>';
+}
+window.rIMR=rIMR;
+
+function abrirPronEdif(edif,com){
+  Tt('🏛️ Prontuário de '+edif+' — funcionalidade em desenvolvimento');
+}
+window.abrirPronEdif=abrirPronEdif;
+
 window.abrirCalculadoraEletrica=abrirCalculadoraEletrica;
 
 /* ══════════════════════════════════════════════════════════════
